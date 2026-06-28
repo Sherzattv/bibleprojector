@@ -6,6 +6,12 @@
   "name": "bibleprojector",
   "compatibility_date": "2026-06-28",
   "assets": {
-    "directory": "."
+    "directory": ".",
+    // .html отдаём буквально, без редиректа на «чистый» URL — так совпадает с тем,
+    // как написан Service Worker и как файлы лежат на диске (переносимо на любой хост).
+    "html_handling": "none",
+    // Корень "/" и неизвестные пути отдаём как /index.html (200);
+    // без этого "none" вернул бы 404 на главной.
+    "not_found_handling": "single-page-application"
   }
 }
