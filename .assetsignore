@@ -1,5 +1,5 @@
 # Cloudflare Workers Static Assets — не публиковать служебные/исходные файлы как статику сайта.
-# (node_modules, .git, wrangler.jsonc Wrangler исключает автоматически.)
+# (node_modules и .git Wrangler исключает автоматически; конфиг указываем явно ниже.)
 
 # Скрипты конвертации/проверки данных
 scripts/
@@ -20,3 +20,4 @@ package-lock.json
 eslint.config.js
 vitest.config.js
 .prettierrc
+wrangler.jsonc
