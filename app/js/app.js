@@ -1,6 +1,6 @@
 /**
  * app.js - Main controller application
- * Integrates all modules for the Eternal Light controller interface
+ * Integrates all modules for the Bible Projector controller interface
  */
 
 import { parseQuery, fetchVerse, fullTextSearch, getNextVerse, getPrevVerse } from './modules/search.js';

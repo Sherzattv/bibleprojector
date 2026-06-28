@@ -1,7 +1,7 @@
 {
-    "name": "Вечный Свет",
+    "name": "Bible Projector",
     "version": "2.0.0",
-    "short_name": "ВечныйСвет",
+    "short_name": "Bible Projector",
     "description": "Приложение для трансляции библейских стихов на проектор",
     "start_url": "./controller.html",
     "display": "standalone",

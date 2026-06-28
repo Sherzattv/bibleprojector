@@ -17,6 +17,17 @@ import {
 export { getBookTitle, BOOK_INFO, TRANSLATION_MAPS };
 
 /**
+ * Strip markup tags (e.g. <b>, <i>, <J>) from verse text.
+ * Some translations embed formatting in the text (NRT headings, KYB words of
+ * Christ). Full-text search must match the VISIBLE text, not the markup.
+ * @param {string} text
+ * @returns {string}
+ */
+function stripTags(text) {
+    return text.replace(/<[^>]*>/g, '');
+}
+
+/**
  * Parse a verse reference query string
  * @param {string} query - User input like "ин 3 16", "рим 1:1", "1 кор 13:4-8"
  * @returns {Object|null} Parsed reference with canonicalCode, or null
@@ -170,7 +181,7 @@ export function fullTextSearch(query, db, translation = 'RST', limit = 20) {
     for (const book of db.Books) {
         for (const chapter of book.Chapters) {
             for (const verse of chapter.Verses) {
-                if (verse.Text.toLowerCase().includes(searchTerm)) {
+                if (stripTags(verse.Text).toLowerCase().includes(searchTerm)) {
                     const canonicalCode = idToCode[book.BookId];
                     // Use canonical title for consistency
                     const bookTitle = getBookTitle(canonicalCode, lang);

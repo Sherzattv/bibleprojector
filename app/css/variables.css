@@ -1,5 +1,5 @@
 /**
- * Eternal Light - Design System Variables
+ * Bible Projector - Design System Variables
  * 2024 Modern UI — Dark Glassmorphism
  */
 
@@ -16,7 +16,8 @@
     /* Colors - Text */
     --text-primary: #ffffff;
     --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-tertiary: rgba(255, 255, 255, 0.4);
+    /* 0.55 ≈ 6.3:1 на --bg-primary — проходит WCAG AA (было 0.4 ≈ 3.8:1) */
+    --text-tertiary: rgba(255, 255, 255, 0.55);
     
     /* Colors - Accent */
     --accent: #6366f1;

@@ -1,5 +1,5 @@
 /**
- * display.js - Display window module for Eternal Light
+ * display.js - Display window module for Bible Projector
  * Handles receiving and displaying verses from the controller
  */
 
@@ -142,6 +142,8 @@ channel.onmessage = (event) => handleMessage(event.data);
 
 // Listen to postMessage from parent window (popup)
 window.addEventListener('message', (event) => {
+    // Принимаем сообщения только со своего origin (защита от инъекций через postMessage)
+    if (event.origin !== window.location.origin) return;
     handleMessage(event.data);
 });
 

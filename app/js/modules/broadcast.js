@@ -45,9 +45,9 @@ export function sendToDisplay(type, data = null) {
     // Try BroadcastChannel first
     channel.postMessage(payload);
 
-    // Also try postMessage for popup window
+    // Also try postMessage for popup window (target our own origin only, not '*')
     if (isDisplayAvailable()) {
-        displayWindow.postMessage(payload, '*');
+        displayWindow.postMessage(payload, window.location.origin);
         return true;
     }
 

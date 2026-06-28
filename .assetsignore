@@ -1,0 +1,22 @@
+# Cloudflare Pages — не публиковать служебные/исходные файлы как статику сайта.
+# (node_modules, .git, .DS_Store Pages исключает автоматически.)
+
+# Скрипты конвертации/проверки данных
+scripts/
+
+# Архив исходников и скриншотов
+archive/
+
+# Исходный модуль Библии (SQLite, ~8 МБ) — на проде не нужен
+bible module/
+
+# Тесты
+app/tests/
+
+# Документация (линкуется на GitHub), dev-конфиги и манифесты пакетов
+*.md
+package.json
+package-lock.json
+eslint.config.js
+vitest.config.js
+.prettierrc

@@ -151,11 +151,42 @@ export const TRANSLATION_MAPS = {
 // LOOKUP UTILITIES
 // ============================================================
 
+// Дополнительные короткие сокращения для казахских/киргизских названий книг.
+// (Полные нативные имена и русские сокращения уже перечислены в BOOK_INFO.abbr.)
+const EXTRA_ABBR = {
+    GEN: ["жар", "баш"],   // Жаратылыс / Башталыш
+    EXO: ["шыг", "чыг"],   // Шығу / Чыгуу
+    LEV: ["леу"],          // Леуіліктер
+    NUM: ["сан"],          // Сандар
+    DEU: ["заң", "мый"],   // Заңды қайталау / Мыйзам
+    JOS: ["ешу", "жош"],   // Ешуа / Жошуа
+    JDG: ["бил", "сот"],   // Билер / Соттор
+    NEH: ["нех"],          // Нехемия
+    EST: ["ест", "эст"],   // Естер / Эстер
+    PSA: ["заб", "жыр"],   // Забур / Жырлар
+    PRO: ["нақ"],          // Нақыл сөздер
+    ECC: ["уағ", "нас"],   // Уағыздаушы / Насаатчы
+    SNG: ["сүл", "сул"]    // Сүлейменнің әндері / Сулаймандын ыры
+};
+
+const _normalize = (s) => s.toLowerCase().replace(/\s+/g, '').replace(/-/g, '');
+
 // Build reverse lookup: abbreviation → canonical code
 const _abbrToCode = {};
 for (const [code, info] of Object.entries(BOOK_INFO)) {
+    // 1) Явные сокращения (русские + полные нативные имена) — высший приоритет
     for (const abbr of info.abbr) {
         _abbrToCode[abbr] = code;
+    }
+    // 2) Короткие нативные сокращения (kz/ky), не перезаписывая явные
+    for (const abbr of EXTRA_ABBR[code] || []) {
+        if (!(abbr in _abbrToCode)) _abbrToCode[abbr] = code;
+    }
+    // 3) Отображаемые имена (ru/kz/ky) — чтобы показанную ссылку можно было ввести обратно
+    //    (напр. «Екклесиаст», «Михей», «От Матфея»). Не трогаем уже занятые ключи.
+    for (const name of [info.ru, info.kz, info.ky]) {
+        const norm = _normalize(name);
+        if (norm && !(norm in _abbrToCode)) _abbrToCode[norm] = code;
     }
 }
 
