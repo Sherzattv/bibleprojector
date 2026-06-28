@@ -1,5 +1,5 @@
-# Cloudflare Pages — не публиковать служебные/исходные файлы как статику сайта.
-# (node_modules, .git, .DS_Store Pages исключает автоматически.)
+# Cloudflare Workers Static Assets — не публиковать служебные/исходные файлы как статику сайта.
+# (node_modules, .git, wrangler.jsonc Wrangler исключает автоматически.)
 
 # Скрипты конвертации/проверки данных
 scripts/

@@ -1,0 +1,11 @@
+{
+  // Bible Projector — статический сайт на Workers Static Assets (без серверного кода).
+  // Деплой: `npx wrangler deploy`. Файлы берутся из корня репозитория,
+  // лишнее отсекается через .assetsignore.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "bibleprojector",
+  "compatibility_date": "2026-06-28",
+  "assets": {
+    "directory": "."
+  }
+}
