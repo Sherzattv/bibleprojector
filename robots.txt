@@ -5,4 +5,4 @@ Disallow: /archive/
 Disallow: /node_modules/
 Disallow: /scripts/
 
-Sitemap: https://sherzattv.github.io/Eternal-Light/sitemap.xml
+Sitemap: https://bibleprojector.kz/sitemap.xml

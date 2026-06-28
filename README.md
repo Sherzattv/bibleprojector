@@ -2,8 +2,8 @@
 
 Профессиональная PWA-система для вывода стихов из Библии на экраны и проекторы.
 
-**🏠 [Посмотреть сайт проекта →](https://sherzattv.github.io/Eternal-Light/)**  
-**🌐 [Открыть приложение →](https://sherzattv.github.io/Eternal-Light/app/controller.html)**
+**🏠 [Посмотреть сайт проекта →](https://bibleprojector.kz/)**  
+**🌐 [Открыть приложение →](https://bibleprojector.kz/app/controller.html)**
 
 ## ✨ Возможности
 
