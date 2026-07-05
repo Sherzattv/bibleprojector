@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatSongText, getSongById, searchSongs, toSongProjection } from '../js/modules/songs.js';
+import { formatSongText, getSongById, searchSongs, splitSongSections, toSongProjection } from '../js/modules/songs.js';
 
 const songs = [
     {
@@ -57,11 +57,30 @@ describe('song formatting', () => {
         expect(html).toContain('&lt;');
     });
 
-    it('creates projection-ready song object', () => {
+    it('splits labeled song text into projection sections', () => {
+        const sections = splitSongSections(songs[0].text);
+        expect(sections).toHaveLength(2);
+        expect(sections[0].label).toBe('Куплет 1');
+        expect(sections[0].html).toContain('Великий Бог');
+        expect(sections[1].label).toBe('Припев 1');
+        expect(sections[1].html).toContain('Аллилуйя');
+    });
+
+    it('splits unlabeled song text by blank-line stanzas', () => {
+        const sections = splitSongSections('Первая строка\nВторая строка\n\nНовый куплет');
+        expect(sections).toHaveLength(2);
+        expect(sections[0].rawText).toContain('Первая строка');
+        expect(sections[1].rawText).toBe('Новый куплет');
+    });
+
+    it('creates projection-ready song object with the first section only', () => {
         const projected = toSongProjection(songs[0]);
         expect(projected.type).toBe('song');
-        expect(projected.reference).toBe('Великий Бог · № 101');
-        expect(projected.text).toContain('Аллилуйя');
+        expect(projected.reference).toBe('Великий Бог · № 101 · Куплет 1');
+        expect(projected.text).toContain('Великий Бог');
+        expect(projected.text).not.toContain('Аллилуйя');
+        expect(projected.sections).toHaveLength(2);
+        expect(projected.sectionIndex).toBe(0);
     });
 
     it('finds song by id', () => {
