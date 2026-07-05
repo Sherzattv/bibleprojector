@@ -181,7 +181,6 @@ async function handleSearch(e) {
         addToHistory(data);
         renderHistory(elements.historyList, loadFromHistory);
 
-        // Ctrl+Enter broadcasts immediately
         // Ctrl+Enter or Cmd+Enter broadcasts immediately
         if (e.ctrlKey || e.metaKey) {
             broadcastToDisplay();
