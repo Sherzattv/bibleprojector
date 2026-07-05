@@ -8,7 +8,7 @@ import { showVerse, showNote, hideDisplay, updateDisplaySettings, openDisplayWin
 import { addToHistory, renderHistory, getFromHistory, clearHistory as clearHistoryData } from './modules/history.js';
 import { loadSettings, saveSettings, getEdit, saveEdit } from './modules/settings.js';
 import { updateStatus } from './modules/dom-utils.js';
-import { formatSongText, searchSongs, toSongProjection } from './modules/songs.js';
+import { formatSongText, searchSongs, splitSongSections, toSongProjection } from './modules/songs.js';
 
 // === STATE ===
 let currentVerse = null;
@@ -281,6 +281,17 @@ function hideFromDisplay() {
     updateStatus(elements.status, '⏳ Готов');
 }
 
+function applySongSection(song, index) {
+    if (!song || song.type !== 'song' || !song.sections?.length) return false;
+    if (index < 0 || index >= song.sections.length) return false;
+
+    const section = song.sections[index];
+    song.sectionIndex = index;
+    song.text = section.html;
+    song.reference = section.label ? `${song.baseReference || song.title} · ${section.label}` : (song.baseReference || song.title);
+    return true;
+}
+
 // === HISTORY ===
 function loadFromHistory(index) {
     const verse = getFromHistory(index);
@@ -294,6 +305,21 @@ function loadFromHistory(index) {
 // === VERSE NAVIGATION ===
 function goToNextVerse() {
     if (!currentVerse) return;
+
+    if (currentVerse.type === 'song') {
+        const nextIndex = (currentVerse.sectionIndex || 0) + 1;
+        if (applySongSection(currentVerse, nextIndex)) {
+            displayPreview(currentVerse);
+            updateStatus(elements.status, `✓ ${currentVerse.reference}`, 'success');
+
+            if (isDisplayAvailable()) {
+                broadcastToDisplay();
+            }
+        } else {
+            updateStatus(elements.status, '⚠️ Конец песни', 'error');
+        }
+        return;
+    }
 
     const translation = elements.translationSelect.value;
     const db = getDatabases()[translation];
@@ -323,6 +349,21 @@ function goToNextVerse() {
 
 function goToPrevVerse() {
     if (!currentVerse) return;
+
+    if (currentVerse.type === 'song') {
+        const prevIndex = (currentVerse.sectionIndex || 0) - 1;
+        if (applySongSection(currentVerse, prevIndex)) {
+            displayPreview(currentVerse);
+            updateStatus(elements.status, `✓ ${currentVerse.reference}`, 'success');
+
+            if (isDisplayAvailable()) {
+                broadcastToDisplay();
+            }
+        } else {
+            updateStatus(elements.status, '⚠️ Начало песни', 'error');
+        }
+        return;
+    }
 
     const translation = elements.translationSelect.value;
     const db = getDatabases()[translation];
@@ -412,7 +453,11 @@ window.saveEdit = function () {
     const editedText = elements.editArea.value.trim();
     if (currentVerse.type === 'song') {
         currentVerse.rawText = editedText;
-        currentVerse.text = formatSongText(editedText);
+        currentVerse.sections = splitSongSections(editedText);
+        applySongSection(currentVerse, Math.min(currentVerse.sectionIndex || 0, currentVerse.sections.length - 1));
+        if (!currentVerse.sections.length) {
+            currentVerse.text = formatSongText(editedText);
+        }
     } else {
         currentVerse.text = editedText;
         const translation = elements.translationSelect.value;

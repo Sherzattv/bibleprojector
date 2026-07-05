@@ -10,7 +10,7 @@
  * ВАЖНО: при изменении оболочки/данных поднимайте версию кэша ниже.
  */
 
-const CACHE_VERSION = 'v13';
+const CACHE_VERSION = 'v14';
 const CACHE_NAME = `bibleprojector-${CACHE_VERSION}`;
 const OFFLINE_URL = './offline.html';
 

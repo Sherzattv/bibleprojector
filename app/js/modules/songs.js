@@ -32,6 +32,63 @@ export function formatSongText(text) {
 }
 
 /**
+ * Split song lyrics into projection sections: куплеты, припевы, мосты, etc.
+ * Labeled blocks like [Куплет 1] start a new slide. If a song has no labels,
+ * blank-line stanzas become separate slides.
+ * @param {string} text
+ * @returns {Array<{label: string, rawText: string, html: string}>}
+ */
+export function splitSongSections(text) {
+    const raw = (text || '').trim();
+    if (!raw) return [];
+
+    const hasLabels = /^\[[^\]]+\]$/m.test(raw);
+
+    if (!hasLabels) {
+        return raw
+            .split(/\n\s*\n/g)
+            .map((stanza) => stanza.trim())
+            .filter(Boolean)
+            .map((stanza) => ({
+                label: '',
+                rawText: stanza,
+                html: formatSongText(stanza)
+            }));
+    }
+
+    const lines = raw.split('\n');
+    const sections = [];
+    let currentLabel = '';
+    let currentLines = [];
+
+    const pushSection = () => {
+        const body = currentLines.join('\n').trim();
+        if (!currentLabel && !body) return;
+
+        const sectionText = [currentLabel, body].filter(Boolean).join('\n');
+        sections.push({
+            label: currentLabel.replace(/^\[|\]$/g, ''),
+            rawText: sectionText,
+            html: formatSongText(sectionText)
+        });
+    };
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (/^\[[^\]]+\]$/.test(trimmed)) {
+            pushSection();
+            currentLabel = trimmed;
+            currentLines = [];
+        } else {
+            currentLines.push(line);
+        }
+    }
+    pushSection();
+
+    return sections;
+}
+
+/**
  * Create projection-ready object from a song record.
  * @param {Object} song
  * @returns {Object|null}
@@ -39,13 +96,20 @@ export function formatSongText(text) {
 export function toSongProjection(song) {
     if (!song) return null;
 
+    const sections = splitSongSections(song.text);
+    const firstSection = sections[0] || { label: '', rawText: song.text, html: formatSongText(song.text) };
+    const baseReference = song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title;
+
     return {
         type: 'song',
         id: song.id,
         title: song.title,
-        text: formatSongText(song.text),
-        reference: song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title,
+        text: firstSection.html,
+        reference: firstSection.label ? `${baseReference} · ${firstSection.label}` : baseReference,
+        baseReference,
         rawText: song.text,
+        sections,
+        sectionIndex: 0,
         copyright: song.copyright || ''
     };
 }
