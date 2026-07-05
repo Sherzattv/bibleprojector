@@ -8,10 +8,10 @@ import { showVerse, showNote, hideDisplay, updateDisplaySettings, openDisplayWin
 import { addToHistory, renderHistory, getFromHistory, clearHistory as clearHistoryData } from './modules/history.js';
 import { loadSettings, saveSettings, getEdit, saveEdit } from './modules/settings.js';
 import { updateStatus } from './modules/dom-utils.js';
+import { formatSongText, searchSongs, toSongProjection } from './modules/songs.js';
 
 // === STATE ===
 let currentVerse = null;
-let currentDb = null;  // Will be set after data loads
 
 // === DATABASE REFERENCES ===
 // These will be available globally after script loads
@@ -22,8 +22,7 @@ const getDatabases = () => ({
     KYB: window.KYB_DATA
 });
 
-const getKtbBookMap = () => window.KTB_BOOK_MAP;
-const getKybBookMap = () => window.KYB_BOOK_MAP;
+const getSongs = () => window.SONGS_RU || [];
 
 // === DOM ELEMENTS ===
 const elements = {
@@ -162,7 +161,6 @@ async function handleSearch(e) {
 
     const translation = elements.translationSelect.value;
     const db = getDatabases()[translation];
-    const ktbMap = translation === 'KTB' ? getKtbBookMap() : null;
 
     const parsed = parseQuery(query);
     if (!parsed) {
@@ -186,7 +184,6 @@ async function handleSearch(e) {
         addToHistory(data);
         renderHistory(elements.historyList, loadFromHistory);
 
-        // Ctrl+Enter broadcasts immediately
         // Ctrl+Enter or Cmd+Enter broadcasts immediately
         if (e.ctrlKey || e.metaKey) {
             broadcastToDisplay();
@@ -393,7 +390,7 @@ window.toggleEditMode = function () {
     if (!currentVerse) return;
 
     elements.verseText.style.display = 'none';
-    elements.editArea.value = currentVerse.text;
+    elements.editArea.value = currentVerse.rawText || currentVerse.text;
     elements.editArea.classList.add('active');
     document.getElementById('btn-edit').style.display = 'none';
     document.getElementById('btn-save').style.display = 'inline-flex';
@@ -412,9 +409,15 @@ window.cancelEdit = function () {
 window.saveEdit = function () {
     if (!currentVerse) return;
 
-    currentVerse.text = elements.editArea.value.trim();
-    const translation = elements.translationSelect.value;
-    saveEdit(translation, currentVerse.bookName, currentVerse.chapter, currentVerse.verse, currentVerse.text);
+    const editedText = elements.editArea.value.trim();
+    if (currentVerse.type === 'song') {
+        currentVerse.rawText = editedText;
+        currentVerse.text = formatSongText(editedText);
+    } else {
+        currentVerse.text = editedText;
+        const translation = elements.translationSelect.value;
+        saveEdit(translation, currentVerse.bookName, currentVerse.chapter, currentVerse.verse, currentVerse.text);
+    }
     displayPreview(currentVerse);
     window.cancelEdit();
 
@@ -443,7 +446,7 @@ window.clearHistory = function () {
 // === REGISTER SERVICE WORKER ===
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('✅ Service Worker зарегистрирован'))
+        .then(() => console.log('✅ Service Worker зарегистрирован'))
         .catch(err => console.log('❌ Service Worker ошибка:', err));
 }
 
@@ -494,10 +497,10 @@ function performTextSearch() {
     const db = getDatabases()[translation];
 
     const results = fullTextSearch(query, db, translation, 30);
-    renderSearchResults(results, query);
+    renderSearchResults(results);
 }
 
-function renderSearchResults(results, query) {
+function renderSearchResults(results) {
     const container = document.getElementById('text-search-results');
     const countEl = document.getElementById('text-search-count');
 
@@ -541,8 +544,97 @@ function renderSearchResults(results, query) {
                 displayPreview(verse);
                 addToHistory(verse);
                 renderHistory(elements.historyList, loadFromHistory);
-                closeTextSearch();
+                window.closeTextSearch();
                 updateStatus(elements.status, `✓ ${verse.reference}`, 'success');
+            }
+        }
+    };
+}
+
+// === SONG SEARCH ===
+window.openSongSearch = function () {
+    const modal = document.getElementById('song-search-modal');
+    const input = document.getElementById('song-search-input');
+    const countEl = document.getElementById('song-search-count');
+    const songs = getSongs();
+
+    modal.classList.add('active');
+    input.value = '';
+    countEl.textContent = `В каталоге: ${songs.length} песен`;
+    input.focus();
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            performSongSearch();
+        }
+    };
+};
+
+window.closeSongSearch = function () {
+    const modal = document.getElementById('song-search-modal');
+    modal.classList.remove('active');
+};
+
+function performSongSearch() {
+    const query = document.getElementById('song-search-input').value.trim();
+    if (!query) return;
+
+    const results = searchSongs(query, getSongs(), 40);
+    renderSongResults(results);
+}
+
+function renderSongResults(results) {
+    const container = document.getElementById('song-search-results');
+    const countEl = document.getElementById('song-search-count');
+
+    container.innerHTML = '';
+    countEl.textContent = `Найдено: ${results.length}`;
+
+    if (results.length === 0) {
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'color: var(--text-tertiary); text-align: center; padding: 40px;';
+        placeholder.textContent = 'Песни не найдены';
+        container.appendChild(placeholder);
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    results.forEach((song, index) => {
+        const item = document.createElement('div');
+        item.className = 'search-result-item';
+        item.dataset.index = index;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'search-result-ref';
+        titleDiv.textContent = song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title;
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'search-result-text';
+        const preview = song.text.replace(/^\[[^\]]+\]\s*/gm, '').slice(0, 220);
+        textDiv.textContent = preview.length === 220 ? `${preview}...` : preview;
+
+        item.appendChild(titleDiv);
+        item.appendChild(textDiv);
+        fragment.appendChild(item);
+    });
+
+    container.appendChild(fragment);
+
+    container.onclick = (e) => {
+        const item = e.target.closest('.search-result-item');
+        if (item && item.dataset.index !== undefined) {
+            const song = results[Number(item.dataset.index)];
+            const projection = toSongProjection(song);
+            if (projection) {
+                currentVerse = projection;
+                displayPreview(projection);
+                window.closeSongSearch();
+                updateStatus(elements.status, `✓ ${projection.title}`, 'success');
+
+                if (isDisplayAvailable()) {
+                    broadcastToDisplay();
+                }
             }
         }
     };

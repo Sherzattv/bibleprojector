@@ -81,6 +81,17 @@ body {
     transition: font-family 0.3s, font-size 0.3s;
 }
 
+.song-section-label {
+    display: inline-block;
+    margin-top: 0.4em;
+    color: var(--accent-color);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.42em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
 .verse-reference {
     font-family: 'Inter', sans-serif;
     font-size: 2.2vw;
