@@ -367,6 +367,16 @@ body::before {
     letter-spacing: -0.3px;
 }
 
+.song-section-label {
+    display: inline-block;
+    margin-top: 10px;
+    color: var(--accent);
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 .verse-text.placeholder {
     color: var(--text-tertiary);
     font-style: italic;

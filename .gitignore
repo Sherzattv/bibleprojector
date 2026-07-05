@@ -8,6 +8,7 @@ node_modules/
 # Temp folders
 archive/ktb_temp/
 archive/temp_inspect/
+tmp/
 
 # Source data (large files, already converted to app/js/data/)
 archive/sources/*.zip
