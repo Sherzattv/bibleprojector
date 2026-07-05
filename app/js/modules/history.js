@@ -3,7 +3,7 @@
  * Manages search history with safe DOM manipulation
  */
 
-import { createElement, clearChildren, appendChildren, createHistoryItem, setupHistoryDelegation } from './dom-utils.js';
+import { clearChildren, createHistoryItem, setupHistoryDelegation } from './dom-utils.js';
 
 const MAX_HISTORY_SIZE = 15;
 

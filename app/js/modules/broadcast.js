@@ -106,7 +106,7 @@ export async function openDisplayWindow() {
                 `left=${externalScreen.left},top=${externalScreen.top},width=${externalScreen.width},height=${externalScreen.height}`
             );
             return displayWindow;
-        } catch (e) {
+        } catch {
             console.log('Multi-screen API not available, falling back');
         }
     }

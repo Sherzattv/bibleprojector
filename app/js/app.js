@@ -11,7 +11,6 @@ import { updateStatus } from './modules/dom-utils.js';
 
 // === STATE ===
 let currentVerse = null;
-let currentDb = null;  // Will be set after data loads
 
 // === DATABASE REFERENCES ===
 // These will be available globally after script loads
@@ -21,9 +20,6 @@ const getDatabases = () => ({
     KTB: window.KTB_DATA,
     KYB: window.KYB_DATA
 });
-
-const getKtbBookMap = () => window.KTB_BOOK_MAP;
-const getKybBookMap = () => window.KYB_BOOK_MAP;
 
 // === DOM ELEMENTS ===
 const elements = {
@@ -162,7 +158,6 @@ async function handleSearch(e) {
 
     const translation = elements.translationSelect.value;
     const db = getDatabases()[translation];
-    const ktbMap = translation === 'KTB' ? getKtbBookMap() : null;
 
     const parsed = parseQuery(query);
     if (!parsed) {
@@ -443,7 +438,7 @@ window.clearHistory = function () {
 // === REGISTER SERVICE WORKER ===
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js')
-        .then(reg => console.log('✅ Service Worker зарегистрирован'))
+        .then(() => console.log('✅ Service Worker зарегистрирован'))
         .catch(err => console.log('❌ Service Worker ошибка:', err));
 }
 
@@ -494,10 +489,10 @@ function performTextSearch() {
     const db = getDatabases()[translation];
 
     const results = fullTextSearch(query, db, translation, 30);
-    renderSearchResults(results, query);
+    renderSearchResults(results);
 }
 
-function renderSearchResults(results, query) {
+function renderSearchResults(results) {
     const container = document.getElementById('text-search-results');
     const countEl = document.getElementById('text-search-count');
 
@@ -541,7 +536,7 @@ function renderSearchResults(results, query) {
                 displayPreview(verse);
                 addToHistory(verse);
                 renderHistory(elements.historyList, loadFromHistory);
-                closeTextSearch();
+                window.closeTextSearch();
                 updateStatus(elements.status, `✓ ${verse.reference}`, 'success');
             }
         }

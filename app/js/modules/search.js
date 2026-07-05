@@ -36,13 +36,13 @@ export function parseQuery(query) {
     query = query.toLowerCase().replace(/[:]/g, ' ').replace(/\s+/g, ' ').trim();
 
     // Regex for book names like "1 кор" or "ин"
-    const match = query.match(/^(\d?\s?[а-яёa-z]+)\s+(\d+)\s*([\d\-\,]*)$/);
+    const match = query.match(/^(\d?\s?[а-яёa-z]+)\s+(\d+)\s*([\d,-]*)$/);
 
     if (!match) return null;
 
-    let bookName = match[1].replace(/\s/g, '');
-    let chapter = match[2];
-    let verse = match[3] || "1";
+    const bookName = match[1].replace(/\s/g, '');
+    const chapter = match[2];
+    const verse = match[3] || "1";
 
     // Get canonical code from abbreviation
     const canonicalCode = getCanonicalCode(bookName);
