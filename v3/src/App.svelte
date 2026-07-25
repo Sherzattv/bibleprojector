@@ -6,6 +6,7 @@
     LoaderCircle,
     Settings2,
     PanelLeft,
+    RotateCw,
     Library as LibraryIcon,
   } from '@lucide/svelte'
   import Omnibox from './lib/components/Omnibox.svelte'
@@ -31,6 +32,7 @@
   let settingsOpen = $state(false)
   let mobilePanel = $state<'setlist' | 'library' | null>(null)
   let compactLayout = $state(false)
+  let retrying = $state(false)
 
   const projector = getProjectorLink()
 
@@ -55,18 +57,35 @@
     return () => media.removeEventListener('change', syncLayout)
   })
 
+  // Всё, что делается после успешной загрузки данных —
+  // общее для первого старта и для повтора по кнопке
+  function afterDataReady() {
+    if (data.status !== 'ready') return
+    // Индексация — в Web Worker, главный поток не блокируется
+    pushSongs(data.songs)
+    // Стартовое наполнение: первый элемент плейлиста, который удаётся открыть
+    for (let i = 0; i < setlist.items.length && setlist.currentIdx < 0; i++) {
+      setlist.open(i)
+    }
+    ui.clearNotice()
+  }
+
   $effect(() => {
-    data.init().then(() => {
-      if (data.status !== 'ready') return
-      // Индексация — в Web Worker, главный поток не блокируется
-      pushSongs(data.songs)
-      // Стартовое наполнение: первый элемент плейлиста, который удаётся открыть
-      for (let i = 0; i < setlist.items.length && setlist.currentIdx < 0; i++) {
-        setlist.open(i)
-      }
-      ui.clearNotice()
-    })
+    data.init().then(afterDataReady)
   })
+
+  // Провал стартовой загрузки — не тупик: обновление страницы часто не помогает,
+  // поэтому даём повтор прямо в экране ошибки
+  async function retryLoad() {
+    if (retrying) return
+    retrying = true
+    try {
+      await data.retryInit()
+      afterDataReady()
+    } finally {
+      retrying = false
+    }
+  }
 
   // Отдаём воркеру перевод, как только он загружен/выбран
   $effect(() => {
@@ -212,14 +231,32 @@
 
   {#if data.status === 'loading'}
     <div class="grid place-items-center">
-      <div class="flex items-center gap-2.5 text-base text-muted">
-        <LoaderCircle size={18} class="animate-spin text-accent" />
-        Загрузка переводов и песен…
+      <div class="flex flex-col items-center gap-1.5">
+        <div class="flex items-center gap-2.5 text-base text-muted">
+          <LoaderCircle size={18} class="animate-spin text-accent" />
+          Загрузка переводов и песен…
+        </div>
+        <!-- Прогресса в байтах нет, но объём стоит назвать: первый запуск долгий -->
+        <div class="text-xs text-faint">
+          Первый запуск качает около 5 МБ, дальше данные берутся из кэша.
+        </div>
       </div>
     </div>
   {:else if data.status === 'error'}
     <div class="grid place-items-center">
-      <div class="text-base text-live">Не удалось загрузить данные. Обновите страницу.</div>
+      <div class="flex flex-col items-center gap-3">
+        <div class="text-base text-live">Не удалось загрузить данные.</div>
+        <button
+          onclick={retryLoad}
+          disabled={retrying}
+          class="flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm
+                 font-medium text-muted hover:bg-hover hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+        >
+          <RotateCw size={13} class={retrying ? 'animate-spin' : ''} />
+          {retrying ? 'Повторяем…' : 'Повторить'}
+        </button>
+        <div class="text-xs text-faint">Проверьте соединение — данные подгружаются из сети.</div>
+      </div>
     </div>
   {:else}
     <!-- Три зоны -->

@@ -2,32 +2,10 @@
  * Настройки проекции: масштаб шрифта и показ ссылки.
  * Персистентны, устойчивы к мусору в хранилище.
  */
-import type { TextStore } from './edits.svelte'
+import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
 
 const KEY = 'bp3-proj-settings'
 const DEFAULTS = { fontScale: 1, showReference: true }
-
-function memoryStore(): TextStore {
-  const mem = new Map<string, string>()
-  return {
-    get: (k) => mem.get(k) ?? null,
-    set: (k, v) => {
-      mem.set(k, v)
-    },
-    remove: (k) => {
-      mem.delete(k)
-    },
-  }
-}
-
-function defaultStore(): TextStore {
-  if (typeof localStorage === 'undefined') return memoryStore()
-  return {
-    get: (k) => localStorage.getItem(k),
-    set: (k, v) => localStorage.setItem(k, v),
-    remove: (k) => localStorage.removeItem(k),
-  }
-}
 
 export class ProjSettingsStore {
   fontScale = $state(DEFAULTS.fontScale)
@@ -35,7 +13,7 @@ export class ProjSettingsStore {
 
   private store: TextStore
 
-  constructor(store: TextStore) {
+  constructor(store: TextStore = createBrowserStore()) {
     this.store = store
     this.load()
   }
@@ -76,10 +54,10 @@ export class ProjSettingsStore {
   }
 
   /** Для тестов: подменить хранилище (без аргумента — чистое in-memory) */
-  reset(store?: TextStore) {
-    this.store = store ?? memoryStore()
+  reset(store: TextStore = createMemoryStore()) {
+    this.store = store
     this.load()
   }
 }
 
-export const projSettings = new ProjSettingsStore(defaultStore())
+export const projSettings = new ProjSettingsStore()

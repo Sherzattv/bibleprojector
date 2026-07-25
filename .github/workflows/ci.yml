@@ -12,8 +12,11 @@ concurrency:
 
 jobs:
   production:
-    name: v3 — production build
+    name: v3 — production build и раздача
     runs-on: ubuntu-latest
+    # Дымовой тест поднимает настоящий wrangler dev; если тот подвиснет,
+    # джоба должна умереть сама, а не висеть до общего лимита GitHub.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,7 +24,17 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # Валидирует wrangler.jsonc и заодно выполняет build.command
+      # (это `npm run build`), поэтому после шага dist/ уже собран.
       - run: npx wrangler deploy --dry-run
+      # --dry-run не обслуживает ни одного HTTP-запроса: он проверяет конфиг и
+      # выходит. А html_handling и not_found_handling — это поведение роутера во
+      # время запроса, статически невидимое; именно поэтому баг с
+      # html_handling:"none" (по /app/ отдавался лендинг вместо приложения)
+      # спокойно прошёл CI. Ниже поднимается wrangler dev на собранном dist/ и
+      # дёргаются реальные URL: /, /app/, /app/data/manifest.json и заведомо
+      # отсутствующие пути. Подробности — в scripts/smoke-serve.mjs.
+      - run: npm run smoke
 
   v3:
     name: v3 — типы и тесты

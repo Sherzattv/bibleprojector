@@ -6,9 +6,23 @@
   <title>Bible Projector — стихи и песни на проекторе за секунды</title>
   <meta name="description" content="Бесплатный пульт для вывода стихов Библии и песен на проектор: умный поиск, второй экран, работает офлайн. 4 перевода, 11 500+ песен." />
   <link rel="icon" type="image/svg+xml" href="/app/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Bible Projector" />
+  <meta property="og:locale" content="ru_RU" />
   <meta property="og:title" content="Bible Projector" />
   <meta property="og:description" content="Стихи Библии и песни на проекторе за секунды. Бесплатно, офлайн." />
   <meta property="og:url" content="https://bibleprojector.kz/" />
+  <!-- Абсолютный URL обязателен: Telegram, WhatsApp и Slack не разрешают
+       относительные пути в og:image. Размер 1200x630 — это и требуемые
+       Open Graph минимум 200x200, и ровно 1.91:1 для twitter:summary_large_image,
+       поэтому картинка не обрезается ни в одном из клиентов.
+       Исходник и команда перерисовки — в scripts/og-image.svg. -->
+  <meta property="og:image" content="https://bibleprojector.kz/og-image.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Bible Projector — стихи и песни на проекторе за секунды" />
+  <meta name="twitter:card" content="summary_large_image" />
   <style>
     :root {
       --bg: #0b0c0e;

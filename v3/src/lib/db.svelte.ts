@@ -56,29 +56,69 @@ function createKV(): KVStore {
       set: async (k, v) => {
         mem.set(k, v)
       },
+      delete: async (k) => {
+        mem.delete(k)
+      },
     }
   }
   const CACHE_NAME = 'bp3-data-v1'
   const keyUrl = (k: string) => `/__bp3-data/${encodeURIComponent(k)}`
+  // caches.open умеет бросать (SecurityError в приватном окне Firefox,
+  // отозванное хранилище): тогда кэша просто нет, данные едут из сети
+  const open = async (): Promise<Cache | null> => {
+    try {
+      return await caches.open(CACHE_NAME)
+    } catch {
+      return null
+    }
+  }
   return {
     async get(k) {
-      const cache = await caches.open(CACHE_NAME)
-      const hit = await cache.match(keyUrl(k))
+      const cache = await open()
+      const hit = await cache?.match(keyUrl(k))
       return hit ? hit.text() : null
     },
     async set(k, v) {
-      const cache = await caches.open(CACHE_NAME)
-      await cache.put(keyUrl(k), new Response(v))
+      const cache = await open()
+      await cache?.put(keyUrl(k), new Response(v))
+    },
+    async delete(k) {
+      const cache = await open()
+      await cache?.delete(keyUrl(k))
     },
   }
 }
 
-const fetchText: FetchText = async (url) => {
-  const r = await fetch(url)
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`)
-  // Совместимость с тестовыми моками, отдающими только json()
-  return typeof r.text === 'function' ? r.text() : JSON.stringify(await r.json())
+/**
+ * Стартовая пара rst+songs — это ~21 МБ JSON (~5.5 МБ сжатыми), на медленном
+ * мобильном канале это под минуту. Берём с двойным запасом: подождать долго
+ * лучше, чем висеть вечно — без AbortSignal промис зависшего соединения не
+ * разрешается никогда, и пользователь смотрит на бесконечный спиннер.
+ */
+const FETCH_TIMEOUT_MS = 120_000
+
+/** timeoutMs — только ради тестов; приложение использует FETCH_TIMEOUT_MS */
+export function createFetchText(timeoutMs: number = FETCH_TIMEOUT_MS): FetchText {
+  return async (url) => {
+    // AbortSignal.timeout есть не во всех webview — без него просто без таймаута
+    const signal =
+      typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+        ? AbortSignal.timeout(timeoutMs)
+        : undefined
+    const r = await fetch(url, { signal })
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`)
+    // Отсутствующий путь на Cloudflare отдаётся как 200 + лендинг: HTML нельзя
+    // принимать за данные. headers нет у тестовых моков — там проверку пропускаем
+    const type = r.headers?.get('content-type') ?? ''
+    if (type && !type.includes('json')) {
+      throw new Error(`Ожидался JSON, получен «${type}»: ${url}`)
+    }
+    // Совместимость с тестовыми моками, отдающими только json()
+    return typeof r.text === 'function' ? r.text() : JSON.stringify(await r.json())
+  }
 }
+
+const fetchText = createFetchText()
 
 class DataStore {
   // $state.raw: данные иммутабельны, глубокие прокси на 43 МБ —
@@ -119,6 +159,14 @@ class DataStore {
   /** Повторить загрузку перевода после ошибки */
   retryTranslation(code: string): Promise<void> {
     return this.loadTranslation(code)
+  }
+
+  /** Повторить стартовую загрузку после ошибки (кнопка «Повторить» в UI) */
+  retryInit(): Promise<void> {
+    // init() выставляет только ready/error — обратно в loading переводим здесь,
+    // чтобы спиннер появился сразу по клику
+    this.status = 'loading'
+    return this.init()
   }
 
   async init() {
