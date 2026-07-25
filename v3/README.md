@@ -26,6 +26,8 @@ Svelte 5, TypeScript, Vite и Tailwind CSS 4.
 - миграция порядка из localStorage v2;
 - PWA с precache оболочки и версионированным Cache Storage для данных;
 - адаптивные выдвижные панели для планшетов и телефонов.
+- Playwright E2E критического пути: точная ссылка, Preview, Live, история
+  и восстановление порядка после перезагрузки.
 
 ## Текущие ограничения
 
@@ -35,7 +37,7 @@ Svelte 5, TypeScript, Vite и Tailwind CSS 4.
 - размер текста задаётся масштабом, автоматического autofit пока нет;
 - кнопка логотипа отключена, дополнительные темы не реализованы;
 - в Omnibox нет навигации по результатам стрелками и полной ARIA combobox-модели;
-- нет автоматизированных браузерных E2E-тестов;
+- браузерное покрытие пока ограничено одним критическим сценарием;
 - часть поискового ядра временно переиспользуется из legacy JavaScript;
 - `npm audit` сообщает о dev-цепочке `vite-plugin-pwa`; production-зависимости
   проходят `npm audit --omit=dev` без уязвимостей.
@@ -87,6 +89,7 @@ Vite покажет локальный адрес. Пульт доступен �
 | `npm run check` | Svelte diagnostics и TypeScript |
 | `npm test` | Vitest, однократный прогон |
 | `npm run test:watch` | Vitest в watch-режиме |
+| `npm run test:e2e` | Данные, production-сборка и Chromium E2E |
 | `npm run data` | Конвертация и валидация полных данных |
 | `npm run build` | Production PWA в `dist/` |
 | `npm run preview` | Просмотр содержимого `dist/` |
@@ -97,10 +100,13 @@ Vite покажет локальный адрес. Пульт доступен �
 ```bash
 npm run check
 npm test
-npm run data
-npm run build
+npx playwright install chromium
+npm run test:e2e
 npm audit --omit=dev
 ```
+
+Установка Chromium нужна один раз на рабочую машину. В CI браузер
+устанавливается автоматически с системными зависимостями.
 
 ## Архитектура
 
@@ -110,6 +116,8 @@ v3/
 │   ├── convert-data.mjs     # Полная конвертация
 │   └── convert-core.mjs     # Очистка, валидация и хэши
 ├── public/data/             # Генерируемые JSON и manifest
+├── e2e/                     # Браузерные сценарии Playwright
+├── playwright.config.ts     # Production-preview и Chromium
 ├── src/
 │   ├── lib/components/      # Пульт и DisplayView
 │   ├── lib/legacy/          # canonical/search/songs + декларации типов

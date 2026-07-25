@@ -21,7 +21,7 @@ jobs:
       - run: npm run verify:layout
 
   v3:
-    name: v3 — типы, тесты, сборка
+    name: v3 — типы, тесты, E2E
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -36,5 +36,5 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
-      - run: npm run data
-      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

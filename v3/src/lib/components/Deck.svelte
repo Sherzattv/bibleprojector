@@ -25,7 +25,7 @@
   }
 </script>
 
-<div class="bg-bg p-3">
+<section class="bg-bg p-3" aria-label={isLive ? 'Эфир' : 'Предпросмотр'}>
   <div class="mb-1.5 flex items-center justify-between">
     <span class="text-xs font-semibold tracking-wide uppercase {isLive ? 'text-live' : 'text-muted'}">
       {isLive ? 'Эфир' : 'Превью'}
@@ -100,4 +100,4 @@
       </div>
     {/if}
   </div>
-</div>
+</section>

@@ -11,9 +11,11 @@
     "data": "node scripts/convert-data.mjs",
     "build:demo": "node scripts/convert-data.mjs && vite build --mode demo",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "npm run data && npm run build && playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "@tsconfig/svelte": "^5.0.8",
     "@types/node": "^24.13.2",

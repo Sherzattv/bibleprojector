@@ -71,7 +71,7 @@
   }
 </script>
 
-<aside class="flex min-h-0 flex-col bg-panel">
+<aside class="flex min-h-0 flex-col bg-panel" aria-label="Библиотека">
   <div class="flex h-9 shrink-0 items-stretch border-b border-stroke">
     {#each [['songs', 'Песни', Music], ['bible', 'Библия', BookOpen], ['history', 'История', History]] as const as [key, label, Icon] (key)}
       <button

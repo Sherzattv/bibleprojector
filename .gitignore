@@ -22,3 +22,7 @@ archive/sources/*.json
 
 # v3 production build (built at deploy time, served at /next/)
 /next/
+
+# Playwright E2E artifacts
+/v3/playwright-report/
+/v3/test-results/
