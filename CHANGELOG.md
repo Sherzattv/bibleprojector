@@ -34,6 +34,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Текущий фокус roadmap перенесён на UX-полировку desktop-интерфейса;
   последующие E2E, офлайн-проверка, управление проектором и autofit сохранены
   в явной очередности.
+- v3 перенесена с временного `/next/` на основной URL; Cloudflare теперь
+  публикует только production-сборку `v3/dist/`.
+
+### Fixed
+- Исправлен Cloudflare-деплой, при котором запросы CSS и JavaScript под
+  `/next/` попадали в SPA fallback и получали legacy HTML вместо статических
+  файлов.
 
 ## [2.2.0] - 2026-07-25
 

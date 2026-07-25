@@ -1,17 +1,19 @@
 {
-  // Bible Projector — статический сайт на Workers Static Assets (без серверного кода).
-  // Деплой: `npx wrangler deploy`. Файлы берутся из корня репозитория,
-  // лишнее отсекается через .assetsignore.
+  // Bible Projector v3 — статическая Svelte PWA без серверного кода.
+  // Публикуется только production-сборка v3, а не корень репозитория.
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "bibleprojector",
-  "compatibility_date": "2026-06-28",
+  "compatibility_date": "2026-07-25",
+  "build": {
+    // Работает при локальном `npm run deploy`. В Cloudflare Workers Builds
+    // команда `npm run build` также должна быть задана в настройках Build.
+    "command": "npm run build"
+  },
   "assets": {
-    "directory": ".",
-    // .html отдаём буквально, без редиректа на «чистый» URL — так совпадает с тем,
-    // как написан Service Worker и как файлы лежат на диске (переносимо на любой хост).
+    "directory": "./v3/dist",
+    // Vite создаёт корневой index.html; неизвестные клиентские маршруты
+    // возвращаются в приложение.
     "html_handling": "none",
-    // Корень "/" и неизвестные пути отдаём как /index.html (200);
-    // без этого "none" вернул бы 404 на главной.
     "not_found_handling": "single-page-application"
   }
 }

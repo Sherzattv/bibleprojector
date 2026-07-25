@@ -1,25 +1,29 @@
 {
     "name": "bibleprojector",
-    "version": "2.2.0",
-    "description": "Bible Display System (PWA)",
-    "main": "app/controller.html",
+    "version": "3.0.0-preview.1",
+    "description": "Bible Projector v3 desktop PWA",
     "type": "module",
+    "engines": {
+        "node": ">=22"
+    },
     "scripts": {
-        "start": "open app/controller.html",
+        "start": "npm run dev --prefix v3",
+        "build": "npm ci --prefix v3 && npm run data --prefix v3 && npm run build --prefix v3",
         "test": "vitest run",
         "test:watch": "vitest",
         "lint": "eslint app/js --ext .js",
         "lint:fix": "eslint app/js --ext .js --fix",
         "verify:layout": "node scripts/verify_layout.js",
-        "build:v3": "cd v3 && npm run data && npx vite build --base=/next/ --outDir ../next --emptyOutDir",
-        "deploy": "npm run build:v3 && npx wrangler deploy"
+        "build:v3": "npm run build",
+        "deploy": "wrangler deploy"
     },
     "devDependencies": {
         "eslint": "^9.0.0",
         "jsdom": "^25.0.0",
         "prettier": "^3.0.0",
         "puppeteer": "^24.35.0",
-        "vitest": "^2.0.0"
+        "vitest": "^2.0.0",
+        "wrangler": "^4.114.0"
     },
     "author": "Sherzat",
     "license": "MIT"
