@@ -1,7 +1,37 @@
 /**
- * Ядро конвертера данных: извлечение, чистка и валидация.
- * Используется scripts/convert-data.mjs и покрыто tests/convert.test.ts.
+ * Ядро конвертера данных: извлечение, чистка, валидация и манифест версий.
+ * Используется scripts/convert-data.mjs; покрыто tests/convert.test.ts
+ * и tests/manifest.test.ts.
  */
+import { createHash } from 'node:crypto'
+
+/**
+ * Контент-хэш: sha256, первые 16 hex-символов.
+ * @param {string} content
+ * @returns {string}
+ */
+export function hashContent(content) {
+  return createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 16)
+}
+
+/**
+ * Манифест версий данных для офлайн-кэша: клиент сравнивает хэши
+ * и перекачивает только изменившиеся файлы.
+ * @param {Record<string, string>} files — имя → содержимое
+ * @returns {{version: string, files: Record<string, {hash: string, size: number}>}}
+ */
+export function buildManifest(files) {
+  const names = Object.keys(files).sort()
+  const out = {}
+  for (const name of names) {
+    out[name] = {
+      hash: hashContent(files[name]),
+      size: Buffer.byteLength(files[name], 'utf8'),
+    }
+  }
+  const version = hashContent(names.map((n) => `${n}:${out[n].hash}`).join('\n'))
+  return { version, files: out }
+}
 
 /**
  * Извлечь данные из исходника вида `window.X = {...};`.

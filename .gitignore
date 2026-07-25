@@ -16,3 +16,6 @@ archive/sources/*.json
 
 # IDE/Editor
 .vscode/
+
+# v3 production build (built at deploy time, served at /next/)
+/next/

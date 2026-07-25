@@ -31,6 +31,8 @@ export interface SongRow {
   copyright?: string
 }
 
+import { loadManifest, loadDataFile, type KVStore, type FetchText, type DataManifest } from './data-cache'
+
 export type LoadStatus = 'loading' | 'ready' | 'error'
 
 export const TRANSLATIONS: Array<[code: string, label: string]> = [
@@ -41,6 +43,42 @@ export const TRANSLATIONS: Array<[code: string, label: string]> = [
 ]
 
 const IS_DEMO = import.meta.env.MODE === 'demo'
+
+/**
+ * KV поверх Cache Storage (переживает перезапуски — офлайн-старт);
+ * вне браузера / без caches — эфемерная Map (тесты, file://).
+ */
+function createKV(): KVStore {
+  if (typeof caches === 'undefined') {
+    const mem = new Map<string, string>()
+    return {
+      get: async (k) => mem.get(k) ?? null,
+      set: async (k, v) => {
+        mem.set(k, v)
+      },
+    }
+  }
+  const CACHE_NAME = 'bp3-data-v1'
+  const keyUrl = (k: string) => `/__bp3-data/${encodeURIComponent(k)}`
+  return {
+    async get(k) {
+      const cache = await caches.open(CACHE_NAME)
+      const hit = await cache.match(keyUrl(k))
+      return hit ? hit.text() : null
+    },
+    async set(k, v) {
+      const cache = await caches.open(CACHE_NAME)
+      await cache.put(keyUrl(k), new Response(v))
+    },
+  }
+}
+
+const fetchText: FetchText = async (url) => {
+  const r = await fetch(url)
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${url}`)
+  // Совместимость с тестовыми моками, отдающими только json()
+  return typeof r.text === 'function' ? r.text() : JSON.stringify(await r.json())
+}
 
 class DataStore {
   // $state.raw: данные иммутабельны, глубокие прокси на 43 МБ —
@@ -59,16 +97,17 @@ class DataStore {
     return this.bibles[this.translation] ?? null
   }
 
-  private async fetchJson(path: string): Promise<unknown> {
-    const r = await fetch(path)
-    if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`)
-    return r.json()
+  private kv: KVStore = createKV()
+  private manifest: DataManifest = { version: '', files: {} }
+
+  private loadFile(name: string): Promise<unknown> {
+    return loadDataFile(name, `data/${name}`, this.manifest, this.kv, fetchText)
   }
 
   private async loadTranslation(code: string): Promise<void> {
     this.translationStatus = { ...this.translationStatus, [code]: 'loading' }
     try {
-      const db = (await this.fetchJson(`data/${code.toLowerCase()}.json`)) as BibleDb
+      const db = (await this.loadFile(`${code.toLowerCase()}.json`)) as BibleDb
       this.bibles = { ...this.bibles, [code]: db }
       this.translationStatus = { ...this.translationStatus, [code]: 'ready' }
     } catch (e) {
@@ -94,9 +133,18 @@ class DataStore {
           Object.keys(this.bibles).map((code) => [code, 'ready']),
         )
       } else {
+        // Свежий KV на каждый init: Cache Storage персистентен сам по себе,
+        // а in-memory-фоллбек не должен протекать между вызовами
+        this.kv = createKV()
+        try {
+          this.manifest = (await loadManifest('data/manifest.json', this.kv, fetchText)).manifest
+        } catch {
+          // Нет ни сети, ни кэшированного манифеста — грузим файлы напрямую
+          this.manifest = { version: '', files: {} }
+        }
         const [rst, songs] = await Promise.all([
-          this.fetchJson('data/rst.json') as Promise<BibleDb>,
-          this.fetchJson('data/songs.json') as Promise<SongRow[]>,
+          this.loadFile('rst.json') as Promise<BibleDb>,
+          this.loadFile('songs.json') as Promise<SongRow[]>,
         ])
         this.bibles = { RST: rst }
         this.songs = songs

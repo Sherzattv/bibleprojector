@@ -21,3 +21,6 @@ eslint.config.js
 vitest.config.js
 .prettierrc
 wrangler.jsonc
+
+# Исходники v3 не публикуем как статику (прод-сборка лежит в /next/)
+v3/

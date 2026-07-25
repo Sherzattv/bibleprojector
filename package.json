@@ -9,7 +9,9 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "lint": "eslint app/js --ext .js",
-        "lint:fix": "eslint app/js --ext .js --fix"
+        "lint:fix": "eslint app/js --ext .js --fix",
+        "build:v3": "cd v3 && npm run data && npx vite build --base=/next/ --outDir ../next --emptyOutDir",
+        "deploy": "npm run build:v3 && npx wrangler deploy"
     },
     "devDependencies": {
         "eslint": "^9.0.0",

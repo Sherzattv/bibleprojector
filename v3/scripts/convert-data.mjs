@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { parseGlobalJs, sanitizeBible, validateBible } from './convert-core.mjs'
+import { parseGlobalJs, sanitizeBible, validateBible, buildManifest } from './convert-core.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repo = join(here, '..', '..')
@@ -29,13 +29,16 @@ const translations = {
 
 let hasProblems = false
 const full = {}
+const written = {}
 for (const [code, file] of Object.entries(translations)) {
   const raw = parseGlobalJs(readFileSync(join(dataDir, file), 'utf8'))
   const { db, report } = sanitizeBible(raw)
   const problems = validateBible(db)
 
   full[code] = db
-  writeFileSync(join(outDir, `${code.toLowerCase()}.json`), JSON.stringify(db))
+  const json = JSON.stringify(db)
+  written[`${code.toLowerCase()}.json`] = json
+  writeFileSync(join(outDir, `${code.toLowerCase()}.json`), json)
 
   const anomalies = []
   if (report.duplicates.length) {
@@ -57,8 +60,15 @@ for (const [code, file] of Object.entries(translations)) {
 }
 
 const songs = parseGlobalJs(readFileSync(join(dataDir, 'songs_ru.js'), 'utf8'))
-writeFileSync(join(outDir, 'songs.json'), JSON.stringify(songs))
+const songsJson = JSON.stringify(songs)
+written['songs.json'] = songsJson
+writeFileSync(join(outDir, 'songs.json'), songsJson)
 console.log(`Песни: ${songs.length}`)
+
+// Манифест версий: офлайн-клиент перекачивает только изменившиеся файлы
+const manifest = buildManifest(written)
+writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest))
+console.log(`Манифест: версия ${manifest.version}`)
 
 // Демо-срез: Иоанна + Псалтирь в каждом переводе, первые 300 песен
 const DEMO_BOOKS = ['JHN', 'PSA']
