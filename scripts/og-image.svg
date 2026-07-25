@@ -1,0 +1,64 @@
+<!--
+  Исходник превью для соцсетей. Готовый PNG лежит в site/og-image.png
+  и коммитится в репозиторий: сборка (npm run build) картинку не генерирует,
+  а просто копирует site/ в dist/.
+
+  Перерисовать после правки этого файла (sharp приезжает транзитивно
+  с wrangler → miniflare, отдельная зависимость не нужна):
+
+    node -e "const s=require('sharp'),f=require('fs');\
+      s(f.readFileSync('scripts/og-image.svg'),{density:72})\
+       .png({compressionLevel:9}).toFile('site/og-image.png')"
+
+  density:72 обязателен — при дефолтной плотности librsvg отдаёт 1600x840.
+  Проверить результат: sips -g pixelWidth -g pixelHeight site/og-image.png
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <radialGradient id="glow" cx="0.18" cy="0.12" r="0.75">
+      <stop offset="0" stop-color="#4f83f1" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#4f83f1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.9" cy="0.95" r="0.6">
+      <stop offset="0" stop-color="#2f9e63" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#2f9e63" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="#0b0c0e"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect width="1200" height="630" fill="url(#glow2)"/>
+
+  <!-- тонкая рамка-«панель», как у карточек .feature на лендинге -->
+  <rect x="28" y="28" width="1144" height="574" rx="20" fill="#111316" fill-opacity="0.55" stroke="#22262c" stroke-width="2"/>
+
+  <!-- бренд: тот же глиф проектора, что в шапке site/index.html -->
+  <g transform="translate(88,96) scale(2.0)" fill="none" stroke="#4f83f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 7.75a.75.75 0 0 1 1.142-.638l3.664 2.249a.75.75 0 0 1 0 1.278l-3.664 2.25a.75.75 0 0 1-1.142-.64z"/>
+    <path d="M12 17v4"/>
+    <path d="M8 21h8"/>
+    <rect x="2" y="3" width="20" height="14" rx="2"/>
+  </g>
+  <text x="146" y="123" font-size="30" font-weight="650" fill="#e8eaed" letter-spacing="0.2">Bible Projector</text>
+
+  <!-- главный тезис, тот же, что h1 лендинга -->
+  <text x="88" y="270" font-size="72" font-weight="700" fill="#e8eaed" letter-spacing="-1.6">Стихи и песни</text>
+  <text x="88" y="356" font-size="72" font-weight="700" fill="#e8eaed" letter-spacing="-1.6">на проекторе —</text>
+  <text x="88" y="442" font-size="72" font-weight="700" fill="#2f9e63" letter-spacing="-1.6">за секунды</text>
+
+  <text x="88" y="512" font-size="27" fill="#9aa0a8">4 перевода Библии · 11 500+ песен · работает офлайн</text>
+
+  <!-- адрес: цвет и моноширинный шрифт как у .feature .k -->
+  <text x="88" y="562" font-size="22" fill="#d8a94e" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace">bibleprojector.kz</text>
+
+  <!-- декоративный «экран проектора» справа: превью → эфир -->
+  <g opacity="0.9">
+    <rect x="768" y="196" width="344" height="194" rx="12" fill="#111316" stroke="#22262c" stroke-width="2"/>
+    <rect x="796" y="232" width="288" height="12" rx="6" fill="#e8eaed" fill-opacity="0.85"/>
+    <rect x="796" y="262" width="252" height="12" rx="6" fill="#e8eaed" fill-opacity="0.6"/>
+    <rect x="796" y="292" width="196" height="12" rx="6" fill="#e8eaed" fill-opacity="0.35"/>
+    <rect x="796" y="340" width="104" height="12" rx="6" fill="#4f83f1" fill-opacity="0.7"/>
+    <rect x="916" y="182" width="76" height="28" rx="14" fill="#2f9e63"/>
+    <text x="954" y="201" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">ЭФИР</text>
+  </g>
+</svg>

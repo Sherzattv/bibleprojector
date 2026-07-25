@@ -2,39 +2,15 @@
  * Правки текста стихов: оператор может поправить текст перед показом,
  * правка сохраняется по ключу перевод/книга/глава/стих.
  */
+import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
 
-export interface TextStore {
-  get(key: string): string | null
-  set(key: string, value: string): void
-  remove(key: string): void
-}
-
-function memoryStore(): TextStore {
-  const mem = new Map<string, string>()
-  return {
-    get: (k) => mem.get(k) ?? null,
-    set: (k, v) => {
-      mem.set(k, v)
-    },
-    remove: (k) => {
-      mem.delete(k)
-    },
-  }
-}
-
-function defaultStore(): TextStore {
-  if (typeof localStorage === 'undefined') return memoryStore()
-  return {
-    get: (k) => localStorage.getItem(k),
-    set: (k, v) => localStorage.setItem(k, v),
-    remove: (k) => localStorage.removeItem(k),
-  }
-}
+// Реэкспорт ради существующих импортов `TextStore` из этого модуля
+export type { TextStore }
 
 export class EditsStore {
   private store: TextStore
 
-  constructor(store: TextStore) {
+  constructor(store: TextStore = createBrowserStore()) {
     this.store = store
   }
 
@@ -55,9 +31,9 @@ export class EditsStore {
   }
 
   /** Для тестов: подменить хранилище (без аргумента — чистое in-memory) */
-  reset(store?: TextStore) {
-    this.store = store ?? memoryStore()
+  reset(store: TextStore = createMemoryStore()) {
+    this.store = store
   }
 }
 
-export const edits = new EditsStore(defaultStore())
+export const edits = new EditsStore()

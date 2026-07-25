@@ -13,7 +13,21 @@
     // dist/ собирает npm run build: лендинг из site/ в корне,
     // приложение (v3, base /app/) в dist/app/
     "directory": "./dist",
-    "html_handling": "none",
-    "not_found_handling": "single-page-application"
+    // Каталоги отдаём как index.html: "/" → dist/index.html (лендинг),
+    // "/app/" → dist/app/index.html (приложение). С "none" путь "/app/"
+    // не совпадал ни с одним файлом и уходил в not_found_handling,
+    // то есть на лендинг. Историческая причина для "none" (рукописный
+    // sw.js, ломавшийся на 307) отпала: workbox из vite-plugin-pwa
+    // сам копирует redirected-ответы в precache.
+    "html_handling": "force-trailing-slash",
+    // Честные 404 вместо SPA-фолбэка. Клиентского роутера нет (окно
+    // проектора живёт на хеше #display), поэтому отдавать index.html на
+    // любой путь незачем, а вреда от этого много: отсутствующий
+    // /app/data/*.json приходил как 200 + HTML и отравлял кэш клиента,
+    // протухший хэшированный чанк отдавал HTML вместо JS (strict MIME →
+    // белый экран), а поисковики получали бесконечные soft-404 с кодом 200.
+    // "404-page" ищет ближайший 404.html вверх по дереву: для /app/* тоже
+    // сработает корневой dist/404.html (в сборке v3 своего 404.html нет).
+    "not_found_handling": "404-page"
   }
 }

@@ -29,3 +29,6 @@ archive/sources/*.json
 
 # Deploy output (site + app), built by npm run build
 /dist/
+
+# Локальное состояние wrangler (кэш dev-сервера, .wrangler/tmp)
+.wrangler/

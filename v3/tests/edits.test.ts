@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { EditsStore, edits, type TextStore } from '../src/lib/edits.svelte'
 import { show } from '../src/lib/show.svelte'
 import { data } from '../src/lib/db.svelte'
@@ -56,6 +56,46 @@ describe('EditsStore', () => {
     edits2.save('RST', 'JHN', 3, 2, 'Общая правка')
     const another = new EditsStore(store)
     expect(another.get('RST', 'JHN', 3, 2)).toBe('Общая правка')
+  })
+})
+
+/**
+ * Safari в приватном режиме, «блокировать все cookies», политика организации —
+ * localStorage существует, но бросает на любой вызов.
+ */
+describe('EditsStore поверх бросающего localStorage', () => {
+  beforeEach(() => {
+    const throwing = {
+      getItem: () => {
+        throw new DOMException('SecurityError')
+      },
+      setItem: () => {
+        throw new DOMException('QuotaExceededError')
+      },
+      removeItem: () => {
+        throw new DOMException('SecurityError')
+      },
+    }
+    vi.stubGlobal('localStorage', throwing)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('save не бросает — правка стиха не роняет обработчик', () => {
+    const store = new EditsStore()
+    expect(() => store.save('RST', 'JHN', 3, 2, 'Правка')).not.toThrow()
+  })
+
+  it('get отдаёт null вместо исключения', () => {
+    const store = new EditsStore()
+    expect(store.get('RST', 'JHN', 3, 2)).toBeNull()
+  })
+
+  it('clear не бросает', () => {
+    const store = new EditsStore()
+    expect(() => store.clear('RST', 'JHN', 3, 2)).not.toThrow()
   })
 })
 

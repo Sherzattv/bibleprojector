@@ -10,6 +10,7 @@
         "start": "npm run dev --prefix v3",
         "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm ci --prefix v3 && npm run data --prefix v3 && npm run build:app --prefix v3 && node -e \"require('fs').cpSync('site','dist',{recursive:true})\"",
         "build:v3": "npm run build",
+        "smoke": "node scripts/smoke-serve.mjs",
         "deploy": "wrangler deploy"
     },
     "devDependencies": {

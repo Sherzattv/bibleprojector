@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { ProjSettingsStore } from '../src/lib/proj-settings.svelte'
 import type { TextStore } from '../src/lib/edits.svelte'
 
@@ -84,5 +84,51 @@ describe('ProjSettingsStore', () => {
     settings.reset()
     expect(settings.fontScale).toBe(1)
     expect(settings.showReference).toBe(true)
+  })
+})
+
+/**
+ * Safari в приватном режиме, «блокировать все cookies», политика организации —
+ * localStorage существует, но бросает на любой вызов.
+ */
+describe('ProjSettingsStore поверх бросающего localStorage', () => {
+  beforeEach(() => {
+    const throwing = {
+      getItem: () => {
+        throw new DOMException('SecurityError')
+      },
+      setItem: () => {
+        throw new DOMException('QuotaExceededError')
+      },
+      removeItem: () => {
+        throw new DOMException('SecurityError')
+      },
+    }
+    vi.stubGlobal('localStorage', throwing)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('конструктор по умолчанию не бросает и даёт дефолты', () => {
+    let store!: ProjSettingsStore
+    expect(() => {
+      store = new ProjSettingsStore()
+    }).not.toThrow()
+    expect(store.fontScale).toBe(1)
+    expect(store.showReference).toBe(true)
+  })
+
+  it('setFontScale не бросает (ползунок масштаба в oninput) и меняет состояние', () => {
+    const store = new ProjSettingsStore()
+    expect(() => store.setFontScale(1.4)).not.toThrow()
+    expect(store.fontScale).toBe(1.4)
+  })
+
+  it('setShowReference не бросает', () => {
+    const store = new ProjSettingsStore()
+    expect(() => store.setShowReference(false)).not.toThrow()
+    expect(store.showReference).toBe(false)
   })
 })
