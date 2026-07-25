@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-// Модуль появится по спецификации (TDD, red-фаза)
 import { HistoryStore, history } from '../src/lib/history.svelte'
 import type { HistoryEntry } from '../src/lib/history.svelte'
 import { createMemoryStore } from '../src/lib/storage'

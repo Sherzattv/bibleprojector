@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest'
-// pickEnterAction ещё не реализована — тест красный до реализации (TDD)
 import { pickEnterAction } from '../src/lib/search'
 
 /** Заглушки: логике важно лишь наличие результатов, не их содержимое */

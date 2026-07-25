@@ -61,7 +61,7 @@ export function parseQuery(query) {
  * Fetch verse(s) from a database using canonical code
  * @param {Object} parsed - Parsed query from parseQuery()
  * @param {Object} db - Bible database object
- * @param {string} translation - Translation code (RST, NRT, KTB)
+ * @param {string} translation - Translation code (RST, NRT, KTB, KYB)
  * @returns {Object|null} Verse data or null if not found
  */
 export function fetchVerse(parsed, db, translation = 'RST') {

@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-// Модуль появится по спецификации (TDD, red-фаза)
 import { commands } from '../src/lib/commands.svelte'
 import { history } from '../src/lib/history.svelte'
 import { show } from '../src/lib/show.svelte'

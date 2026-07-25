@@ -1,7 +1,7 @@
 /**
  * Состояние «шоу»: текущий элемент (песня или глава Библии),
- * слайды, превью/эфир. Сюда же позже подключится BroadcastChannel
- * окна проектора.
+ * слайды и Preview/Live. Проекционный DTO строится отдельно и передаётся
+ * окну проектора через ProjectorLink.
  */
 import { splitSongSections } from './legacy/songs.js'
 import { getBookId, getBookTitle } from './legacy/canonical.js'

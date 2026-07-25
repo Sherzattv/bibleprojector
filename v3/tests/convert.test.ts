@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-// Ядро конвертера ещё не вынесено — тест красный до рефакторинга (TDD)
-// @ts-expect-error модуль без типов, появится при рефакторинге convert-data.mjs
+// @ts-expect-error Node ESM helper written in JavaScript without declarations.
 import { parseGlobalJs, sanitizeBible, validateBible } from '../scripts/convert-core.mjs'
 
 // ── Помощники для мини-баз ─────────────────────────────

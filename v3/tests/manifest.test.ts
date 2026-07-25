@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-// Манифеста ещё нет — тест красный до реализации (TDD)
-// @ts-expect-error модуль без типов, экспорты появятся в convert-core.mjs
+// @ts-expect-error Node ESM helper written in JavaScript without declarations.
 import { hashContent, buildManifest } from '../scripts/convert-core.mjs'
 
 // ── hashContent ────────────────────────────────────────
