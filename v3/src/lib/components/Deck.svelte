@@ -10,42 +10,35 @@
   const isLive = mode === 'live'
 </script>
 
-<div class="min-w-0">
-  <div
-    class="mb-1.5 flex items-center gap-2 pl-0.5 text-[10.5px] font-bold tracking-[0.14em] uppercase
-           {isLive ? 'text-live' : 'text-accent-2'}"
-  >
-    {isLive ? 'В эфире' : 'Превью'}
+<div class="bg-bg p-3 pb-2.5">
+  <div class="mb-1.5 flex items-center justify-between px-0.5">
+    <span class="text-[10.5px] font-semibold tracking-[0.08em] uppercase {isLive ? 'text-live' : 'text-muted'}">
+      {isLive ? 'Эфир' : 'Превью'}
+    </span>
     {#if isLive}
-      <span
-        class="inline-flex items-center gap-1.5 rounded-full border border-live/40 bg-live-soft px-2 py-px text-[9.5px] tracking-[0.1em]"
-      >
-        <span class="pulse-dot size-[5px] rounded-full bg-live"></span>LIVE
+      <span class="flex items-center gap-1.5 text-[10.5px] font-medium text-live">
+        <span class="size-1.5 rounded-full bg-live"></span>
+        {blackout ? 'blackout' : cleared ? 'пусто' : 'идёт показ'}
       </span>
+    {:else}
+      <span class="text-[10.5px] text-faint">следующий</span>
     {/if}
   </div>
 
   <div
-    class="projection relative grid aspect-video place-items-center overflow-hidden rounded-2xl border p-[6%] text-center
-           {isLive
-      ? 'border-live/50 shadow-[0_0_0_1px_rgba(255,82,87,0.18),0_8px_44px_rgba(255,60,60,0.13)]'
-      : 'border-accent/35'}"
+    class="projection relative grid aspect-video place-items-center overflow-hidden rounded-md border p-[5%] text-center
+           {isLive ? 'border-live/60' : 'border-stroke-2'}"
   >
     {#if blackout && isLive}
-      <div class="absolute inset-0 grid place-items-center bg-black text-[10px] tracking-[0.4em] text-white/18">
-        BLACKOUT
-      </div>
+      <!-- чёрный экран: ничего -->
     {:else if !(cleared && isLive)}
       <div class="max-w-[94%]">
-        <div
-          class="font-serif text-[clamp(12px,1.35vw,19px)] leading-[1.55] font-medium text-balance
-                 [text-shadow:0_2px_24px_rgba(0,0,0,0.6)]"
-        >
+        <div class="font-serif text-[clamp(12px,1.3vw,18px)] leading-[1.55] text-balance text-white">
           {#each text.split('\n') as line, i (i)}
             {line}<br />
           {/each}
         </div>
-        <div class="mt-2.5 text-[clamp(9px,0.8vw,11.5px)] font-semibold tracking-[0.12em] text-amber uppercase">
+        <div class="mt-2 text-[clamp(9px,0.75vw,11px)] text-amber">
           {reference}
         </div>
       </div>

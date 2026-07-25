@@ -1,48 +1,40 @@
 <script lang="ts">
+  import { Music, BookOpen, StickyNote, Plus, GripVertical } from '@lucide/svelte'
   import { demoSetlist } from '../data'
 
-  const icons = { song: '🎵', verse: '📖', note: '📝' } as const
+  const icons = { song: Music, verse: BookOpen, note: StickyNote } as const
   let currentIdx = $state(2)
 </script>
 
-<aside class="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-stroke bg-surface">
-  <div class="flex shrink-0 items-center justify-between px-4 pt-3 pb-2">
-    <span class="text-[12.5px] font-semibold">Порядок служения</span>
-    <button
-      class="rounded-full bg-accent-soft px-2.5 py-1 text-[11.5px] font-medium text-accent-2 transition hover:bg-accent/25"
-    >
-      + Добавить
+<aside class="flex min-h-0 flex-col bg-panel">
+  <div class="flex h-9 shrink-0 items-center justify-between border-b border-stroke px-3">
+    <span class="text-[11px] font-semibold tracking-wide text-muted uppercase">Порядок служения</span>
+    <button class="flex items-center gap-1 text-[11.5px] font-medium text-accent hover:underline">
+      <Plus size={13} />Добавить
     </button>
   </div>
 
-  <div class="min-h-0 flex-1 overflow-y-auto pb-2">
+  <div class="min-h-0 flex-1 overflow-y-auto py-1">
     {#each demoSetlist as item, i (i)}
+      {@const Icon = icons[item.kind]}
       <button
         onclick={() => (currentIdx = i)}
-        class="group mx-2 my-0.5 flex w-[calc(100%-16px)] items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition
+        class="group flex w-full items-center gap-2.5 border-l-2 px-3 py-[7px] text-left
                {i === currentIdx
-          ? 'bg-gradient-to-r from-accent/16 to-accent/5 shadow-[inset_0_0_0_1px_rgba(110,139,255,0.35)]'
-          : 'hover:bg-surface-2'}"
+          ? 'border-accent bg-active'
+          : 'border-transparent hover:bg-hover'}"
       >
-        <span
-          class="grid size-8 shrink-0 place-items-center rounded-[9px] text-[13px]
-                 {i === currentIdx ? 'bg-accent/20' : 'bg-surface-2'}"
-        >
-          {icons[item.kind]}
-        </span>
+        <Icon size={15} class={i === currentIdx ? 'shrink-0 text-accent' : 'shrink-0 text-faint'} />
         <span class="min-w-0">
-          <span class="block truncate text-[13px] font-medium">{item.title}</span>
-          <span class="block text-[11px] text-faint">{item.meta}</span>
+          <span class="block truncate text-[12.5px] leading-tight font-medium">{item.title}</span>
+          <span class="block text-[11px] leading-tight text-faint">{item.meta}</span>
         </span>
-        <span class="ml-auto text-xs text-faint opacity-0 transition group-hover:opacity-70">⋮⋮</span>
+        <GripVertical size={13} class="ml-auto shrink-0 text-faint opacity-0 group-hover:opacity-60" />
       </button>
     {/each}
+  </div>
 
-    <button
-      class="mx-4 mt-2 w-[calc(100%-32px)] rounded-xl border-[1.5px] border-dashed border-white/12 p-3 text-center
-             text-xs text-faint transition hover:border-white/25 hover:text-muted"
-    >
-      Перетащите сюда стих или песню
-    </button>
+  <div class="shrink-0 border-t border-stroke px-3 py-2 text-[11px] text-faint">
+    6 элементов · служение 19:00
   </div>
 </aside>

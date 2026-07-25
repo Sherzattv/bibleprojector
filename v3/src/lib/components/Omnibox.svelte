@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Search, BookOpen, Music, CornerDownLeft } from '@lucide/svelte'
   import { demoVerses, demoLibrarySongs, demoBookMap } from '../data'
 
   let query = $state('')
@@ -33,81 +34,73 @@
     input.focus()
   }
 
-  function onInput() {
-    open = query.trim().length > 0
-  }
+  const group = 'px-3 pt-2 pb-1 text-[10px] font-semibold tracking-[0.08em] text-faint uppercase'
+  const item = 'flex w-full items-center gap-2.5 px-3 py-[7px] text-left hover:bg-hover'
 </script>
 
-<div class="relative mx-auto w-full max-w-[620px] flex-1">
-  <span class="pointer-events-none absolute top-[8px] left-3 text-sm text-faint">⌕</span>
+<div class="relative mx-auto w-full max-w-[560px] flex-1">
+  <Search size={13} class="pointer-events-none absolute top-[8px] left-2.5 text-faint" />
   <input
     bind:this={input}
     bind:value={query}
-    oninput={onInput}
+    oninput={() => (open = query.trim().length > 0)}
     onblur={() => setTimeout(() => (open = false), 150)}
     onkeydown={(e) => e.key === 'Escape' && ((open = false), input.blur())}
     type="text"
-    placeholder="Стих, песня или текст…  «ин 3 16» · «579» · «благодать»"
+    placeholder="Стих, песня или текст…"
     autocomplete="off"
-    class="w-full rounded-xl border border-stroke bg-surface-2 py-2 pr-20 pl-9 text-[13.5px] text-ink
-           transition placeholder:text-faint focus:border-accent/60 focus:bg-white/7
-           focus:shadow-[0_0_0_4px_rgba(110,139,255,0.12)] focus:outline-none"
+    class="h-[29px] w-full rounded-[5px] border border-stroke-2 bg-bg pr-14 pl-8 text-[12.5px] text-ink
+           placeholder:text-faint focus:border-accent focus:outline-none"
   />
-  <kbd
-    class="absolute top-[7px] right-2.5 rounded-md border border-stroke bg-white/3 px-1.5 py-0.5 font-mono text-[10.5px] text-faint"
-  >
-    ⌘K
-  </kbd>
+  <kbd class="absolute top-[6px] right-2 font-mono text-[10px] text-faint">Ctrl K</kbd>
 
   {#if open}
     <div
-      class="absolute top-[calc(100%+8px)] right-0 left-0 z-50 max-h-[440px] overflow-y-auto rounded-2xl
-             border border-stroke-strong bg-[rgba(18,20,26,0.92)] p-2 shadow-2xl shadow-black/60 backdrop-blur-2xl"
+      class="absolute top-[calc(100%+5px)] right-0 left-0 z-50 max-h-[420px] overflow-y-auto rounded-md
+             border border-stroke-2 bg-panel-2 pb-1 shadow-xl shadow-black/50"
     >
       {#if parsedRef}
-        <div class="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-[0.12em] text-faint uppercase">
-          Ссылка на стих
-        </div>
-        <button class="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left hover:bg-accent-soft">
-          <span class="grid size-[30px] shrink-0 place-items-center rounded-lg border border-stroke bg-surface-2 text-[13px]">📖</span>
+        <div class={group}>Ссылка на стих</div>
+        <button class={item}>
+          <BookOpen size={14} class="shrink-0 text-accent" />
           <span class="min-w-0">
-            <span class="text-[13px] font-medium">{parsedRef}</span>
-            <span class="block text-xs text-muted">Синодальный перевод</span>
+            <span class="text-[12.5px] font-medium">{parsedRef}</span>
+            <span class="block text-[11px] text-faint">Синодальный перевод</span>
           </span>
-          <span class="ml-auto font-mono text-[10px] whitespace-nowrap text-faint">⏎ превью · ⌘⏎ эфир</span>
+          <span class="ml-auto flex items-center gap-1 font-mono text-[10px] whitespace-nowrap text-faint">
+            <CornerDownLeft size={11} />превью
+          </span>
         </button>
       {/if}
 
       {#if verseHits.length}
-        <div class="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-[0.12em] text-faint uppercase">
-          Найдено в Библии
-        </div>
+        <div class={group}>Найдено в Библии</div>
         {#each verseHits as v (v.ref)}
-          <button class="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left hover:bg-accent-soft">
-            <span class="grid size-[30px] shrink-0 place-items-center rounded-lg border border-stroke bg-surface-2 text-[13px]">📖</span>
+          <button class={item}>
+            <BookOpen size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
-              <span class="text-[13px] font-medium">{v.ref}</span>
-              <span class="block truncate text-xs text-muted">{v.text}</span>
+              <span class="text-[12.5px] font-medium">{v.ref}</span>
+              <span class="block truncate text-[11px] text-muted">{v.text}</span>
             </span>
           </button>
         {/each}
       {/if}
 
       {#if songHits.length}
-        <div class="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-[0.12em] text-faint uppercase">Песни</div>
+        <div class={group}>Песни</div>
         {#each songHits as [t, n] (n)}
-          <button class="flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left hover:bg-accent-soft">
-            <span class="grid size-[30px] shrink-0 place-items-center rounded-lg border border-stroke bg-surface-2 text-[13px]">🎵</span>
+          <button class={item}>
+            <Music size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
-              <span class="text-[13px] font-medium">{t}</span>
-              <span class="block text-xs text-muted">Песня · № {n}</span>
+              <span class="text-[12.5px] font-medium">{t}</span>
+              <span class="block text-[11px] text-faint">№ {n}</span>
             </span>
           </button>
         {/each}
       {/if}
 
       {#if empty}
-        <div class="px-3 py-3 text-xs text-faint">
+        <div class="px-3 py-2.5 text-[11.5px] text-faint">
           Ничего не найдено — попробуйте «ин 3 16», «благодать», «1000»
         </div>
       {/if}

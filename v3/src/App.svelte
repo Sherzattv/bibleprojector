@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { MonitorPlay, Clock4 } from '@lucide/svelte'
   import Omnibox from './lib/components/Omnibox.svelte'
   import Setlist from './lib/components/Setlist.svelte'
   import Deck from './lib/components/Deck.svelte'
@@ -37,39 +38,34 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="grid h-screen grid-rows-[54px_1fr]">
+<div class="grid h-screen grid-rows-[46px_1fr]">
   <!-- Верхняя панель -->
-  <header
-    class="z-30 flex items-center gap-4 border-b border-stroke bg-[rgba(12,14,18,0.6)] px-4 backdrop-blur-xl"
-  >
-    <div class="flex items-center gap-2.5 text-sm font-semibold tracking-tight">
-      <span
-        class="grid size-[26px] place-items-center rounded-lg bg-gradient-to-br from-[#4c6fff] to-[#8a5cf6] text-[13px]
-               shadow-[0_4px_14px_rgba(90,110,255,0.35)]">📖</span>
+  <header class="z-30 flex items-center gap-4 border-b border-stroke bg-panel px-3.5">
+    <div class="flex items-center gap-2 text-[13px] font-semibold">
+      <MonitorPlay size={16} class="text-accent" />
       Bible Projector
-      <span class="self-start pt-0.5 text-[10.5px] font-medium text-faint">3.0</span>
     </div>
 
     <Omnibox bind:this={omnibox} />
 
-    <div class="ml-auto flex items-center gap-3">
-      <span
-        class="flex items-center gap-2 rounded-full border border-stroke bg-surface py-1 pr-3.5 pl-2.5 text-xs font-medium text-muted"
-      >
-        <span class="size-[7px] rounded-full bg-go shadow-[0_0_8px_rgba(34,197,94,0.8)]"></span>
+    <div class="ml-auto flex items-center gap-3.5">
+      <span class="flex items-center gap-1.5 text-xs text-muted">
+        <span class="size-1.5 rounded-full bg-go"></span>
         Проектор · экран 2
       </span>
-      <span class="font-mono text-[12.5px] text-muted tabular-nums">{clock}</span>
+      <span class="flex items-center gap-1.5 font-mono text-xs text-faint tabular-nums">
+        <Clock4 size={12} />{clock}
+      </span>
     </div>
   </header>
 
   <!-- Три зоны -->
-  <div class="grid min-h-0 grid-cols-[272px_1fr_296px] gap-3 p-3">
+  <div class="grid min-h-0 grid-cols-[264px_1fr_284px] divide-x divide-stroke">
     <Setlist />
 
     <!-- Центр -->
-    <section class="flex min-h-0 flex-col gap-3">
-      <div class="grid shrink-0 grid-cols-2 gap-3">
+    <section class="flex min-h-0 flex-col bg-bg">
+      <div class="grid shrink-0 grid-cols-2 gap-px border-b border-stroke bg-stroke">
         <Deck
           mode="preview"
           text={show.previewSlide.text}
@@ -84,16 +80,16 @@
         />
       </div>
 
-      <div class="flex min-h-0 flex-1 flex-col rounded-2xl border border-stroke bg-surface px-3 pt-3 pb-2.5">
-        <div class="flex shrink-0 items-baseline gap-2.5 px-1 pb-2">
-          <span class="text-[14px] font-semibold tracking-tight">{show.song.title}</span>
-          <span class="text-[11.5px] text-faint">№ {show.song.num} · клик — в превью, двойной клик — в эфир</span>
-        </div>
-        <div class="min-h-0 flex-1 overflow-y-auto">
-          <SlideGrid />
-        </div>
-        <Dock />
+      <div class="flex shrink-0 items-baseline gap-2.5 px-4 pt-3 pb-1.5">
+        <span class="text-[13.5px] font-semibold">{show.song.title}</span>
+        <span class="text-[11.5px] text-faint">№ {show.song.num} · {show.song.slides.length} слайда</span>
+        <span class="ml-auto text-[11px] text-faint">клик — превью · двойной — эфир</span>
       </div>
+      <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+        <SlideGrid />
+      </div>
+
+      <Dock />
     </section>
 
     <Library />

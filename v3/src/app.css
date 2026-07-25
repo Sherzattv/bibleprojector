@@ -1,24 +1,26 @@
 @import 'tailwindcss';
 
-/* Дизайн-токены Bible Projector 3.0 — операторская тёмная тема */
+/* Дизайн-токены Bible Projector 3.0.
+   Принципы: плоские поверхности, чёткие 1px-границы, один акцент,
+   семантические цвета только для состояний (эфир/превью/готово). */
 @theme {
-  --color-bg: #08090c;
-  --color-surface: rgba(255, 255, 255, 0.028);
-  --color-surface-2: rgba(255, 255, 255, 0.055);
-  --color-surface-3: rgba(255, 255, 255, 0.09);
-  --color-stroke: rgba(255, 255, 255, 0.07);
-  --color-stroke-strong: rgba(255, 255, 255, 0.14);
-  --color-ink: #f2f4f8;
-  --color-muted: rgba(235, 240, 250, 0.55);
-  --color-faint: rgba(235, 240, 250, 0.32);
-  --color-accent: #6e8bff;
-  --color-accent-2: #9db4ff;
-  --color-accent-soft: rgba(110, 139, 255, 0.14);
-  --color-live: #ff5257;
-  --color-live-soft: rgba(255, 82, 87, 0.12);
-  --color-go: #22c55e;
-  --color-go-2: #10b981;
-  --color-amber: #f5c451;
+  --color-bg: #0b0c0e;
+  --color-panel: #111316;
+  --color-panel-2: #16181c;
+  --color-hover: #1a1d22;
+  --color-active: #1f2329;
+  --color-stroke: #22262c;
+  --color-stroke-2: #2d323a;
+  --color-ink: #e8eaed;
+  --color-muted: #9aa0a8;
+  --color-faint: #5c6370;
+  --color-accent: #4f83f1;
+  --color-accent-dim: rgba(79, 131, 241, 0.12);
+  --color-live: #e5484d;
+  --color-live-dim: rgba(229, 72, 77, 0.1);
+  --color-go: #2f9e63;
+  --color-go-hover: #37b571;
+  --color-amber: #d8a94e;
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI', Roboto,
@@ -34,54 +36,33 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(900px 500px at 18% -10%, rgba(64, 112, 244, 0.07), transparent 60%),
-    radial-gradient(900px 500px at 85% 110%, rgba(229, 72, 77, 0.05), transparent 60%),
-    var(--color-bg);
+  background: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-size: 13.5px;
+  font-size: 13px;
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: rgba(110, 139, 255, 0.35);
+  background: rgba(79, 131, 241, 0.35);
 }
 
 *::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: #2a2e35;
+  border-radius: 4px;
+  border: 2px solid var(--color-panel);
 }
 
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline: 1.5px solid var(--color-accent);
+  outline-offset: -1.5px;
 }
 
-/* Экран проекции: фон как у реального вывода */
+/* Экран проекции — просто чёрный, как реальный вывод */
 .projection {
-  background: radial-gradient(130% 160% at 50% -20%, #131722 0%, #07080b 70%);
-}
-
-.slide-thumb {
-  background: radial-gradient(140% 180% at 50% -30%, #10141d 0%, #07080b 75%);
-}
-
-@keyframes pulse-dot {
-  50% {
-    opacity: 0.3;
-  }
-}
-.pulse-dot {
-  animation: pulse-dot 1.5s infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .pulse-dot {
-    animation: none;
-  }
+  background: #000;
 }
