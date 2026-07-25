@@ -9,20 +9,11 @@
     "scripts": {
         "start": "npm run dev --prefix v3",
         "build": "npm ci --prefix v3 && npm run data --prefix v3 && npm run build --prefix v3",
-        "test": "vitest run",
-        "test:watch": "vitest",
-        "lint": "eslint app/js --ext .js",
-        "lint:fix": "eslint app/js --ext .js --fix",
-        "verify:layout": "node scripts/verify_layout.js",
         "build:v3": "npm run build",
         "deploy": "wrangler deploy"
     },
     "devDependencies": {
-        "eslint": "^9.0.0",
-        "jsdom": "^25.0.0",
         "prettier": "^3.0.0",
-        "puppeteer": "^24.35.0",
-        "vitest": "^2.0.0",
         "wrangler": "^4.114.0"
     },
     "author": "Sherzat",

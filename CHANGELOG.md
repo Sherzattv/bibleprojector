@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   в явной очередности.
 - v3 перенесена с временного `/next/` на основной URL; Cloudflare теперь
   публикует только production-сборку `v3/dist/`.
+- Runtime v2 удалён из CI и корневого toolchain; CI теперь проверяет
+  production-сборку Cloudflare и тесты только активной v3.
 
 ### Fixed
 - Исправлен Cloudflare-деплой, при котором запросы CSS и JavaScript под

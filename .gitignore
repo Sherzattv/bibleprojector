@@ -10,10 +10,10 @@ archive/ktb_temp/
 archive/temp_inspect/
 tmp/
 
-# Скриншоты из npm run verify:layout
+# Исторические локальные скриншоты legacy-интерфейса
 .layout-shots/
 
-# Source data (large files, already converted to app/js/data/)
+# Архивные источники; рабочие входные базы конвертера лежат в app/js/data/
 archive/sources/*.zip
 archive/sources/*.json
 

@@ -6,8 +6,8 @@ on:
   pull_request:
 
 jobs:
-  legacy-tests:
-    name: Legacy — lint, tests, layout
+  production:
+    name: v3 — production build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,9 +16,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm test
-      - run: npm run verify:layout
+      - run: npx wrangler deploy --dry-run
 
   v3:
     name: v3 — типы, тесты, E2E
