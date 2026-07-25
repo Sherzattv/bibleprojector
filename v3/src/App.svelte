@@ -157,11 +157,15 @@
           class="grid size-7 place-items-center rounded border border-stroke-2 bg-panel-2 text-muted hover:bg-hover hover:text-ink
                  {settingsOpen ? 'border-accent text-ink' : ''}"
           title="Настройки проекции"
+          aria-label="Настройки проекции"
+          aria-expanded={settingsOpen}
         >
           <Settings2 size={13} />
         </button>
         {#if settingsOpen}
           <div
+            role="group"
+            aria-label="Настройки проекции"
             class="absolute top-9 right-0 z-50 w-60 rounded-md border border-stroke-2 bg-panel-2 p-3 shadow-xl shadow-black/50"
           >
             <div class="mb-1.5 flex items-center justify-between text-sm">
@@ -177,6 +181,7 @@
               step="0.05"
               value={projSettings.fontScale}
               oninput={(e) => projSettings.setFontScale(parseFloat(e.currentTarget.value))}
+              aria-label="Масштаб шрифта"
               class="w-full accent-[#4f83f1]"
             />
             <label class="mt-3 flex items-center gap-2 text-sm text-muted">

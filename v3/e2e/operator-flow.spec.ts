@@ -161,3 +161,51 @@ test('порядок создаётся, переставляется, эксп�
     'После служения состоится общая встреча.',
   )
 })
+
+test('порядок, история и настройки проекции восстанавливаются после перезагрузки', async ({
+  page,
+}) => {
+  const search = page.getByPlaceholder('Стих, песня или текст…')
+  await search.fill('ин 3 16')
+  await page.getByRole('button', { name: /От Иоанна 3:16\s+RST/ }).click()
+
+  const setlist = page.getByRole('complementary', { name: 'Порядок служения' })
+  await setlist.getByRole('button', { name: 'Добавить' }).click()
+  await page.getByRole('button', { name: /GO\s+Space/ }).click()
+
+  const settingsButton = page.getByRole('button', { name: 'Настройки проекции' })
+  await settingsButton.click()
+
+  const settings = page.getByRole('group', { name: 'Настройки проекции' })
+  const fontScale = settings.getByRole('slider', { name: 'Масштаб шрифта' })
+  const showReference = settings.getByRole('checkbox', {
+    name: 'Показывать ссылку на экране',
+  })
+
+  await fontScale.fill('1.35')
+  await showReference.uncheck()
+  await expect(fontScale).toHaveValue('1.35')
+  await expect(showReference).not.toBeChecked()
+  await expect(settings).toContainText('135%')
+
+  await settingsButton.click()
+  await page.reload()
+  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+
+  await expect(
+    setlist.getByRole('button', { name: /От Иоанна 3:16\s+Библия/ }),
+  ).toBeVisible()
+
+  const preview = page.getByRole('region', { name: 'Предпросмотр' })
+  await expect(preview).toContainText('Ибо так возлюбил Бог мир')
+  await expect(preview).not.toContainText('От Иоанна 3:16')
+
+  await settingsButton.click()
+  await expect(fontScale).toHaveValue('1.35')
+  await expect(showReference).not.toBeChecked()
+  await expect(settings).toContainText('135%')
+
+  const library = page.getByRole('complementary', { name: 'Библиотека' })
+  await page.getByRole('button', { name: 'История' }).click()
+  await expect(library.getByRole('button', { name: /От Иоанна 3:16/ })).toBeVisible()
+})
