@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Статический лендинг на корневом URL (`site/`); приложение переехало на
+  `/app/` со своим PWA scope.
+- Autofit: длинные стихи и заметки автоматически уменьшаются на превью и
+  экране проектора вместо обрезания.
+- Навигация стрелками по результатам Omnibox, активный результат,
+  ARIA combobox/listbox и автопрокрутка активного слайда.
 - **Bible Projector v3 preview** в отдельном каталоге `v3/`: Svelte 5,
   TypeScript, Vite, Tailwind CSS 4 и компонентная архитектура.
 - Единый Omnibox с поиском Библии и песен через MiniSearch в Web Worker.
@@ -20,8 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   порядка, восстановления состояния и отдельного окна проектора.
 
 ### Changed
-- CI проверяет активную v3: Svelte/TypeScript, модульные тесты,
-  production-сборку Cloudflare и Chromium E2E.
+- CI проверяет активную v3: Svelte/TypeScript, модульные тесты и
+  production-сборку Cloudflare; браузерные E2E запускаются локально
+  (`npm run test:e2e`) перед релизами.
+- Контраст вторичных подписей пульта поднят до WCAG AA; выбор результата
+  поиска мышью больше не зависит от blur-таймера.
 - v3 `3.0.0-preview.1` стала основной и единственной активной линией
   разработки.
 - Runtime и UI v2 удалены из репозитория; исходные базы перенесены в

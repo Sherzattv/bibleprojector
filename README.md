@@ -20,6 +20,8 @@ Runtime v2 удалён из репозитория. Исходные базы �
 - отдельное окно проектора через BroadcastChannel;
 - размещение окна на внешнем мониторе с безопасным fallback на popup;
 - blackout, заметки, правки текста и настройки проекции;
+- автоподбор размера длинного проекционного текста (autofit);
+- навигация стрелками по результатам поиска с ARIA combobox-моделью;
 - сохраняемые порядок служения и история эфира;
 - импорт/экспорт порядка и миграция данных из v2;
 - PWA, офлайн-кэш оболочки и версионированный кэш данных;
@@ -56,6 +58,7 @@ npm run dev
 | Действие | Клавиша |
 | --- | --- |
 | Перевести фокус в поиск | `Ctrl + K` / `Cmd + K` |
+| Выбрать результат поиска | `↑` / `↓` |
 | Открыть точную ссылку в Preview | `Enter` |
 | Отправить точную ссылку сразу в Live | `Ctrl + Enter` / `Cmd + Enter` |
 | Отправить Preview в Live | `Space` |
@@ -97,9 +100,9 @@ npm audit --omit=dev
 - `test:e2e` — конвертация данных, production-сборка и браузерный тест;
 - production-аудит на текущем lock-файле не содержит уязвимостей.
 
-CI проверяет только v3: Svelte/TypeScript, модульные и браузерные тесты,
-а также полный production build через Wrangler. Старый интерфейс v2 в CI
-не запускается.
+CI проверяет только v3: Svelte/TypeScript, модульные тесты и полный
+production build через Wrangler. Браузерные E2E в CI не запускаются —
+их прогоняют локально (`npm run test:e2e`) перед релизами.
 
 ## Сборка и публикация
 
@@ -110,15 +113,18 @@ npm run build
 ```
 
 Команда устанавливает зависимости v3 по lock-файлу, генерирует данные и
-собирает production-приложение в `v3/dist/`.
+собирает публикуемый каталог `dist/`: лендинг из `site/` в корне и
+приложение (сборка v3 с base `/app/`) в `dist/app/`.
 
 ```bash
 npm run deploy
 ```
 
-Wrangler запускает production-сборку и публикует только `v3/dist/` через
-Cloudflare Workers Static Assets. v3 открывается на основном адресе
-[bibleprojector.kz](https://bibleprojector.kz/).
+Wrangler запускает production-сборку и публикует `dist/` через Cloudflare
+Workers Static Assets:
+
+- [bibleprojector.kz](https://bibleprojector.kz/) — лендинг;
+- [bibleprojector.kz/app/](https://bibleprojector.kz/app/) — приложение.
 
 Для Git-деплоя Cloudflare Workers Builds должен использовать:
 
@@ -133,6 +139,7 @@ Root directory: /
 ## Структура
 
 ```text
+site/                  # Статический лендинг (публикуется на корневом URL)
 v3/                    # Единственная активная кодовая база приложения
 ├── data/source/       # Исходные базы переводов и песен
 ├── scripts/           # Конвертация и валидация данных
