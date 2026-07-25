@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { MonitorPlay, Clock4 } from '@lucide/svelte'
+  import { MonitorPlay, Clock4, LoaderCircle } from '@lucide/svelte'
   import Omnibox from './lib/components/Omnibox.svelte'
   import Setlist from './lib/components/Setlist.svelte'
   import Deck from './lib/components/Deck.svelte'
@@ -7,9 +7,13 @@
   import Dock from './lib/components/Dock.svelte'
   import Library from './lib/components/Library.svelte'
   import { show } from './lib/show.svelte'
+  import { data } from './lib/db.svelte'
+  import { setlist } from './lib/setlist.svelte'
+  import { buildSongIndex } from './lib/search'
 
   let omnibox: Omnibox
   let clock = $state('')
+  let setlistOpen = $state(true)
 
   function tick() {
     const d = new Date()
@@ -18,8 +22,20 @@
   tick()
   setInterval(tick, 15000)
 
+  $effect(() => {
+    data.init().then(() => {
+      if (data.status !== 'ready') return
+      buildSongIndex(data.songs)
+      // Стартовое наполнение: первый элемент плейлиста, который удаётся открыть
+      for (let i = 0; i < setlist.items.length && setlist.currentIdx < 0; i++) {
+        setlist.open(i)
+      }
+    })
+  })
+
   function onKeydown(e: KeyboardEvent) {
-    const typing = (e.target as HTMLElement)?.tagName === 'INPUT'
+    const tag = (e.target as HTMLElement)?.tagName
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA'
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault()
       omnibox.focus()
@@ -29,8 +45,8 @@
     if (e.code === 'Space') {
       e.preventDefault()
       show.go()
-    } else if (e.key === 'ArrowRight') show.next()
-    else if (e.key === 'ArrowLeft') show.prev()
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') show.next()
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') show.prev()
     else if (e.key.toLowerCase() === 'b' || e.key.toLowerCase() === 'и') show.toggleBlackout()
     else if (e.key === 'Escape') show.clear()
   }
@@ -59,39 +75,49 @@
     </div>
   </header>
 
-  <!-- Три зоны -->
-  <div class="grid min-h-0 grid-cols-[264px_1fr_284px] divide-x divide-stroke">
-    <Setlist />
-
-    <!-- Центр -->
-    <section class="flex min-h-0 flex-col bg-bg">
-      <div class="grid shrink-0 grid-cols-2 gap-px border-b border-stroke bg-stroke">
-        <Deck
-          mode="preview"
-          text={show.previewSlide.text}
-          reference={`${show.song.title} · ${show.previewSlide.label}`}
-        />
-        <Deck
-          mode="live"
-          text={show.liveSlide.text}
-          reference={`${show.song.title} · ${show.liveSlide.label}`}
-          blackout={show.blackout}
-          cleared={show.cleared}
-        />
+  {#if data.status === 'loading'}
+    <div class="grid place-items-center">
+      <div class="flex items-center gap-2.5 text-base text-muted">
+        <LoaderCircle size={18} class="animate-spin text-accent" />
+        Загрузка переводов и песен…
       </div>
+    </div>
+  {:else if data.status === 'error'}
+    <div class="grid place-items-center">
+      <div class="text-base text-live">Не удалось загрузить данные. Обновите страницу.</div>
+    </div>
+  {:else}
+    <!-- Три зоны -->
+    <div
+      class="grid min-h-0 divide-x divide-stroke"
+      style="grid-template-columns: {setlistOpen ? '264px' : '44px'} 1fr 284px"
+    >
+      <Setlist open={setlistOpen} onToggle={() => (setlistOpen = !setlistOpen)} />
 
-      <div class="flex shrink-0 items-baseline gap-2 px-3 pt-3 pb-1.5">
-        <span class="text-lg font-semibold">{show.song.title}</span>
-        <span class="text-xs text-faint">№ {show.song.num} · {show.song.slides.length} слайда</span>
-        <span class="ml-auto text-xs text-faint">клик — превью · двойной — эфир</span>
-      </div>
-      <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-        <SlideGrid />
-      </div>
+      <!-- Центр -->
+      <section class="flex min-h-0 flex-col bg-bg">
+        <div class="grid shrink-0 grid-cols-2 gap-px border-b border-stroke bg-stroke">
+          <Deck mode="preview" slide={show.previewSlide} />
+          <Deck mode="live" slide={show.liveSlide} blackout={show.blackout} />
+        </div>
 
-      <Dock />
-    </section>
+        <div class="flex shrink-0 items-baseline gap-2 px-3 pt-3 pb-1.5">
+          <span class="text-lg font-semibold">{show.title || 'Ничего не выбрано'}</span>
+          <span class="text-xs text-faint">
+            {show.subtitle}{show.slides.length ? ` · ${show.slides.length} слайдов` : ''}
+          </span>
+          {#if show.slides.length}
+            <span class="ml-auto text-xs text-faint">клик — превью · двойной — эфир</span>
+          {/if}
+        </div>
+        <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+          <SlideGrid />
+        </div>
 
-    <Library />
-  </div>
+        <Dock />
+      </section>
+
+      <Library />
+    </div>
+  {/if}
 </div>

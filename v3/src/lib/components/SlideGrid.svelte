@@ -3,7 +3,7 @@
 </script>
 
 <div class="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2">
-  {#each show.song.slides as slide, i (i)}
+  {#each show.slides as slide, i (i)}
     {@const onAir = i === show.liveIdx}
     {@const inPreview = i === show.previewIdx && !onAir}
     <button
@@ -17,10 +17,10 @@
           : 'border-stroke-2 hover:border-faint'}"
     >
       <span
-        class="absolute inset-x-0 top-0 bottom-6 grid place-items-center px-2 py-1.5 text-center font-serif
+        class="absolute inset-x-0 top-0 bottom-6 grid place-items-center overflow-hidden px-2 py-1.5 text-center font-serif
                text-2xs leading-normal text-white/85"
       >
-        <span>
+        <span class="line-clamp-5">
           {#each slide.text.split('\n') as line, li (li)}
             {line}<br />
           {/each}
@@ -34,11 +34,15 @@
             ? 'border-accent/40 bg-accent-dim text-accent'
             : 'border-stroke bg-panel text-faint'}"
       >
-        <span>{slide.label}</span>
-        <span class="font-mono tabular-nums">
+        <span class="truncate">{slide.label}</span>
+        <span class="ml-1 shrink-0 font-mono tabular-nums">
           {onAir ? 'ЭФИР' : inPreview ? 'ПРЕВЬЮ' : String(i + 1).padStart(2, '0')}
         </span>
       </span>
     </button>
+  {:else}
+    <div class="col-span-full py-10 text-center text-sm text-faint">
+      Выберите песню или отрывок — из поиска, библиотеки или плейлиста
+    </div>
   {/each}
 </div>

@@ -1,37 +1,118 @@
 <script lang="ts">
   import { Search, BookOpen, Music, CornerDownLeft } from '@lucide/svelte'
-  import { demoVerses, demoLibrarySongs, demoBookMap } from '../data'
+  import { data } from '../db.svelte'
+  import { show } from '../show.svelte'
+  import {
+    parseQuery,
+    searchSongs,
+    searchVerses,
+    buildVerseIndex,
+    hasVerseIndex,
+    makeTitleGetter,
+    codeForBookId,
+    type VerseHit,
+  } from '../search'
+  // @ts-expect-error legacy JS module without types
+  import { getBookTitle } from '../legacy/canonical.js'
+  import type { SongRow } from '../db.svelte'
 
   let query = $state('')
   let open = $state(false)
+  let indexing = $state(false)
   let input: HTMLInputElement
 
-  const refRe = /^(\d?\s?[а-яёa-z]+)\s+(\d+)(?:[\s:](\d+(?:-\d+)?))?$/i
+  interface RefResult {
+    canonicalCode: string
+    chapter: number
+    verse: number
+    label: string
+  }
 
-  const parsedRef = $derived.by(() => {
-    const m = query.toLowerCase().replace(/:/g, ' ').trim().match(refRe)
-    if (!m) return null
-    const book = demoBookMap[m[1].replace(/\s/g, '')]
-    if (!book) return null
-    return `${book} ${m[2]}${m[3] ? ':' + m[3] : ''}`
+  const parsedRef = $derived.by((): RefResult | null => {
+    const parsed = parseQuery(query) as {
+      canonicalCode: string
+      chapter: string
+      verse: string
+    } | null
+    if (!parsed) return null
+    const lang = data.translation === 'KTB' ? 'kz' : data.translation === 'KYB' ? 'ky' : 'ru'
+    const title = getBookTitle(parsed.canonicalCode, lang) as string
+    const verse = parseInt(parsed.verse.split(/[-,]/)[0]) || 1
+    return {
+      canonicalCode: parsed.canonicalCode,
+      chapter: parseInt(parsed.chapter),
+      verse,
+      label: `${title} ${parsed.chapter}:${parsed.verse}`,
+    }
   })
 
-  const verseHits = $derived(
-    query.trim().length < 3
-      ? []
-      : demoVerses.filter((v) => v.text.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 3),
-  )
+  const songHits = $derived(query.trim() ? searchSongs(query, data.songs, 5) : [])
 
-  const songHits = $derived.by(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return []
-    return demoLibrarySongs.filter(([t, n]) => (t + ' ' + n).toLowerCase().includes(q)).slice(0, 3)
+  let verseHits = $state<VerseHit[]>([])
+  $effect(() => {
+    const q = query.trim()
+    if (q.length < 3 || parsedRef) {
+      verseHits = []
+      return
+    }
+    const translation = data.translation
+    const db = data.db
+    if (!db) return
+    if (!hasVerseIndex(translation)) {
+      indexing = true
+      // Индекс строится один раз на перевод; отдаём кадр браузеру
+      setTimeout(() => {
+        buildVerseIndex(translation, db, makeTitleGetter(translation))
+        indexing = false
+        verseHits = searchVerses(q, translation, 5)
+      }, 20)
+      return
+    }
+    verseHits = searchVerses(q, translation, 5)
   })
 
-  const empty = $derived(!parsedRef && !verseHits.length && !songHits.length)
+  const empty = $derived(!parsedRef && !verseHits.length && !songHits.length && !indexing)
 
   export function focus() {
     input.focus()
+  }
+
+  function close() {
+    open = false
+    query = ''
+  }
+
+  function openRef(ref: RefResult, live = false) {
+    if (show.loadChapter(ref.canonicalCode, ref.chapter, ref.verse)) {
+      if (live) show.go()
+      close()
+    }
+  }
+
+  function openVerseHit(hit: VerseHit, live = false) {
+    const code = codeForBookId(data.translation, hit.bookId)
+    if (code && show.loadChapter(code, hit.chapter, hit.verse)) {
+      if (live) show.go()
+      close()
+    }
+  }
+
+  function openSong(song: SongRow) {
+    show.loadSong(song)
+    close()
+  }
+
+  function onEnter(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      open = false
+      input.blur()
+      return
+    }
+    if (e.key !== 'Enter') return
+    const live = e.ctrlKey || e.metaKey
+    if (parsedRef) openRef(parsedRef, live)
+    else if (verseHits.length) openVerseHit(verseHits[0], live)
+    else if (songHits.length) openSong(songHits[0])
   }
 
   const group = 'px-3 pt-2 pb-1 text-2xs font-semibold tracking-wide text-faint uppercase'
@@ -45,7 +126,7 @@
     bind:value={query}
     oninput={() => (open = query.trim().length > 0)}
     onblur={() => setTimeout(() => (open = false), 150)}
-    onkeydown={(e) => e.key === 'Escape' && ((open = false), input.blur())}
+    onkeydown={onEnter}
     type="text"
     placeholder="Стих, песня или текст…"
     autocomplete="off"
@@ -61,22 +142,26 @@
     >
       {#if parsedRef}
         <div class={group}>Ссылка на стих</div>
-        <button class={item}>
+        <button class={item} onclick={() => openRef(parsedRef)}>
           <BookOpen size={14} class="shrink-0 text-accent" />
           <span class="min-w-0">
-            <span class="text-base font-medium">{parsedRef}</span>
-            <span class="block text-xs text-faint">Синодальный перевод</span>
+            <span class="text-base font-medium">{parsedRef.label}</span>
+            <span class="block text-xs text-faint">{data.translation}</span>
           </span>
           <span class="ml-auto flex items-center gap-1 font-mono text-2xs whitespace-nowrap text-faint">
-            <CornerDownLeft size={11} />превью
+            <CornerDownLeft size={11} />превью · Ctrl⏎ эфир
           </span>
         </button>
       {/if}
 
+      {#if indexing}
+        <div class="px-3 py-2 text-xs text-faint">Индексация перевода…</div>
+      {/if}
+
       {#if verseHits.length}
-        <div class={group}>Найдено в Библии</div>
-        {#each verseHits as v (v.ref)}
-          <button class={item}>
+        <div class={group}>Найдено в Библии · {data.translation}</div>
+        {#each verseHits as v (v.id)}
+          <button class={item} onclick={() => openVerseHit(v)}>
             <BookOpen size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
               <span class="text-base font-medium">{v.ref}</span>
@@ -88,12 +173,14 @@
 
       {#if songHits.length}
         <div class={group}>Песни</div>
-        {#each songHits as [t, n] (n)}
-          <button class={item}>
+        {#each songHits as song (song.id)}
+          <button class={item} onclick={() => openSong(song)}>
             <Music size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
-              <span class="text-base font-medium">{t}</span>
-              <span class="block text-xs text-faint">№ {n}</span>
+              <span class="text-base font-medium">{song.title}</span>
+              <span class="block text-xs text-faint">
+                {song.songNumber ? `№ ${song.songNumber}` : 'без номера'}
+              </span>
             </span>
           </button>
         {/each}
@@ -101,7 +188,7 @@
 
       {#if empty}
         <div class="px-3 py-2 text-xs text-faint">
-          Ничего не найдено — попробуйте «ин 3 16», «благодать», «1000»
+          Ничего не найдено — попробуйте «ин 3 16», «благодать», «579»
         </div>
       {/if}
     </div>

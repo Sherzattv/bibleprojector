@@ -1,2 +1,4 @@
 node_modules
 dist
+public/data
+src/lib/demo-data.json

@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json"
+    "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
+    "data": "node scripts/convert-data.mjs",
+    "build:demo": "node scripts/convert-data.mjs && vite build --mode demo"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -21,6 +23,7 @@
   "dependencies": {
     "@lucide/svelte": "^1.26.0",
     "@tailwindcss/vite": "^4.3.3",
+    "minisearch": "^7.2.0",
     "tailwindcss": "^4.3.3",
     "vite-plugin-singlefile": "^2.3.3"
   }

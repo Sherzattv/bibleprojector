@@ -1,12 +1,12 @@
 <script lang="ts">
+  import type { ShowSlide } from '../show.svelte'
+
   interface Props {
     mode: 'preview' | 'live'
-    text: string
-    reference: string
+    slide: ShowSlide | null
     blackout?: boolean
-    cleared?: boolean
   }
-  let { mode, text, reference, blackout = false, cleared = false }: Props = $props()
+  let { mode, slide, blackout = false }: Props = $props()
   const isLive = mode === 'live'
 </script>
 
@@ -16,30 +16,28 @@
       {isLive ? 'Эфир' : 'Превью'}
     </span>
     {#if isLive}
-      <span class="flex items-center gap-1.5 text-xs font-medium text-live">
-        <span class="size-1.5 rounded-full bg-live"></span>
-        {blackout ? 'blackout' : cleared ? 'пусто' : 'идёт показ'}
+      <span class="flex items-center gap-1.5 text-xs font-medium {slide || blackout ? 'text-live' : 'text-faint'}">
+        {#if slide || blackout}<span class="size-1.5 rounded-full bg-live"></span>{/if}
+        {blackout ? 'blackout' : slide ? 'идёт показ' : 'пусто'}
       </span>
     {:else}
-      <span class="text-xs text-faint">следующий</span>
+      <span class="text-xs text-faint">{slide ? slide.label.toLowerCase() : '—'}</span>
     {/if}
   </div>
 
   <div
     class="projection relative grid aspect-video place-items-center overflow-hidden rounded-md border p-[5%] text-center
-           {isLive ? 'border-live/60' : 'border-stroke-2'}"
+           {isLive && slide ? 'border-live/60' : 'border-stroke-2'}"
   >
-    {#if blackout && isLive}
-      <!-- чёрный экран: ничего -->
-    {:else if !(cleared && isLive)}
+    {#if !blackout && slide}
       <div class="max-w-[94%]">
         <div class="font-serif text-[clamp(12px,1.3vw,18px)] leading-[1.55] text-balance text-white">
-          {#each text.split('\n') as line, i (i)}
+          {#each slide.text.split('\n') as line, i (i)}
             {line}<br />
           {/each}
         </div>
         <div class="mt-2 text-[clamp(9px,0.75vw,11px)] text-amber">
-          {reference}
+          {slide.reference}
         </div>
       </div>
     {/if}
