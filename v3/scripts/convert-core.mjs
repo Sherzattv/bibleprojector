@@ -1,0 +1,88 @@
+/**
+ * Ядро конвертера данных: извлечение, чистка и валидация.
+ * Используется scripts/convert-data.mjs и покрыто tests/convert.test.ts.
+ */
+
+/**
+ * Извлечь данные из исходника вида `window.X = {...};`.
+ * Комментарии со словом «window» и последующие строки (const *_BOOK_MAP)
+ * игнорируются.
+ * @param {string} source — содержимое файла
+ * @returns {unknown}
+ */
+export function parseGlobalJs(source) {
+  const line = source.split('\n').find((l) => /^window\.\w+\s*=/.test(l.trim()))
+  if (!line) {
+    throw new Error('Не найдено присваивание window.* с данными')
+  }
+  let body = line.slice(line.indexOf('=') + 1).trim()
+  if (body.endsWith(';')) body = body.slice(0, -1)
+  return JSON.parse(body)
+}
+
+/**
+ * Чистка перевода: дедупликация VerseId внутри главы (остаётся первый),
+ * удаление пустых стихов. Возвращает новую базу и отчёт об аномалиях.
+ * @param {{Translation: string, Books: Array}} db
+ */
+export function sanitizeBible(db) {
+  const report = { duplicates: [], emptyVerses: [] }
+  const clean = {
+    ...db,
+    Books: db.Books.map((book) => ({
+      ...book,
+      Chapters: book.Chapters.map((chapter) => {
+        const seen = new Set()
+        const verses = []
+        for (const verse of chapter.Verses) {
+          if (!verse.Text || !verse.Text.trim()) {
+            report.emptyVerses.push({
+              bookId: book.BookId,
+              chapter: chapter.ChapterId,
+              verse: verse.VerseId,
+            })
+            continue
+          }
+          if (seen.has(verse.VerseId)) {
+            report.duplicates.push({
+              bookId: book.BookId,
+              chapter: chapter.ChapterId,
+              verse: verse.VerseId,
+            })
+            continue
+          }
+          seen.add(verse.VerseId)
+          verses.push(verse)
+        }
+        return { ...chapter, Verses: verses }
+      }),
+    })),
+  }
+  return { db: clean, report }
+}
+
+/**
+ * Структурная валидация перевода. Пустой массив = всё в порядке.
+ * @param {{Translation: string, Books: Array}} db
+ * @returns {string[]}
+ */
+export function validateBible(db) {
+  const problems = []
+  if (db.Books.length !== 66) {
+    problems.push(`${db.Translation}: книг ${db.Books.length}, ожидалось 66`)
+  }
+  for (const book of db.Books) {
+    if (!book.Chapters.length) {
+      problems.push(`${db.Translation}: книга ${book.BookId} без глав`)
+      continue
+    }
+    for (const chapter of book.Chapters) {
+      if (!chapter.Verses.length) {
+        problems.push(
+          `${db.Translation}: книга ${book.BookId}, глава ${chapter.ChapterId} без стихов`,
+        )
+      }
+    }
+  }
+  return problems
+}

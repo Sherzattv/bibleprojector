@@ -1,15 +1,37 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Play, SquareSlash, Image, X } from '@lucide/svelte'
+  import { ChevronLeft, ChevronRight, Play, SquareSlash, Image, X, RotateCw } from '@lucide/svelte'
   import { show } from '../show.svelte'
   import { data, TRANSLATIONS } from '../db.svelte'
+  import { ui } from '../ui.svelte'
 
   const btn =
     'flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm font-medium text-muted hover:bg-hover hover:text-ink disabled:opacity-40 disabled:pointer-events-none'
   const kbd = 'font-mono text-2xs text-faint'
 
+  const failedTranslations = $derived(
+    TRANSLATIONS.filter(([code]) => data.translationStatus[code] === 'error').map(([code]) => code),
+  )
+
   function changeTranslation(e: Event) {
-    data.translation = (e.target as HTMLSelectElement).value
+    const code = (e.target as HTMLSelectElement).value
+    if (!data.bibles[code]) {
+      ui.notify(`Перевод ${code} ещё не загружен`)
+      ;(e.target as HTMLSelectElement).value = data.translation
+      return
+    }
+    data.translation = code
     show.reloadForTranslation()
+  }
+
+  async function retryFailed() {
+    for (const code of failedTranslations) await data.retryTranslation(code)
+  }
+
+  function statusSuffix(code: string): string {
+    const s = data.translationStatus[code]
+    if (s === 'loading') return ' · загрузка…'
+    if (s === 'error') return ' · ошибка'
+    return ''
   }
 </script>
 
@@ -38,7 +60,9 @@
   >
     <SquareSlash size={13} />Blackout <kbd class={kbd}>B</kbd>
   </button>
-  <button class={btn}><Image size={13} />Логотип <kbd class={kbd}>L</kbd></button>
+  <button class={btn} disabled title="Появится вместе с окном проектора">
+    <Image size={13} />Логотип
+  </button>
   <button class={btn} onclick={() => show.clear()} disabled={show.liveIdx < 0}>
     <X size={13} />Очистить <kbd class={kbd}>Esc</kbd>
   </button>
@@ -53,9 +77,18 @@
     >
       {#each TRANSLATIONS as [code, label] (code)}
         <option value={code} disabled={!data.bibles[code]}>
-          {code} · {label}{data.bibles[code] ? '' : ' (загрузка…)'}
+          {code} · {label}{statusSuffix(code)}
         </option>
       {/each}
     </select>
   </label>
+  {#if failedTranslations.length}
+    <button
+      class="{btn} border-live/50 text-live"
+      onclick={retryFailed}
+      title="Повторить загрузку: {failedTranslations.join(', ')}"
+    >
+      <RotateCw size={13} />Повторить
+    </button>
+  {/if}
 </div>

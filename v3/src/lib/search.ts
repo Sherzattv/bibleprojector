@@ -46,6 +46,22 @@ export interface VerseHit {
 
 export { parseQuery, fetchVerse }
 
+/**
+ * Что делает Enter в омнибоксе. В эфир по Ctrl/Cmd+Enter уходит ТОЛЬКО
+ * точная ссылка — fuzzy-результаты (опечатки!) никогда не идут в эфир сразу.
+ */
+export function pickEnterAction(input: {
+  parsedRef: unknown | null
+  verseHits: unknown[]
+  songHits: unknown[]
+  withModifier: boolean
+}): { type: 'ref'; live: boolean } | { type: 'verse' } | { type: 'song' } | null {
+  if (input.parsedRef) return { type: 'ref', live: input.withModifier }
+  if (input.verseHits.length) return { type: 'verse' }
+  if (input.songHits.length) return { type: 'song' }
+  return null
+}
+
 const stripTags = (t: string) => t.replace(/<[^>]*>/g, '')
 const normalize = (t: string) => t.toLowerCase().replace(/ё/g, 'е')
 

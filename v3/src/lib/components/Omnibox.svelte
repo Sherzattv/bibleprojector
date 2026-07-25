@@ -10,8 +10,10 @@
     hasVerseIndex,
     makeTitleGetter,
     codeForBookId,
+    pickEnterAction,
     type VerseHit,
   } from '../search'
+  import { ui } from '../ui.svelte'
   // @ts-expect-error legacy JS module without types
   import { getBookTitle } from '../legacy/canonical.js'
   import type { SongRow } from '../db.svelte'
@@ -86,14 +88,17 @@
     if (show.loadChapter(ref.canonicalCode, ref.chapter, ref.verse)) {
       if (live) show.go()
       close()
+    } else {
+      ui.notify(`«${ref.label}» не найдено в переводе ${data.translation}`)
     }
   }
 
-  function openVerseHit(hit: VerseHit, live = false) {
+  function openVerseHit(hit: VerseHit) {
     const code = codeForBookId(data.translation, hit.bookId)
     if (code && show.loadChapter(code, hit.chapter, hit.verse)) {
-      if (live) show.go()
       close()
+    } else {
+      ui.notify(`«${hit.ref}» не удалось открыть`)
     }
   }
 
@@ -109,10 +114,17 @@
       return
     }
     if (e.key !== 'Enter') return
-    const live = e.ctrlKey || e.metaKey
-    if (parsedRef) openRef(parsedRef, live)
-    else if (verseHits.length) openVerseHit(verseHits[0], live)
-    else if (songHits.length) openSong(songHits[0])
+    // В эфир по Ctrl+Enter уходит только точная ссылка — fuzzy никогда
+    const action = pickEnterAction({
+      parsedRef,
+      verseHits,
+      songHits,
+      withModifier: e.ctrlKey || e.metaKey,
+    })
+    if (!action) return
+    if (action.type === 'ref') openRef(parsedRef!, action.live)
+    else if (action.type === 'verse') openVerseHit(verseHits[0])
+    else openSong(songHits[0])
   }
 
   const group = 'px-3 pt-2 pb-1 text-2xs font-semibold tracking-wide text-faint uppercase'
@@ -149,7 +161,7 @@
             <span class="block text-xs text-faint">{data.translation}</span>
           </span>
           <span class="ml-auto flex items-center gap-1 font-mono text-2xs whitespace-nowrap text-faint">
-            <CornerDownLeft size={11} />превью · Ctrl⏎ эфир
+            <CornerDownLeft size={11} />превью · Ctrl⏎ в эфир
           </span>
         </button>
       {/if}

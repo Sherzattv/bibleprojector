@@ -9,7 +9,9 @@
   import { show } from './lib/show.svelte'
   import { data } from './lib/db.svelte'
   import { setlist } from './lib/setlist.svelte'
+  import { ui } from './lib/ui.svelte'
   import { buildSongIndex } from './lib/search'
+  import { resolveHotkey } from './lib/hotkeys'
 
   let omnibox: Omnibox
   let clock = $state('')
@@ -34,22 +36,29 @@
   })
 
   function onKeydown(e: KeyboardEvent) {
-    const tag = (e.target as HTMLElement)?.tagName
-    const typing = tag === 'INPUT' || tag === 'TEXTAREA'
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault()
-      omnibox.focus()
-      return
-    }
-    if (typing) return
-    if (e.code === 'Space') {
-      e.preventDefault()
-      show.go()
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') show.next()
-    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') show.prev()
-    else if (e.key.toLowerCase() === 'b' || e.key.toLowerCase() === 'и') show.toggleBlackout()
-    else if (e.key === 'Escape') show.clear()
+    const action = resolveHotkey({
+      code: e.code,
+      key: e.key,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      target: e.target instanceof Element ? e.target : null,
+    })
+    if (!action) return
+    if (action === 'go' || action === 'focus-search') e.preventDefault()
+    if (action === 'focus-search') omnibox.focus()
+    else if (action === 'go') show.go()
+    else if (action === 'next') show.next()
+    else if (action === 'prev') show.prev()
+    else if (action === 'blackout') show.toggleBlackout()
+    else if (action === 'clear') show.clear()
   }
+
+  // Уведомления о тихих отказах: показываем и гасим через 4 секунды
+  $effect(() => {
+    if (!ui.lastNotice) return
+    const id = setTimeout(() => ui.clearNotice(), 4000)
+    return () => clearTimeout(id)
+  })
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -118,6 +127,16 @@
       </section>
 
       <Library />
+    </div>
+  {/if}
+
+  {#if ui.lastNotice}
+    <div
+      role="status"
+      aria-live="polite"
+      class="fixed bottom-14 left-1/2 z-50 -translate-x-1/2 rounded-md border border-live/50 bg-panel-2 px-4 py-2 text-sm text-ink shadow-xl shadow-black/50"
+    >
+      {ui.lastNotice}
     </div>
   {/if}
 </div>

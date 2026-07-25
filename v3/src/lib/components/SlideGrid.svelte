@@ -9,6 +9,7 @@
     <button
       onclick={() => show.setPreview(i)}
       ondblclick={() => show.takeLive(i)}
+      onpointerup={(e) => (e.currentTarget as HTMLElement).blur()}
       class="relative aspect-[16/10] overflow-hidden rounded-md border bg-black text-left
              {onAir
         ? 'border-live'

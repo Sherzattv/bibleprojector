@@ -3,10 +3,12 @@
  * в чистый JSON для v3:
  *   public/data/{rst,nrt,ktb,kyb,songs}.json — полные данные (gitignored)
  *   src/lib/demo-data.json — срез для демо-сборки одним файлом (gitignored)
+ * Данные проходят чистку (дубли VerseId, пустые стихи) и валидацию.
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { parseGlobalJs, sanitizeBible, validateBible } from './convert-core.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const repo = join(here, '..', '..')
@@ -18,17 +20,6 @@ const { TRANSLATION_MAPS } = await import(
   join(repo, 'app', 'js', 'modules', 'canonical.js')
 )
 
-function parseGlobalJs(file) {
-  const src = readFileSync(file, 'utf8')
-  // Данные — первая строка вида `window.X = {...}`; дальше могут идти
-  // вспомогательные константы (KTB/KYB несут карту названий книг).
-  const line = src.split('\n').find((l) => l.includes('window.'))
-  const eq = line.indexOf('=')
-  let body = line.slice(eq + 1).trim()
-  if (body.endsWith(';')) body = body.slice(0, -1)
-  return JSON.parse(body)
-}
-
 const translations = {
   RST: 'bible_data.js',
   NRT: 'nrt_data.js',
@@ -36,14 +27,36 @@ const translations = {
   KYB: 'kyb_data.js',
 }
 
+let hasProblems = false
 const full = {}
 for (const [code, file] of Object.entries(translations)) {
-  full[code] = parseGlobalJs(join(dataDir, file))
-  writeFileSync(join(outDir, `${code.toLowerCase()}.json`), JSON.stringify(full[code]))
-  console.log(`${code}: ${full[code].Books.length} книг`)
+  const raw = parseGlobalJs(readFileSync(join(dataDir, file), 'utf8'))
+  const { db, report } = sanitizeBible(raw)
+  const problems = validateBible(db)
+
+  full[code] = db
+  writeFileSync(join(outDir, `${code.toLowerCase()}.json`), JSON.stringify(db))
+
+  const anomalies = []
+  if (report.duplicates.length) {
+    anomalies.push(`дублей VerseId: ${report.duplicates.length} (${report.duplicates
+      .slice(0, 3)
+      .map((d) => `${d.bookId}:${d.chapter}:${d.verse}`)
+      .join(', ')})`)
+  }
+  if (report.emptyVerses.length) {
+    anomalies.push(`пустых стихов: ${report.emptyVerses.length}`)
+  }
+  console.log(
+    `${code}: ${db.Books.length} книг${anomalies.length ? ` · вычищено: ${anomalies.join('; ')}` : ''}`,
+  )
+  if (problems.length) {
+    hasProblems = true
+    for (const p of problems) console.error(`  ПРОБЛЕМА: ${p}`)
+  }
 }
 
-const songs = parseGlobalJs(join(dataDir, 'songs_ru.js'))
+const songs = parseGlobalJs(readFileSync(join(dataDir, 'songs_ru.js'), 'utf8'))
 writeFileSync(join(outDir, 'songs.json'), JSON.stringify(songs))
 console.log(`Песни: ${songs.length}`)
 
@@ -59,3 +72,8 @@ for (const code of Object.keys(translations)) {
 }
 writeFileSync(join(here, '..', 'src', 'lib', 'demo-data.json'), JSON.stringify(demo))
 console.log('Демо-срез записан')
+
+if (hasProblems) {
+  console.error('Валидация нашла проблемы — см. выше')
+  process.exit(1)
+}

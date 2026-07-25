@@ -14,6 +14,8 @@ export interface ShowSlide {
   label: string
   text: string
   reference: string
+  /** Номер стиха (VerseId) — только для kind='bible' */
+  verse?: number
 }
 
 interface VerseContext {
@@ -79,6 +81,7 @@ class ShowState {
       label: `Стих ${v.VerseId}`,
       text: v.Text.replace(/<[^>]*>/g, ''),
       reference: `${title} ${chapter}:${v.VerseId}`,
+      verse: v.VerseId,
     }))
     const idx = chap.Verses.findIndex((v) => v.VerseId === previewVerse)
     this.previewIdx = idx >= 0 ? idx : 0
@@ -86,15 +89,31 @@ class ShowState {
     return true
   }
 
-  /** Перезагрузить текущую главу после смены перевода */
+  /**
+   * Индекс слайда для номера стиха: точное совпадение, иначе ближайший
+   * меньший, иначе первый. Нумерация стихов между переводами расходится —
+   * перенос по индексу показал бы другой стих.
+   */
+  private indexForVerse(verse: number): number {
+    let best = 0
+    for (let i = 0; i < this.slides.length; i++) {
+      const v = this.slides[i].verse
+      if (v === undefined) continue
+      if (v === verse) return i
+      if (v < verse) best = i
+    }
+    return best
+  }
+
+  /** Перезагрузить текущую главу после смены перевода, сохранив позицию по VerseId */
   reloadForTranslation() {
     if (this.kind !== 'bible' || !this.verseCtx) return
-    const verse = this.previewSlide
-      ? parseInt(this.previewSlide.reference.split(':').pop() || '1')
-      : 1
-    const wasLive = this.liveIdx
-    this.loadChapter(this.verseCtx.canonicalCode, this.verseCtx.chapter, verse)
-    if (wasLive >= 0) this.liveIdx = Math.min(wasLive, this.slides.length - 1)
+    const previewVerse = this.previewSlide?.verse ?? 1
+    const liveVerse = this.liveIdx >= 0 ? this.liveSlide?.verse : undefined
+    const ctx = this.verseCtx
+    if (!this.loadChapter(ctx.canonicalCode, ctx.chapter, previewVerse)) return
+    this.previewIdx = this.indexForVerse(previewVerse)
+    if (liveVerse !== undefined) this.liveIdx = this.indexForVerse(liveVerse)
   }
 
   setPreview(i: number) {

@@ -31,6 +31,8 @@ export interface SongRow {
   copyright?: string
 }
 
+export type LoadStatus = 'loading' | 'ready' | 'error'
+
 export const TRANSLATIONS: Array<[code: string, label: string]> = [
   ['RST', 'Синодальный'],
   ['NRT', 'Новый русский'],
@@ -44,11 +46,36 @@ class DataStore {
   bibles = $state<Record<string, BibleDb>>({})
   songs = $state<SongRow[]>([])
   translation = $state('RST')
-  status = $state<'loading' | 'ready' | 'error'>('loading')
+  status = $state<LoadStatus>('loading')
+  /** Статус фоновой загрузки по каждому переводу */
+  translationStatus = $state<Record<string, LoadStatus>>({})
   demo = IS_DEMO
 
   get db(): BibleDb | null {
     return this.bibles[this.translation] ?? null
+  }
+
+  private async fetchJson(path: string): Promise<unknown> {
+    const r = await fetch(path)
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`)
+    return r.json()
+  }
+
+  private async loadTranslation(code: string): Promise<void> {
+    this.translationStatus = { ...this.translationStatus, [code]: 'loading' }
+    try {
+      const db = (await this.fetchJson(`data/${code.toLowerCase()}.json`)) as BibleDb
+      this.bibles = { ...this.bibles, [code]: db }
+      this.translationStatus = { ...this.translationStatus, [code]: 'ready' }
+    } catch (e) {
+      console.error(`Translation ${code} failed to load`, e)
+      this.translationStatus = { ...this.translationStatus, [code]: 'error' }
+    }
+  }
+
+  /** Повторить загрузку перевода после ошибки */
+  retryTranslation(code: string): Promise<void> {
+    return this.loadTranslation(code)
   }
 
   async init() {
@@ -59,19 +86,22 @@ class DataStore {
         }
         this.bibles = demo.default.translations
         this.songs = demo.default.songs
+        this.translationStatus = Object.fromEntries(
+          Object.keys(this.bibles).map((code) => [code, 'ready']),
+        )
       } else {
         const [rst, songs] = await Promise.all([
-          fetch('data/rst.json').then((r) => r.json()),
-          fetch('data/songs.json').then((r) => r.json()),
+          this.fetchJson('data/rst.json') as Promise<BibleDb>,
+          this.fetchJson('data/songs.json') as Promise<SongRow[]>,
         ])
         this.bibles = { RST: rst }
         this.songs = songs
-        // Остальные переводы — в фоне, не блокируя старт
+        this.translationStatus = { ...this.translationStatus, RST: 'ready' }
+        // Остальные переводы — в фоне, не блокируя старт;
+        // ошибки фиксируются в translationStatus, не роняя процесс
         for (const [code] of TRANSLATIONS) {
           if (code === 'RST') continue
-          fetch(`data/${code.toLowerCase()}.json`)
-            .then((r) => r.json())
-            .then((db) => (this.bibles = { ...this.bibles, [code]: db }))
+          void this.loadTranslation(code)
         }
       }
       this.status = 'ready'

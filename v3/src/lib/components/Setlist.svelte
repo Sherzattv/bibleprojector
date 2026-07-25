@@ -51,7 +51,7 @@
           <span class="min-w-0">
             <span class="block truncate text-base font-medium">{item.title}</span>
             <span class="block text-xs text-faint">
-              {item.kind === 'song' ? `Песня · № ${item.num}` : item.kind === 'bible' ? 'Библия' : 'Заметка'}
+              {item.kind === 'song' ? 'Песня' : item.kind === 'bible' ? 'Библия' : 'Заметка'}
             </span>
           </span>
           <GripVertical size={13} class="ml-auto shrink-0 text-faint opacity-0 group-hover:opacity-60" />
