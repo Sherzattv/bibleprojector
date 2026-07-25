@@ -89,6 +89,39 @@ export function splitSongSections(text) {
 }
 
 /**
+ * Build a projection-ready song object from raw lyrics.
+ * Used both for fresh catalog hits and for songs restored from a setlist,
+ * where only the lyrics and the display reference survived serialization.
+ * @param {Object} options
+ * @param {number|string} [options.id]
+ * @param {string} options.title
+ * @param {string} options.rawText - full lyrics with optional [Куплет] labels
+ * @param {string} [options.baseReference] - defaults to title
+ * @param {string} [options.copyright]
+ * @returns {Object|null}
+ */
+export function buildSongProjection({ id, title, rawText, baseReference, copyright } = {}) {
+    if (!title && !rawText) return null;
+
+    const sections = splitSongSections(rawText);
+    const firstSection = sections[0] || { label: '', rawText, html: formatSongText(rawText) };
+    const reference = baseReference || title;
+
+    return {
+        type: 'song',
+        id,
+        title,
+        text: firstSection.html,
+        reference: firstSection.label ? `${reference} · ${firstSection.label}` : reference,
+        baseReference: reference,
+        rawText,
+        sections,
+        sectionIndex: 0,
+        copyright: copyright || ''
+    };
+}
+
+/**
  * Create projection-ready object from a song record.
  * @param {Object} song
  * @returns {Object|null}
@@ -96,22 +129,13 @@ export function splitSongSections(text) {
 export function toSongProjection(song) {
     if (!song) return null;
 
-    const sections = splitSongSections(song.text);
-    const firstSection = sections[0] || { label: '', rawText: song.text, html: formatSongText(song.text) };
-    const baseReference = song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title;
-
-    return {
-        type: 'song',
+    return buildSongProjection({
         id: song.id,
         title: song.title,
-        text: firstSection.html,
-        reference: firstSection.label ? `${baseReference} · ${firstSection.label}` : baseReference,
-        baseReference,
         rawText: song.text,
-        sections,
-        sectionIndex: 0,
-        copyright: song.copyright || ''
-    };
+        baseReference: song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title,
+        copyright: song.copyright
+    });
 }
 
 /**

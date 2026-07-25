@@ -9,7 +9,8 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "lint": "eslint app/js --ext .js",
-        "lint:fix": "eslint app/js --ext .js --fix"
+        "lint:fix": "eslint app/js --ext .js --fix",
+        "verify:layout": "node scripts/verify_layout.js"
     },
     "devDependencies": {
         "eslint": "^9.0.0",
