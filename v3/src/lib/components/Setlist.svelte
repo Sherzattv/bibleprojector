@@ -82,7 +82,7 @@
   }
 </script>
 
-<aside class="flex min-h-0 flex-col bg-panel">
+<aside class="flex min-h-0 flex-col bg-panel" aria-label="Порядок служения">
   {#if open}
     <div class="flex h-9 shrink-0 items-center justify-between border-b border-stroke pr-1 pl-3">
       <span class="text-xs font-semibold tracking-wide text-muted uppercase">Порядок служения</span>
@@ -104,10 +104,11 @@
       </span>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto py-1">
+    <div class="min-h-0 flex-1 overflow-y-auto py-1" role="list">
       {#each setlist.items as item, i (i)}
         {@const Icon = icons[item.kind]}
         <div
+          role="listitem"
           class="group flex items-center border-l-2
                  {i === setlist.currentIdx ? 'border-accent bg-active' : 'border-transparent hover:bg-hover'}"
         >
