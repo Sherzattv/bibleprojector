@@ -3,11 +3,11 @@
   import { show } from '../show.svelte'
 
   const btn =
-    'flex h-[30px] items-center gap-1.5 rounded-[5px] border border-stroke-2 bg-panel-2 px-3 text-xs font-medium text-muted hover:bg-hover hover:text-ink'
-  const kbd = 'font-mono text-[9.5px] text-faint'
+    'flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm font-medium text-muted hover:bg-hover hover:text-ink'
+  const kbd = 'font-mono text-2xs text-faint'
 </script>
 
-<div class="flex shrink-0 items-center gap-2 border-t border-stroke bg-panel px-4 py-2">
+<div class="flex shrink-0 items-center gap-2 border-t border-stroke bg-panel px-3 py-2">
   <button class={btn} onclick={() => show.prev()}>
     <ChevronLeft size={14} />Назад <kbd class={kbd}>←</kbd>
   </button>
@@ -17,10 +17,10 @@
 
   <button
     onclick={() => show.go()}
-    class="mx-1 flex h-[30px] items-center gap-2 rounded-[5px] bg-go px-5 text-[12.5px] font-bold text-white hover:bg-go-hover"
+    class="mx-1 flex h-7 items-center gap-2 rounded bg-go px-4 text-sm font-bold text-white hover:bg-go-hover"
   >
     <Play size={13} fill="currentColor" />GO
-    <kbd class="font-mono text-[9.5px] font-normal text-white/60">Space</kbd>
+    <kbd class="font-mono text-2xs font-normal text-white/60">Space</kbd>
   </button>
 
   <span class="mx-1 h-5 w-px bg-stroke-2"></span>
@@ -36,5 +36,5 @@
     <X size={13} />Очистить <kbd class={kbd}>Esc</kbd>
   </button>
 
-  <span class="ml-auto text-[11px] text-faint">РСТ · Синодальный</span>
+  <span class="ml-auto text-xs text-faint">РСТ · Синодальный</span>
 </div>

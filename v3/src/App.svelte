@@ -38,22 +38,22 @@
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="grid h-screen grid-rows-[46px_1fr]">
+<div class="grid h-screen grid-rows-[48px_1fr]">
   <!-- Верхняя панель -->
-  <header class="z-30 flex items-center gap-4 border-b border-stroke bg-panel px-3.5">
-    <div class="flex items-center gap-2 text-[13px] font-semibold">
+  <header class="z-30 flex h-12 items-center gap-4 border-b border-stroke bg-panel px-3">
+    <div class="flex items-center gap-2 text-base font-semibold">
       <MonitorPlay size={16} class="text-accent" />
       Bible Projector
     </div>
 
     <Omnibox bind:this={omnibox} />
 
-    <div class="ml-auto flex items-center gap-3.5">
-      <span class="flex items-center gap-1.5 text-xs text-muted">
+    <div class="ml-auto flex items-center gap-4">
+      <span class="flex items-center gap-1.5 text-sm text-muted">
         <span class="size-1.5 rounded-full bg-go"></span>
         Проектор · экран 2
       </span>
-      <span class="flex items-center gap-1.5 font-mono text-xs text-faint tabular-nums">
+      <span class="flex items-center gap-1.5 font-mono text-sm text-faint tabular-nums">
         <Clock4 size={12} />{clock}
       </span>
     </div>
@@ -80,12 +80,12 @@
         />
       </div>
 
-      <div class="flex shrink-0 items-baseline gap-2.5 px-4 pt-3 pb-1.5">
-        <span class="text-[13.5px] font-semibold">{show.song.title}</span>
-        <span class="text-[11.5px] text-faint">№ {show.song.num} · {show.song.slides.length} слайда</span>
-        <span class="ml-auto text-[11px] text-faint">клик — превью · двойной — эфир</span>
+      <div class="flex shrink-0 items-baseline gap-2 px-3 pt-3 pb-1.5">
+        <span class="text-lg font-semibold">{show.song.title}</span>
+        <span class="text-xs text-faint">№ {show.song.num} · {show.song.slides.length} слайда</span>
+        <span class="ml-auto text-xs text-faint">клик — превью · двойной — эфир</span>
       </div>
-      <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-3">
+      <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
         <SlideGrid />
       </div>
 

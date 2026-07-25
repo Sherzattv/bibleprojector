@@ -17,8 +17,8 @@
           : 'border-stroke-2 hover:border-faint'}"
     >
       <span
-        class="absolute inset-x-0 top-0 bottom-[22px] grid place-items-center px-2.5 py-1.5 text-center font-serif
-               text-[10px] leading-[1.45] text-white/85"
+        class="absolute inset-x-0 top-0 bottom-6 grid place-items-center px-2 py-1.5 text-center font-serif
+               text-2xs leading-normal text-white/85"
       >
         <span>
           {#each slide.text.split('\n') as line, li (li)}
@@ -27,7 +27,7 @@
         </span>
       </span>
       <span
-        class="absolute inset-x-0 bottom-0 flex h-[22px] items-center justify-between border-t px-2 text-[10px] font-medium
+        class="absolute inset-x-0 bottom-0 flex h-6 items-center justify-between border-t px-2 text-2xs font-medium tracking-wide
                {onAir
           ? 'border-live/40 bg-live-dim text-live'
           : inPreview
@@ -35,7 +35,7 @@
             : 'border-stroke bg-panel text-faint'}"
       >
         <span>{slide.label}</span>
-        <span class="font-mono text-[9.5px] tabular-nums">
+        <span class="font-mono tabular-nums">
           {onAir ? 'ЭФИР' : inPreview ? 'ПРЕВЬЮ' : String(i + 1).padStart(2, '0')}
         </span>
       </span>

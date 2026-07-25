@@ -11,8 +11,7 @@
     ['history', 'История', History],
   ]
 
-  const row =
-    'flex w-full items-center gap-2.5 px-3 py-[7px] text-left hover:bg-hover'
+  const row = 'flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-hover'
 </script>
 
 <aside class="flex min-h-0 flex-col bg-panel">
@@ -20,7 +19,7 @@
     {#each tabs as [key, label, Icon] (key)}
       <button
         onclick={() => (tab = key)}
-        class="flex flex-1 items-center justify-center gap-1.5 border-b-2 text-[11.5px] font-medium
+        class="flex flex-1 items-center justify-center gap-1.5 border-b-2 text-sm font-medium
                {tab === key
           ? 'border-accent text-ink'
           : 'border-transparent text-faint hover:text-muted'}"
@@ -34,16 +33,16 @@
     {#if tab === 'songs'}
       {#each demoLibrarySongs as [title, num] (num)}
         <button class={row}>
-          <span class="w-8 shrink-0 text-right font-mono text-[10.5px] text-faint tabular-nums">{num}</span>
-          <span class="truncate text-[12.5px]">{title}</span>
+          <span class="w-8 shrink-0 text-right font-mono text-xs text-faint tabular-nums">{num}</span>
+          <span class="truncate text-base">{title}</span>
         </button>
       {/each}
     {:else if tab === 'bible'}
       {#each demoVerses as v (v.ref)}
         <button class={row}>
           <span class="min-w-0">
-            <span class="block text-[12.5px] font-medium">{v.ref}</span>
-            <span class="block truncate text-[11px] text-faint">{v.text}</span>
+            <span class="block text-base font-medium">{v.ref}</span>
+            <span class="block truncate text-xs text-faint">{v.text}</span>
           </span>
         </button>
       {/each}
@@ -51,15 +50,15 @@
       {#each demoHistory as [title, meta] (title)}
         <button class={row}>
           <span class="min-w-0">
-            <span class="block truncate text-[12.5px]">{title}</span>
-            <span class="block text-[11px] text-faint">{meta}</span>
+            <span class="block truncate text-base">{title}</span>
+            <span class="block text-xs text-faint">{meta}</span>
           </span>
         </button>
       {/each}
     {/if}
   </div>
 
-  <div class="shrink-0 border-t border-stroke px-3 py-2 text-[11px] text-faint">
+  <div class="flex h-8 shrink-0 items-center border-t border-stroke px-3 text-xs text-faint">
     11 524 песни · 4 перевода · офлайн
   </div>
 </aside>

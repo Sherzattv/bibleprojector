@@ -10,18 +10,18 @@
   const isLive = mode === 'live'
 </script>
 
-<div class="bg-bg p-3 pb-2.5">
-  <div class="mb-1.5 flex items-center justify-between px-0.5">
-    <span class="text-[10.5px] font-semibold tracking-[0.08em] uppercase {isLive ? 'text-live' : 'text-muted'}">
+<div class="bg-bg p-3">
+  <div class="mb-1.5 flex items-center justify-between">
+    <span class="text-xs font-semibold tracking-wide uppercase {isLive ? 'text-live' : 'text-muted'}">
       {isLive ? 'Эфир' : 'Превью'}
     </span>
     {#if isLive}
-      <span class="flex items-center gap-1.5 text-[10.5px] font-medium text-live">
+      <span class="flex items-center gap-1.5 text-xs font-medium text-live">
         <span class="size-1.5 rounded-full bg-live"></span>
         {blackout ? 'blackout' : cleared ? 'пусто' : 'идёт показ'}
       </span>
     {:else}
-      <span class="text-[10.5px] text-faint">следующий</span>
+      <span class="text-xs text-faint">следующий</span>
     {/if}
   </div>
 
