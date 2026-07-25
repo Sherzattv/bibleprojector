@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Новый пуш отменяет устаревший прогон той же ветки
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   production:
     name: v3 — production build
@@ -19,7 +24,7 @@ jobs:
       - run: npx wrangler deploy --dry-run
 
   v3:
-    name: v3 — типы, тесты, E2E
+    name: v3 — типы и тесты
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,5 +39,5 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      # E2E (Playwright) гоняются локально перед релизом: cd v3 && npm run test:e2e
+      # (решение владельца: браузерные тесты не входят в CI)
