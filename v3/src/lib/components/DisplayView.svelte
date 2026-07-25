@@ -30,7 +30,8 @@
 <svelte:head><title>Bible Projector — экран</title></svelte:head>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
+<main
+  aria-label="Экран проектора"
   class="grid h-screen cursor-none place-items-center bg-black p-[6%] text-center select-none"
   ondblclick={toggleFullscreen}
 >
@@ -72,4 +73,4 @@
     </div>
   {/if}
   <!-- blackout и empty — просто чёрный экран -->
-</div>
+</main>

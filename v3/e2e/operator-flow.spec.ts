@@ -209,3 +209,35 @@ test('порядок, история и настройки проекции во
   await page.getByRole('button', { name: 'История' }).click()
   await expect(library.getByRole('button', { name: /От Иоанна 3:16/ })).toBeVisible()
 })
+
+test('окно проектора подключается, получает эфир и честно отключается', async ({ page }) => {
+  const popupPromise = page.waitForEvent('popup')
+  await page.getByRole('button', { name: 'Открыть экран' }).click()
+  const display = await popupPromise
+
+  await expect(display).toHaveURL(/#display$/)
+  await expect(display).toHaveTitle('Bible Projector — экран')
+  await expect(page.getByText('Проектор подключён')).toBeVisible({ timeout: 5_000 })
+
+  const search = page.getByPlaceholder('Стих, песня или текст…')
+  await search.fill('ин 3 16')
+  await page.getByRole('button', { name: /От Иоанна 3:16\s+RST/ }).click()
+  await page.getByRole('button', { name: /GO\s+Space/ }).click()
+
+  const screen = display.getByRole('main', { name: 'Экран проектора' })
+  await expect(screen).toContainText('Ибо так возлюбил Бог мир')
+  await expect(screen).toContainText('От Иоанна 3:16')
+
+  const blackout = page.getByRole('button', { name: /Blackout\s+B/ })
+  await blackout.click()
+  await expect(screen).not.toContainText('Ибо так возлюбил Бог мир')
+
+  await blackout.click()
+  await expect(screen).toContainText('Ибо так возлюбил Бог мир')
+
+  await display.close()
+  await expect(page.getByRole('button', { name: 'Открыть экран' })).toBeVisible({
+    timeout: 12_000,
+  })
+  await expect(page.getByText('Проектор подключён')).not.toBeVisible()
+})
