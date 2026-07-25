@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Search, BookOpen, Music, CornerDownLeft, LoaderCircle } from '@lucide/svelte'
   import { data } from '../db.svelte'
-  import { show } from '../show.svelte'
+  import { commands } from '../commands.svelte'
   import { parseQuery, codeForBookId, pickEnterAction, type VerseHit } from '../search'
   import { getSearchClient } from '../search-service.svelte'
   import { ui } from '../ui.svelte'
@@ -61,26 +61,23 @@
   }
 
   function openRef(ref: RefResult, live = false) {
-    if (show.loadChapter(ref.canonicalCode, ref.chapter, ref.verse)) {
-      if (live) show.go()
+    if (commands.openRef(ref.canonicalCode, ref.chapter, ref.verse)) {
+      if (live) commands.go()
       close()
-    } else {
-      ui.notify(`«${ref.label}» не найдено в переводе ${data.translation}`)
     }
   }
 
   function openVerseHit(hit: VerseHit) {
     const code = codeForBookId(data.translation, hit.bookId)
-    if (code && show.loadChapter(code, hit.chapter, hit.verse)) {
+    if (code && commands.openRef(code, hit.chapter, hit.verse)) {
       close()
-    } else {
+    } else if (!code) {
       ui.notify(`«${hit.ref}» не удалось открыть`)
     }
   }
 
   function openSong(song: SongRow) {
-    show.loadSong(song)
-    close()
+    if (commands.openSong(song.id)) close()
   }
 
   function onEnter(e: KeyboardEvent) {

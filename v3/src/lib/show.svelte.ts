@@ -8,7 +8,13 @@ import { splitSongSections } from './legacy/songs.js'
 // @ts-expect-error legacy JS module without types
 import { getBookId, getBookTitle } from './legacy/canonical.js'
 import { data } from './db.svelte'
+import { edits } from './edits.svelte'
 import type { SongRow } from './db.svelte'
+
+export type ShowSource =
+  | { kind: 'song'; id: number }
+  | { kind: 'bible'; code: string; chapter: number }
+  | { kind: 'note'; title: string; text: string }
 
 export interface ShowSlide {
   label: string
@@ -26,7 +32,11 @@ interface VerseContext {
 class ShowState {
   title = $state('')
   subtitle = $state('')
-  kind = $state<'song' | 'bible' | null>(null)
+  kind = $state<'song' | 'bible' | 'note' | null>(null)
+  /** Откуда открыт текущий элемент — для истории и повторного открытия */
+  source: ShowSource | null = null
+  /** Название без секции (для песен) — под ним элемент попадает в историю */
+  baseReference = ''
   slides = $state<ShowSlide[]>([])
   previewIdx = $state(0)
   liveIdx = $state(-1)
@@ -49,6 +59,8 @@ class ShowState {
     const base = song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title
     this.kind = 'song'
     this.verseCtx = null
+    this.source = { kind: 'song', id: song.id }
+    this.baseReference = base
     this.title = song.title
     this.subtitle = song.songNumber ? `№ ${song.songNumber}` : ''
     this.slides = sections.map((s, i) => ({
@@ -75,11 +87,16 @@ class ShowState {
 
     this.kind = 'bible'
     this.verseCtx = { canonicalCode, chapter }
+    this.source = { kind: 'bible', code: canonicalCode, chapter }
+    this.baseReference = `${title} ${chapter}`
     this.title = `${title} ${chapter}`
     this.subtitle = translation
     this.slides = chap.Verses.map((v) => ({
       label: `Стих ${v.VerseId}`,
-      text: v.Text.replace(/<[^>]*>/g, ''),
+      // Сохранённая оператором правка имеет приоритет над оригиналом
+      text:
+        edits.get(translation, canonicalCode, chapter, v.VerseId) ??
+        v.Text.replace(/<[^>]*>/g, ''),
       reference: `${title} ${chapter}:${v.VerseId}`,
       verse: v.VerseId,
     }))
@@ -114,6 +131,29 @@ class ShowState {
     if (!this.loadChapter(ctx.canonicalCode, ctx.chapter, previewVerse)) return
     this.previewIdx = this.indexForVerse(previewVerse)
     if (liveVerse !== undefined) this.liveIdx = this.indexForVerse(liveVerse)
+  }
+
+  /** Заметка: один слайд, заголовок в reference */
+  loadNote(title: string, text: string) {
+    this.kind = 'note'
+    this.verseCtx = null
+    this.source = { kind: 'note', title, text }
+    this.baseReference = title
+    this.title = title
+    this.subtitle = 'Заметка'
+    this.slides = [{ label: 'Заметка', text, reference: title }]
+    this.previewIdx = 0
+    this.liveIdx = -1
+  }
+
+  /** Правка текста слайда; для стихов — с сохранением */
+  updateSlideText(index: number, text: string) {
+    const slide = this.slides[index]
+    if (!slide) return
+    this.slides[index] = { ...slide, text }
+    if (this.kind === 'bible' && this.verseCtx && slide.verse !== undefined) {
+      edits.save(data.translation, this.verseCtx.canonicalCode, this.verseCtx.chapter, slide.verse, text)
+    }
   }
 
   setPreview(i: number) {

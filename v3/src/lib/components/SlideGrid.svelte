@@ -1,5 +1,11 @@
 <script lang="ts">
   import { show } from '../show.svelte'
+  import { commands } from '../commands.svelte'
+
+  function takeLive(i: number) {
+    show.setPreview(i)
+    commands.go()
+  }
 </script>
 
 <div class="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2">
@@ -8,7 +14,7 @@
     {@const inPreview = i === show.previewIdx && !onAir}
     <button
       onclick={() => show.setPreview(i)}
-      ondblclick={() => show.takeLive(i)}
+      ondblclick={() => takeLive(i)}
       onpointerup={(e) => (e.currentTarget as HTMLElement).blur()}
       class="relative aspect-[16/10] overflow-hidden rounded-md border bg-black text-left
              {onAir

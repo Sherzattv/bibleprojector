@@ -5,8 +5,7 @@
  * Песни адресуются по song.id: номера песен в каталоге НЕ уникальны
  * (3013 задвоенных номеров на 11524 песни).
  */
-import { data } from './db.svelte'
-import { show } from './show.svelte'
+import { commands } from './commands.svelte'
 import { ui } from './ui.svelte'
 
 export type SetlistEntry =
@@ -28,23 +27,14 @@ class SetlistState {
     const item = this.items[i]
     if (!item) return
     if (item.kind === 'song') {
-      const song = data.songsById.get(item.id)
-      if (!song) {
-        ui.notify(`Песня «${item.title}» не найдена в каталоге`)
-        return
-      }
-      show.loadSong(song)
-      this.currentIdx = i
-      ui.clearNotice()
+      if (!commands.openSong(item.id)) return
     } else if (item.kind === 'bible') {
-      if (!show.loadChapter(item.code, item.chapter, item.verse)) {
-        ui.notify(`«${item.title}» не найдено в переводе ${data.translation}`)
-        return
-      }
-      this.currentIdx = i
-      ui.clearNotice()
+      if (!commands.openRef(item.code, item.chapter, item.verse)) return
+    } else {
+      commands.openNote(item.title, item.text)
     }
-    // note: показ заметок — следующий срез
+    this.currentIdx = i
+    ui.clearNotice()
   }
 }
 

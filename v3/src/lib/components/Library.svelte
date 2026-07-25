@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { Music, BookOpen, ChevronLeft } from '@lucide/svelte'
+  import { Music, BookOpen, History, ChevronLeft } from '@lucide/svelte'
   import { data } from '../db.svelte'
-  import { show } from '../show.svelte'
+  import { commands } from '../commands.svelte'
+  import { history, type HistoryEntry } from '../history.svelte'
   // @ts-expect-error legacy JS module without types
   import { BOOK_INFO, getBookId } from '../legacy/canonical.js'
   import type { SongRow } from '../db.svelte'
 
-  type Tab = 'songs' | 'bible'
+  type Tab = 'songs' | 'bible' | 'history'
   let tab = $state<Tab>('songs')
   let songFilter = $state('')
   let selectedBook = $state<string | null>(null)
@@ -41,16 +42,26 @@
   const selectedBookInfo = $derived(books.find((b) => b.code === selectedBook) ?? null)
 
   function openSong(song: SongRow) {
-    show.loadSong(song)
+    commands.openSong(song.id)
   }
   function openChapter(code: string, chapter: number) {
-    show.loadChapter(code, chapter, 1)
+    commands.openRef(code, chapter)
+  }
+  function reopenHistory(entry: HistoryEntry) {
+    const s = entry.source
+    if (s.kind === 'song') commands.openSong(s.id)
+    else if (s.kind === 'bible') commands.openRef(s.code, s.chapter, s.verse)
+    else commands.openNote(s.title, s.text)
+  }
+  function timeOf(at: number): string {
+    const d = new Date(at)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
   }
 </script>
 
 <aside class="flex min-h-0 flex-col bg-panel">
   <div class="flex h-9 shrink-0 items-stretch border-b border-stroke">
-    {#each [['songs', 'Песни', Music], ['bible', 'Библия', BookOpen]] as const as [key, label, Icon] (key)}
+    {#each [['songs', 'Песни', Music], ['bible', 'Библия', BookOpen], ['history', 'История', History]] as const as [key, label, Icon] (key)}
       <button
         onclick={() => (tab = key)}
         class="flex flex-1 items-center justify-center gap-1.5 border-b-2 text-sm font-medium
@@ -87,6 +98,27 @@
     </div>
     <div class="flex h-8 shrink-0 items-center border-t border-stroke px-3 text-xs text-faint">
       {data.songs.length} песен{songFilter.trim() ? ` · показано ${visibleSongs.length}` : data.songs.length > 100 ? ' · первые 100' : ''}
+    </div>
+  {:else if tab === 'history'}
+    <div class="min-h-0 flex-1 overflow-y-auto py-1">
+      {#each history.items as entry (entry.at)}
+        <button class={row} onclick={() => reopenHistory(entry)}>
+          <span class="w-9 shrink-0 text-right font-mono text-xs text-faint tabular-nums">{timeOf(entry.at)}</span>
+          <span class="min-w-0">
+            <span class="block truncate text-base">{entry.reference}</span>
+          </span>
+        </button>
+      {:else}
+        <div class="px-3 py-4 text-xs text-faint">
+          Здесь появится всё, что уходило в эфир — для быстрого повтора
+        </div>
+      {/each}
+    </div>
+    <div class="flex h-8 shrink-0 items-center justify-between border-t border-stroke px-3 text-xs text-faint">
+      {history.items.length} показов
+      {#if history.items.length}
+        <button class="hover:text-muted" onclick={() => history.clear()}>Очистить</button>
+      {/if}
     </div>
   {:else if selectedBookInfo}
     <button

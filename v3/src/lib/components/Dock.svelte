@@ -2,7 +2,7 @@
   import { ChevronLeft, ChevronRight, Play, SquareSlash, Image, X, RotateCw } from '@lucide/svelte'
   import { show } from '../show.svelte'
   import { data, TRANSLATIONS } from '../db.svelte'
-  import { ui } from '../ui.svelte'
+  import { commands } from '../commands.svelte'
 
   const btn =
     'flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm font-medium text-muted hover:bg-hover hover:text-ink disabled:opacity-40 disabled:pointer-events-none'
@@ -14,13 +14,9 @@
 
   function changeTranslation(e: Event) {
     const code = (e.target as HTMLSelectElement).value
-    if (!data.bibles[code]) {
-      ui.notify(`Перевод ${code} ещё не загружен`)
+    if (!commands.setTranslation(code)) {
       ;(e.target as HTMLSelectElement).value = data.translation
-      return
     }
-    data.translation = code
-    show.reloadForTranslation()
   }
 
   async function retryFailed() {
@@ -36,15 +32,15 @@
 </script>
 
 <div class="flex shrink-0 items-center gap-2 border-t border-stroke bg-panel px-3 py-2">
-  <button class={btn} onclick={() => show.prev()} disabled={!show.slides.length}>
+  <button class={btn} onclick={() => commands.prev()} disabled={!show.slides.length}>
     <ChevronLeft size={14} />Назад <kbd class={kbd}>←</kbd>
   </button>
-  <button class={btn} onclick={() => show.next()} disabled={!show.slides.length}>
+  <button class={btn} onclick={() => commands.next()} disabled={!show.slides.length}>
     Вперёд<ChevronRight size={14} /> <kbd class={kbd}>→</kbd>
   </button>
 
   <button
-    onclick={() => show.go()}
+    onclick={() => commands.go()}
     disabled={!show.slides.length}
     class="mx-1 flex h-7 items-center gap-2 rounded bg-go px-4 text-sm font-bold text-white hover:bg-go-hover disabled:pointer-events-none disabled:opacity-40"
   >
@@ -56,14 +52,14 @@
 
   <button
     class="{btn} {show.blackout ? 'border-live/50! bg-live-dim! text-live!' : ''}"
-    onclick={() => show.toggleBlackout()}
+    onclick={() => commands.toggleBlackout()}
   >
     <SquareSlash size={13} />Blackout <kbd class={kbd}>B</kbd>
   </button>
-  <button class={btn} disabled title="Появится вместе с окном проектора">
+  <button class={btn} disabled title="Логотип и фоны — следующий этап">
     <Image size={13} />Логотип
   </button>
-  <button class={btn} onclick={() => show.clear()} disabled={show.liveIdx < 0}>
+  <button class={btn} onclick={() => commands.clearLive()} disabled={show.liveIdx < 0}>
     <X size={13} />Очистить <kbd class={kbd}>Esc</kbd>
   </button>
 
