@@ -10,9 +10,9 @@
     "command": "npm run build"
   },
   "assets": {
-    "directory": "./v3/dist",
-    // Vite создаёт корневой index.html; неизвестные клиентские маршруты
-    // возвращаются в приложение.
+    // dist/ собирает npm run build: лендинг из site/ в корне,
+    // приложение (v3, base /app/) в dist/app/
+    "directory": "./dist",
     "html_handling": "none",
     "not_found_handling": "single-page-application"
   }

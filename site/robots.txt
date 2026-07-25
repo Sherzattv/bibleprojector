@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 
-Disallow: /data/
+Disallow: /app/data/
 
 Sitemap: https://bibleprojector.kz/sitemap.xml
