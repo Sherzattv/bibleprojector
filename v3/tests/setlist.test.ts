@@ -2,40 +2,65 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setlist } from '../src/lib/setlist.svelte'
 import { show } from '../src/lib/show.svelte'
 import { data } from '../src/lib/db.svelte'
-import { rstDb, songs } from './fixtures'
+// Модуль появится по спецификации (TDD, red-фаза)
+import { ui } from '../src/lib/ui.svelte'
+import { rstDb, songs, songsDuo214 } from './fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb }
   data.translation = 'RST'
-  data.songs = songs
+  data.songs = [...songs, ...songsDuo214]
   setlist.currentIdx = -1
+  ui.clearNotice()
   setlist.items = [
-    { kind: 'song', num: '310', title: 'Благодать' },
-    { kind: 'song', num: '9999', title: 'Тихая песня' }, // номер не существует
-    { kind: 'song', num: '8888', title: 'Нет такой' }, // не найдётся вообще
+    { kind: 'song', id: 1, title: 'Благодать' },
+    { kind: 'song', id: 4, title: 'Тихая песня' }, // песня без номера
+    { kind: 'song', id: 999, title: 'Нет такой' }, // id не существует
     { kind: 'bible', code: 'JHN', chapter: 3, verse: 2, title: 'Иоанна 3:2' },
+    { kind: 'bible', code: 'JHN', chapter: 99, verse: 1, title: 'Иоанна 99' }, // главы нет
     { kind: 'note', title: 'Объявления', text: 'текст' },
   ]
 })
 
-describe('setlist.open', () => {
-  it('открывает песню по номеру', () => {
+describe('setlist.open — песни по id', () => {
+  it('открывает песню строго по id', () => {
     setlist.open(0)
     expect(setlist.currentIdx).toBe(0)
     expect(show.title).toBe('Благодать')
   })
 
-  it('падает на поиск по названию, если номера нет', () => {
+  it('находит и песню без номера — id достаточно', () => {
     setlist.open(1)
     expect(setlist.currentIdx).toBe(1)
     expect(show.title).toBe('Тихая песня')
   })
 
-  it('ненайденная песня не меняет текущий элемент', () => {
-    setlist.open(2)
-    expect(setlist.currentIdx).toBe(-1)
+  it('две песни с одинаковым номером 214 — открывается та, чей id в записи', () => {
+    setlist.items = [
+      { kind: 'song', id: 5, title: 'Как лань желает' },
+      { kind: 'song', id: 6, title: 'Как лань желает (новая)' },
+    ]
+    setlist.open(0)
+    expect(show.title).toBe('Как лань желает')
+    setlist.open(1)
+    expect(show.title).toBe('Как лань желает (новая)')
+    expect(setlist.currentIdx).toBe(1)
   })
 
+  it('ненайденный id не меняет текущий элемент и даёт уведомление', () => {
+    setlist.open(2)
+    expect(setlist.currentIdx).toBe(-1)
+    expect(ui.lastNotice).toBeTypeOf('string')
+    expect(ui.lastNotice!.length).toBeGreaterThan(0)
+  })
+
+  it('удачное открытие не оставляет уведомления', () => {
+    setlist.open(0)
+    expect(ui.lastNotice).toBeNull()
+  })
+})
+
+describe('setlist.open — Библия и границы', () => {
   it('открывает главу Библии с нужным стихом в превью', () => {
     setlist.open(3)
     expect(setlist.currentIdx).toBe(3)
@@ -43,7 +68,23 @@ describe('setlist.open', () => {
     expect(show.previewSlide!.reference).toBe('От Иоанна 3:2')
   })
 
+  it('ненайденная глава не меняет текущий элемент и даёт уведомление', () => {
+    setlist.open(4)
+    expect(setlist.currentIdx).toBe(-1)
+    expect(ui.lastNotice).toBeTypeOf('string')
+    expect(ui.lastNotice!.length).toBeGreaterThan(0)
+  })
+
   it('выход за границы — безопасен', () => {
     expect(() => setlist.open(42)).not.toThrow()
+  })
+})
+
+describe('ui-уведомления', () => {
+  it('notify записывает сообщение, clearNotice сбрасывает', () => {
+    ui.notify('Песня не найдена')
+    expect(ui.lastNotice).toBe('Песня не найдена')
+    ui.clearNotice()
+    expect(ui.lastNotice).toBeNull()
   })
 })

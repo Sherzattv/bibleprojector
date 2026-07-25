@@ -33,6 +33,48 @@ export const nrtDb = makeDb('NRT', {
   ],
 })
 
+/** Глава с явными VerseId — для тестов переноса позиции по номеру стиха */
+function makeChapterDb(
+  translation: string,
+  code: string,
+  chapter: number,
+  verses: Array<[verseId: number, text: string]>,
+): BibleDb {
+  return {
+    Translation: translation,
+    Books: [
+      {
+        BookId: getBookId(code, translation) as number,
+        Chapters: [
+          {
+            ChapterId: chapter,
+            Verses: verses.map(([VerseId, Text]) => ({ VerseId, Text })),
+          },
+        ],
+      },
+    ],
+  }
+}
+
+/** Псалом 41: в RST стихи 1,2,3 — в NRT состав другой: 1,3,4 */
+export const rstShiftDb = makeChapterDb('RST', 'PSA', 41, [
+  [1, 'Начальнику хора. Учение. Сынов Кореевых.'],
+  [2, 'Как лань желает к потокам воды.'],
+  [3, 'Жаждет душа моя к Богу крепкому, живому.'],
+])
+
+export const nrtShiftDb = makeChapterDb('NRT', 'PSA', 41, [
+  [1, 'Дирижёру хора. Наставление потомков Кораха.'],
+  [3, 'Как стремится лань к потокам воды.'],
+  [4, 'Жаждет душа моя Бога, живого Бога.'],
+])
+
+/** Вариант NRT без младших стихов — «ближайшего меньшего» не существует */
+export const nrtShiftHighDb = makeChapterDb('NRT', 'PSA', 41, [
+  [3, 'Как стремится лань к потокам воды.'],
+  [4, 'Жаждет душа моя Бога, живого Бога.'],
+])
+
 export const songs: SongRow[] = [
   {
     id: 1,
@@ -44,4 +86,10 @@ export const songs: SongRow[] = [
   { id: 3, title: 'Аллилуйя', songNumber: '156', text: 'Аллилуйя, аллилуйя' },
   // песня без секций и без номера
   { id: 4, title: 'Тихая песня', text: 'Строка один\nСтрока два' },
+]
+
+/** Две разные песни с ОДИНАКОВЫМ номером 214 — различимы только по id */
+export const songsDuo214: SongRow[] = [
+  { id: 5, title: 'Как лань желает', songNumber: '214', text: 'Как лань желает к потокам' },
+  { id: 6, title: 'Как лань желает (новая)', songNumber: '214', text: 'Совсем другой текст песни' },
 ]
