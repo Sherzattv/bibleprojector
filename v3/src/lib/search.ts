@@ -4,9 +4,7 @@
  * (опечатки, префиксы, ранжирование).
  */
 import MiniSearch from 'minisearch'
-// @ts-expect-error legacy JS module without types
 import { parseQuery, fetchVerse } from './legacy/search.js'
-// @ts-expect-error legacy JS module without types
 import { TRANSLATION_MAPS, getBookTitle } from './legacy/canonical.js'
 import type { BibleDb, SongRow } from './db.svelte'
 
@@ -85,8 +83,11 @@ export function createSongSearch(songs: SongRow[]): SongSearch {
   const index = new MiniSearch<SongRow>({
     fields: ['title', 'alternateTitle', 'songNumber', 'text'],
     storeFields: ['title', 'songNumber'],
-    boost: { title: 4, alternateTitle: 3, songNumber: 5, text: 1 },
     ...miniOptions,
+    searchOptions: {
+      ...miniOptions.searchOptions,
+      boost: { title: 4, alternateTitle: 3, songNumber: 5, text: 1 },
+    },
   })
   index.addAll(songs)
   const byId = new Map(songs.map((s) => [s.id, s]))

@@ -31,7 +31,7 @@
   }
 </script>
 
-<div class="flex shrink-0 items-center gap-2 border-t border-stroke bg-panel px-3 py-2">
+<div class="dock flex shrink-0 items-center gap-2 border-t border-stroke bg-panel px-3 py-2">
   <button class={btn} onclick={() => commands.prev()} disabled={!show.slides.length}>
     <ChevronLeft size={14} />Назад <kbd class={kbd}>←</kbd>
   </button>

@@ -79,3 +79,138 @@ input:focus-visible {
 .projection {
   background: #000;
 }
+
+.workspace-main {
+  grid-template-columns: var(--setlist-column) minmax(0, 1fr) 284px;
+}
+
+.workspace-setlist,
+.workspace-library {
+  min-width: 0;
+  min-height: 0;
+  border-color: var(--color-stroke);
+}
+
+.workspace-setlist {
+  border-right-width: 1px;
+}
+
+.workspace-library {
+  border-left-width: 1px;
+}
+
+.workspace-setlist > *,
+.workspace-library > * {
+  height: 100%;
+}
+
+.mobile-panel-toggle,
+.workspace-scrim {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .app-header {
+    gap: 8px;
+  }
+
+  .mobile-panel-toggle {
+    display: grid;
+  }
+
+  .workspace-main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .workspace-setlist,
+  .workspace-library {
+    position: fixed;
+    z-index: 60;
+    top: 48px;
+    bottom: 0;
+    width: min(84vw, 320px);
+    background: var(--color-panel);
+    box-shadow: 0 20px 60px rgb(0 0 0 / 55%);
+    transition: transform 160ms ease;
+  }
+
+  .workspace-setlist {
+    left: 0;
+    transform: translateX(-105%);
+  }
+
+  .workspace-library {
+    right: 0;
+    transform: translateX(105%);
+  }
+
+  .workspace-setlist.is-mobile-open,
+  .workspace-library.is-mobile-open {
+    transform: translateX(0);
+  }
+
+  .workspace-scrim {
+    position: fixed;
+    z-index: 55;
+    inset: 48px 0 0;
+    border: 0;
+    background: rgb(0 0 0 / 58%);
+  }
+
+  .workspace-scrim.is-open {
+    display: block;
+  }
+
+  .setlist-row-tools {
+    display: flex;
+  }
+
+  .dock {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 700px) {
+  .app-header {
+    padding-inline: 8px;
+  }
+
+  .app-brand span,
+  .projector-button span,
+  .projector-status span:last-child,
+  .app-clock {
+    display: none;
+  }
+
+  .app-actions {
+    gap: 4px;
+  }
+
+  .projector-button {
+    width: 28px;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .dock {
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .dock > span {
+    display: none;
+  }
+
+  .dock label {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-setlist,
+  .workspace-library {
+    transition: none;
+  }
+}

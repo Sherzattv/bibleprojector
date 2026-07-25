@@ -1,47 +1,95 @@
-# Svelte + TS + Vite
+# Bible Projector v3
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+Новая линия Bible Projector на Svelte 5, TypeScript и Vite.
 
-## Recommended IDE Setup
+Текущий статус: **3.0.0-preview.1**. Это рабочий preview для разработки и
+проверки на реальном служении, а не замена стабильной версии 2.2.0.
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+## Что уже работает
 
-## Need an official Svelte framework?
+- единый Omnibox для ссылок на Библию, полнотекстового поиска и песен;
+- MiniSearch в Web Worker, без блокировки интерфейса;
+- четыре перевода: RST, NRT, KTB и KYB;
+- офлайн-каталог из 11 524 песен;
+- Preview/Live, слайды песен и навигация по стихам;
+- отдельное окно проектора через BroadcastChannel;
+- размещение окна на внешнем мониторе через Window Management API;
+- blackout, заметки, правки стихов и настройки проекции;
+- сохраняемые порядок служения и история эфира;
+- импорт/экспорт порядка служения и миграция данных из v2;
+- PWA, версионированный кэш данных и офлайн-запуск;
+- адаптивные боковые панели для планшетов и телефонов.
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+## Что ещё блокирует стабильный 3.0.0
 
-## Technical considerations
+- параллельный показ двух переводов;
+- выбор и запоминание конкретного внешнего экрана;
+- полноэкранный запуск и закрытие проектора из пульта;
+- автоподбор размера текста под экран;
+- дополнительные темы и показ логотипа;
+- полноценные браузерные E2E-тесты;
+- устранение предупреждений аудита npm-зависимостей.
 
-**Why use this over SvelteKit?**
+## Локальный запуск
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+Требуются Node.js 22 и npm.
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
-
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
-
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
-
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
+```bash
+npm ci
+npm run data
+npm run dev
 ```
+
+Vite выведет локальный адрес приложения. Экран проектора открывается кнопкой
+«Открыть экран» и использует тот же URL с хэшем `#display`.
+
+## Проверки
+
+```bash
+npm run check
+npm test
+npm run data
+npm run build
+```
+
+- `npm run check` запускает строгую проверку Svelte и TypeScript;
+- `npm test` запускает модульные тесты Vitest;
+- `npm run data` конвертирует базы legacy-приложения в JSON для v3;
+- `npm run build` собирает production PWA.
+
+Для демо-сборки с небольшим встроенным набором данных:
+
+```bash
+npm run build:demo
+```
+
+## Архитектура
+
+```text
+v3/
+├── scripts/             # Конвертация и валидация данных
+├── public/data/         # Генерируемые JSON-базы, не хранятся в Git
+├── src/
+│   ├── lib/components/  # Интерфейс оператора и экран проектора
+│   ├── lib/legacy/      # Временно переиспользуемое поисковое ядро v2
+│   ├── lib/*.svelte.ts  # Реактивные состояния и команды
+│   ├── lib/search*.ts   # MiniSearch и Web Worker
+│   ├── App.svelte       # Рабочее место оператора
+│   └── main.ts          # Выбор пульта или #display
+└── tests/               # Vitest
+```
+
+Данные загружаются по манифесту с контент-хэшами. Оболочка приложения
+кэшируется Service Worker, а большие JSON-файлы — Cache Storage. При смене
+версии загружаются только изменившиеся файлы.
+
+## Деплой preview
+
+Из корня репозитория:
+
+```bash
+npm run build:v3
+```
+
+Сборка создаётся в `/next/`. Команда `npm run deploy` дополнительно публикует
+весь статический проект через Cloudflare Workers Static Assets.

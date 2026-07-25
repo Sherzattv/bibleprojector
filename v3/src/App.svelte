@@ -1,5 +1,13 @@
 <script lang="ts">
-  import { MonitorPlay, MonitorUp, Clock4, LoaderCircle, Settings2 } from '@lucide/svelte'
+  import {
+    MonitorPlay,
+    MonitorUp,
+    Clock4,
+    LoaderCircle,
+    Settings2,
+    PanelLeft,
+    Library as LibraryIcon,
+  } from '@lucide/svelte'
   import Omnibox from './lib/components/Omnibox.svelte'
   import Setlist from './lib/components/Setlist.svelte'
   import Deck from './lib/components/Deck.svelte'
@@ -17,10 +25,12 @@
   import { pushSongs, pushBible } from './lib/search-service.svelte'
   import { resolveHotkey } from './lib/hotkeys'
 
-  let omnibox: Omnibox
+  let omnibox = $state<Omnibox>()
   let clock = $state('')
   let setlistOpen = $state(true)
   let settingsOpen = $state(false)
+  let mobilePanel = $state<'setlist' | 'library' | null>(null)
+  let compactLayout = $state(false)
 
   const projector = getProjectorLink()
 
@@ -32,6 +42,17 @@
   $effect(() => {
     const id = setInterval(tick, 15000)
     return () => clearInterval(id)
+  })
+
+  $effect(() => {
+    const media = window.matchMedia('(max-width: 1023px)')
+    const syncLayout = () => {
+      compactLayout = media.matches
+      if (!media.matches) mobilePanel = null
+    }
+    syncLayout()
+    media.addEventListener('change', syncLayout)
+    return () => media.removeEventListener('change', syncLayout)
   })
 
   $effect(() => {
@@ -70,7 +91,7 @@
     })
     if (!action) return
     if (action === 'go' || action === 'focus-search') e.preventDefault()
-    if (action === 'focus-search') omnibox.focus()
+    if (action === 'focus-search') omnibox?.focus()
     else if (action === 'go') commands.go()
     else if (action === 'next') commands.next()
     else if (action === 'prev') commands.prev()
@@ -84,33 +105,49 @@
     const id = setTimeout(() => ui.clearNotice(), 4000)
     return () => clearTimeout(id)
   })
+
+  function toggleSetlist() {
+    if (compactLayout) {
+      mobilePanel = mobilePanel === 'setlist' ? null : 'setlist'
+    } else {
+      setlistOpen = !setlistOpen
+    }
+  }
 </script>
 
 <svelte:window onkeydown={onKeydown} />
 
-<div class="grid h-screen grid-rows-[48px_1fr]">
+<div class="app-shell grid h-screen grid-rows-[48px_1fr]">
   <!-- Верхняя панель -->
-  <header class="z-30 flex h-12 items-center gap-4 border-b border-stroke bg-panel px-3">
-    <div class="flex items-center gap-2 text-base font-semibold">
+  <header class="app-header z-30 flex h-12 items-center gap-3 border-b border-stroke bg-panel px-3">
+    <button
+      class="mobile-panel-toggle grid size-7 shrink-0 place-items-center rounded border border-stroke-2 text-muted"
+      onclick={() => (mobilePanel = mobilePanel === 'setlist' ? null : 'setlist')}
+      aria-label={mobilePanel === 'setlist' ? 'Закрыть порядок служения' : 'Открыть порядок служения'}
+      aria-expanded={mobilePanel === 'setlist'}
+    ><PanelLeft size={14} /></button>
+
+    <div class="app-brand flex shrink-0 items-center gap-2 text-base font-semibold">
       <MonitorPlay size={16} class="text-accent" />
-      Bible Projector
+      <span>Bible Projector</span>
     </div>
 
     <Omnibox bind:this={omnibox} />
 
-    <div class="ml-auto flex items-center gap-2.5">
+    <div class="app-actions ml-auto flex shrink-0 items-center gap-2.5">
       {#if projector.connected}
-        <span class="flex items-center gap-1.5 text-sm text-muted">
+        <span class="projector-status flex items-center gap-1.5 text-sm text-muted">
           <span class="size-1.5 rounded-full bg-go"></span>
-          Проектор подключён
+          <span>Проектор подключён</span>
         </span>
       {:else}
         <button
           onclick={() => openDisplayWindow()}
-          class="flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm
+          class="projector-button flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm
                  font-medium text-muted hover:bg-hover hover:text-ink"
+          title="Открыть экран проектора"
         >
-          <MonitorUp size={13} />Открыть экран
+          <MonitorUp size={13} /><span>Открыть экран</span>
         </button>
       {/if}
 
@@ -155,10 +192,17 @@
         {/if}
       </div>
 
-      <span class="flex items-center gap-1.5 font-mono text-sm text-faint tabular-nums">
+      <span class="app-clock flex items-center gap-1.5 font-mono text-sm text-faint tabular-nums">
         <Clock4 size={12} />{clock}
       </span>
     </div>
+
+    <button
+      class="mobile-panel-toggle grid size-7 shrink-0 place-items-center rounded border border-stroke-2 text-muted"
+      onclick={() => (mobilePanel = mobilePanel === 'library' ? null : 'library')}
+      aria-label={mobilePanel === 'library' ? 'Закрыть библиотеку' : 'Открыть библиотеку'}
+      aria-expanded={mobilePanel === 'library'}
+    ><LibraryIcon size={14} /></button>
   </header>
 
   {#if data.status === 'loading'}
@@ -175,14 +219,23 @@
   {:else}
     <!-- Три зоны -->
     <div
-      class="grid min-h-0 divide-x divide-stroke"
-      style="grid-template-columns: {setlistOpen ? '264px' : '44px'} 1fr 284px"
+      class="workspace-main grid min-h-0"
+      style="--setlist-column: {setlistOpen ? '264px' : '44px'}"
     >
-      <Setlist open={setlistOpen} onToggle={() => (setlistOpen = !setlistOpen)} />
+      <button
+        class="workspace-scrim"
+        class:is-open={mobilePanel !== null}
+        onclick={() => (mobilePanel = null)}
+        aria-label="Закрыть боковую панель"
+      ></button>
+
+      <div class="workspace-setlist" class:is-mobile-open={mobilePanel === 'setlist'}>
+        <Setlist open={compactLayout || setlistOpen} onToggle={toggleSetlist} />
+      </div>
 
       <!-- Центр -->
-      <section class="flex min-h-0 flex-col bg-bg">
-        <div class="grid shrink-0 grid-cols-2 gap-px border-b border-stroke bg-stroke">
+      <section class="workspace-stage flex min-h-0 min-w-0 flex-col bg-bg">
+        <div class="deck-grid grid shrink-0 grid-cols-2 gap-px border-b border-stroke bg-stroke">
           <Deck mode="preview" slide={show.previewSlide} />
           <Deck mode="live" slide={show.liveSlide} blackout={show.blackout} />
         </div>
@@ -203,7 +256,9 @@
         <Dock />
       </section>
 
-      <Library />
+      <div class="workspace-library" class:is-mobile-open={mobilePanel === 'library'}>
+        <Library />
+      </div>
     </div>
   {/if}
 

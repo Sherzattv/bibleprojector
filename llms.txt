@@ -1,18 +1,26 @@
 # Bible Projector
 
 ## Summary
-Bible Projector — PWA-система для трансляции библейских стихов на экран и проектор. Пульт управления и отдельный экран для зала, работает оффлайн и без серверов.
+Bible Projector — PWA-система для трансляции библейских стихов, песен и заметок на экран или проектор. Пульт управления и отдельный экран для зала работают оффлайн и без серверов.
+
+## Current Version
+- Stable: 2.2.0
+- Preview: 3.0.0-preview.1 (`v3/`)
 
 ## Primary URLs
 - https://bibleprojector.kz/
 - https://bibleprojector.kz/contacts.html
 - https://bibleprojector.kz/app/controller.html
+- https://github.com/Sherzattv/bibleprojector/tree/main/v3
 
 ## Features
 - Пульт управления для служителя
 - Отдельный экран трансляции
 - Поиск по ссылке и по тексту
-- 3 перевода: RST, NRT, KTB
+- 4 перевода: RST, NRT, KTB, KYB
+- Офлайн-каталог песен со слайдами куплетов и припевов
+- Порядок служения с импортом и экспортом
+- Библиотека: песни, Библия и история
 - Оффлайн-режим (PWA)
 
 ## Contact

@@ -9,7 +9,7 @@
     blackout?: boolean
   }
   let { mode, slide, blackout = false }: Props = $props()
-  const isLive = mode === 'live'
+  const isLive = $derived(mode === 'live')
 
   let editing = $state(false)
   let draft = $state('')

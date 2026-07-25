@@ -3,7 +3,6 @@
   import { data } from '../db.svelte'
   import { commands } from '../commands.svelte'
   import { history, type HistoryEntry } from '../history.svelte'
-  // @ts-expect-error legacy JS module without types
   import { BOOK_INFO, getBookId } from '../legacy/canonical.js'
   import type { SongRow } from '../db.svelte'
 
@@ -29,7 +28,7 @@
     const db = data.db
     if (!db) return []
     const lang = data.translation === 'KTB' ? 'kz' : data.translation === 'KYB' ? 'ky' : 'ru'
-    return Object.entries(BOOK_INFO as Record<string, Record<string, string>>)
+    return Object.entries(BOOK_INFO)
       .map(([code, info]) => {
         const bookId = getBookId(code, data.translation)
         const book = db.Books.find((b) => b.BookId === bookId)
@@ -56,6 +55,19 @@
   function timeOf(at: number): string {
     const d = new Date(at)
     return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+  function historyCountLabel(count: number) {
+    const mod100 = count % 100
+    const mod10 = count % 10
+    const noun =
+      mod100 >= 11 && mod100 <= 14
+        ? 'показов'
+        : mod10 === 1
+          ? 'показ'
+          : mod10 >= 2 && mod10 <= 4
+            ? 'показа'
+            : 'показов'
+    return `${count} ${noun}`
   }
 </script>
 
@@ -115,7 +127,7 @@
       {/each}
     </div>
     <div class="flex h-8 shrink-0 items-center justify-between border-t border-stroke px-3 text-xs text-faint">
-      {history.items.length} показов
+      {historyCountLabel(history.items.length)}
       {#if history.items.length}
         <button class="hover:text-muted" onclick={() => history.clear()}>Очистить</button>
       {/if}

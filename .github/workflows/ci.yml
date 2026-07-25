@@ -7,7 +7,7 @@ on:
 
 jobs:
   legacy-tests:
-    name: Тесты старой версии (app/)
+    name: Legacy — lint, tests, layout
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,7 +16,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx vitest run
+      - run: npm run lint
+      - run: npm test
+      - run: npm run verify:layout
 
   v3:
     name: v3 — типы, тесты, сборка
@@ -32,9 +34,7 @@ jobs:
           cache: npm
           cache-dependency-path: v3/package-lock.json
       - run: npm ci
-      - run: npx svelte-check
-      - run: npx vitest run
-      - name: Конвертация данных и прод-сборка
-        run: |
-          npm run data
-          npx vite build
+      - run: npm run check
+      - run: npm test
+      - run: npm run data
+      - run: npm run build

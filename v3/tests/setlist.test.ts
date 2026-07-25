@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { setlist } from '../src/lib/setlist.svelte'
+import { SetlistState, setlist } from '../src/lib/setlist.svelte'
 import { show } from '../src/lib/show.svelte'
 import { data } from '../src/lib/db.svelte'
-// Модуль появится по спецификации (TDD, red-фаза)
 import { ui } from '../src/lib/ui.svelte'
+import { createMemoryStore } from '../src/lib/storage'
 import { rstDb, songs, songsDuo214 } from './fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb }
   data.translation = 'RST'
   data.songs = [...songs, ...songsDuo214]
-  setlist.currentIdx = -1
+  setlist.reset()
   ui.clearNotice()
   setlist.items = [
     { kind: 'song', id: 1, title: 'Благодать' },
@@ -86,5 +86,78 @@ describe('ui-уведомления', () => {
     expect(ui.lastNotice).toBe('Песня не найдена')
     ui.clearNotice()
     expect(ui.lastNotice).toBeNull()
+  })
+})
+
+describe('setlist — сохранение и редактирование порядка', () => {
+  it('сохраняет добавление, перестановку и удаление', () => {
+    const store = createMemoryStore()
+    const state = new SetlistState(store)
+    expect(state.add({ kind: 'song', id: 1, title: 'Благодать' })).toBe(true)
+    expect(state.add({ kind: 'note', title: 'Объявления', text: 'Текст' })).toBe(true)
+    expect(state.move(1, -1)).toBe(true)
+    expect(state.items[0].kind).toBe('note')
+    expect(state.remove(1)).toBe(true)
+
+    const restored = new SetlistState(store)
+    expect(restored.items).toEqual([{ kind: 'note', title: 'Объявления', text: 'Текст' }])
+  })
+
+  it('импортирует и экспортирует текущую схему', () => {
+    const state = new SetlistState(createMemoryStore())
+    const source = JSON.stringify({
+      version: 1,
+      items: [
+        { kind: 'bible', code: 'JHN', chapter: 3, verse: 16, title: 'Иоанна 3:16' },
+      ],
+    })
+    expect(state.importJson(source)).toBe(true)
+    expect(JSON.parse(state.exportJson())).toEqual({
+      version: 1,
+      items: [
+        { kind: 'bible', code: 'JHN', chapter: 3, verse: 16, title: 'Иоанна 3:16' },
+      ],
+    })
+  })
+
+  it('мигрирует порядок из legacy localStorage без потери song.id', () => {
+    const legacy = JSON.stringify({
+      version: 1,
+      items: [
+        {
+          kind: 'song',
+          title: 'Благодать · № 310',
+          payload: { type: 'song', id: 1, title: 'Благодать' },
+        },
+        {
+          kind: 'verse',
+          title: 'Иоанна 3:16',
+          payload: { type: 'verse', canonicalCode: 'JHN', chapter: 3, verse: '16' },
+        },
+      ],
+    })
+    const state = new SetlistState(createMemoryStore({ bible_setlist: legacy }))
+    expect(state.items).toEqual([
+      { kind: 'song', id: 1, title: 'Благодать · № 310' },
+      { kind: 'bible', code: 'JHN', chapter: 3, verse: 16, title: 'Иоанна 3:16' },
+    ])
+  })
+
+  it('отклоняет повреждённый импорт, не меняя список', () => {
+    const state = new SetlistState(createMemoryStore())
+    state.add({ kind: 'song', id: 1, title: 'Благодать' })
+    expect(state.importJson('{broken')).toBe(false)
+    expect(state.items).toHaveLength(1)
+  })
+
+  it('не принимает пустые и некорректные идентификаторы', () => {
+    const state = new SetlistState(createMemoryStore())
+    expect(state.importJson(JSON.stringify({
+      items: [
+        { kind: 'song', id: null, title: 'Нет id' },
+        { kind: 'bible', code: 'JHN', chapter: '', verse: 16, title: 'Нет главы' },
+      ],
+    }))).toBe(true)
+    expect(state.items).toEqual([])
   })
 })

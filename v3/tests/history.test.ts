@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 // Модуль появится по спецификации (TDD, red-фаза)
-import { history } from '../src/lib/history.svelte'
+import { HistoryStore, history } from '../src/lib/history.svelte'
 import type { HistoryEntry } from '../src/lib/history.svelte'
+import { createMemoryStore } from '../src/lib/storage'
 
 const bible = (verse: number): Omit<HistoryEntry, 'at'> => ({
   title: 'От Иоанна 3',
@@ -16,7 +17,7 @@ const song = (id: number, title: string): Omit<HistoryEntry, 'at'> => ({
 })
 
 beforeEach(() => {
-  history.clear()
+  history.reset()
 })
 
 describe('history.push — порядок и содержимое', () => {
@@ -89,5 +90,13 @@ describe('history — ёмкость и очистка', () => {
     history.push(bible(2))
     history.clear()
     expect(history.items).toHaveLength(0)
+  })
+
+  it('восстанавливает историю после создания нового store', () => {
+    const store = createMemoryStore()
+    const first = new HistoryStore(store)
+    first.push({ ...bible(16), at: 123 })
+    const restored = new HistoryStore(store)
+    expect(restored.items).toEqual([{ ...bible(16), at: 123 }])
   })
 })

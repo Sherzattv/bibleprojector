@@ -3,9 +3,7 @@
  * слайды, превью/эфир. Сюда же позже подключится BroadcastChannel
  * окна проектора.
  */
-// @ts-expect-error legacy JS module without types
 import { splitSongSections } from './legacy/songs.js'
-// @ts-expect-error legacy JS module without types
 import { getBookId, getBookTitle } from './legacy/canonical.js'
 import { data } from './db.svelte'
 import { edits } from './edits.svelte'

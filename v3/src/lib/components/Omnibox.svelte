@@ -5,7 +5,6 @@
   import { parseQuery, codeForBookId, pickEnterAction, type VerseHit } from '../search'
   import { getSearchClient } from '../search-service.svelte'
   import { ui } from '../ui.svelte'
-  // @ts-expect-error legacy JS module without types
   import { getBookTitle } from '../legacy/canonical.js'
   import type { SongRow } from '../db.svelte'
 
