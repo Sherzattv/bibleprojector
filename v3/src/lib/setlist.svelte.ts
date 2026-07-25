@@ -28,7 +28,7 @@ class SetlistState {
     const item = this.items[i]
     if (!item) return
     if (item.kind === 'song') {
-      const song = data.songs.find((s) => s.id === item.id)
+      const song = data.songsById.get(item.id)
       if (!song) {
         ui.notify(`Песня «${item.title}» не найдена в каталоге`)
         return

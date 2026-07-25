@@ -2,7 +2,6 @@
   import { Music, BookOpen, ChevronLeft } from '@lucide/svelte'
   import { data } from '../db.svelte'
   import { show } from '../show.svelte'
-  import { searchSongs } from '../search'
   // @ts-expect-error legacy JS module without types
   import { BOOK_INFO, getBookId } from '../legacy/canonical.js'
   import type { SongRow } from '../db.svelte'
@@ -14,10 +13,14 @@
 
   const row = 'flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-hover'
 
+  // Фильтр списка — дешёвая подстрока (полный fuzzy-поиск живёт в омнибоксе)
+  const normalize = (s: string) => s.toLowerCase().replace(/ё/g, 'е')
   const visibleSongs = $derived.by((): SongRow[] => {
-    const q = songFilter.trim()
-    if (q) return searchSongs(q, data.songs, 50)
-    return data.songs.slice(0, 100)
+    const q = normalize(songFilter.trim())
+    if (!q) return data.songs.slice(0, 100)
+    return data.songs
+      .filter((s) => normalize(s.title).includes(q) || s.songNumber === q)
+      .slice(0, 50)
   })
 
   /** Книги, реально существующие в текущем переводе */

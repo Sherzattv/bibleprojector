@@ -10,7 +10,7 @@
   import { data } from './lib/db.svelte'
   import { setlist } from './lib/setlist.svelte'
   import { ui } from './lib/ui.svelte'
-  import { buildSongIndex } from './lib/search'
+  import { pushSongs, pushBible } from './lib/search-service.svelte'
   import { resolveHotkey } from './lib/hotkeys'
 
   let omnibox: Omnibox
@@ -27,12 +27,18 @@
   $effect(() => {
     data.init().then(() => {
       if (data.status !== 'ready') return
-      buildSongIndex(data.songs)
+      // Индексация — в Web Worker, главный поток не блокируется
+      pushSongs(data.songs)
       // Стартовое наполнение: первый элемент плейлиста, который удаётся открыть
       for (let i = 0; i < setlist.items.length && setlist.currentIdx < 0; i++) {
         setlist.open(i)
       }
     })
+  })
+
+  // Отдаём воркеру перевод, как только он загружен/выбран
+  $effect(() => {
+    pushBible(data.translation, data.bibles[data.translation] ?? null)
   })
 
   function onKeydown(e: KeyboardEvent) {

@@ -1,18 +1,9 @@
 <script lang="ts">
-  import { Search, BookOpen, Music, CornerDownLeft } from '@lucide/svelte'
+  import { Search, BookOpen, Music, CornerDownLeft, LoaderCircle } from '@lucide/svelte'
   import { data } from '../db.svelte'
   import { show } from '../show.svelte'
-  import {
-    parseQuery,
-    searchSongs,
-    searchVerses,
-    buildVerseIndex,
-    hasVerseIndex,
-    makeTitleGetter,
-    codeForBookId,
-    pickEnterAction,
-    type VerseHit,
-  } from '../search'
+  import { parseQuery, codeForBookId, pickEnterAction, type VerseHit } from '../search'
+  import { getSearchClient } from '../search-service.svelte'
   import { ui } from '../ui.svelte'
   // @ts-expect-error legacy JS module without types
   import { getBookTitle } from '../legacy/canonical.js'
@@ -20,8 +11,9 @@
 
   let query = $state('')
   let open = $state(false)
-  let indexing = $state(false)
   let input: HTMLInputElement
+
+  const client = getSearchClient()
 
   interface RefResult {
     canonicalCode: string
@@ -48,32 +40,15 @@
     }
   })
 
-  const songHits = $derived(query.trim() ? searchSongs(query, data.songs, 5) : [])
-
-  let verseHits = $state<VerseHit[]>([])
+  // Поиск уходит в Web Worker (debounce внутри клиента);
+  // распознанная ссылка — не повод искать полнотекстом
   $effect(() => {
-    const q = query.trim()
-    if (q.length < 3 || parsedRef) {
-      verseHits = []
-      return
-    }
-    const translation = data.translation
-    const db = data.db
-    if (!db) return
-    if (!hasVerseIndex(translation)) {
-      indexing = true
-      // Индекс строится один раз на перевод; отдаём кадр браузеру
-      setTimeout(() => {
-        buildVerseIndex(translation, db, makeTitleGetter(translation))
-        indexing = false
-        verseHits = searchVerses(q, translation, 5)
-      }, 20)
-      return
-    }
-    verseHits = searchVerses(q, translation, 5)
+    client.search(parsedRef ? '' : query, data.translation)
   })
 
-  const empty = $derived(!parsedRef && !verseHits.length && !songHits.length && !indexing)
+  const songHits = $derived(client.results.songs)
+  const verseHits = $derived(client.results.verses)
+  const empty = $derived(!parsedRef && !verseHits.length && !songHits.length && !client.indexing)
 
   export function focus() {
     input.focus()
@@ -82,6 +57,7 @@
   function close() {
     open = false
     query = ''
+    client.search('', data.translation)
   }
 
   function openRef(ref: RefResult, live = false) {
@@ -114,6 +90,7 @@
       return
     }
     if (e.key !== 'Enter') return
+    client.flush()
     // В эфир по Ctrl+Enter уходит только точная ссылка — fuzzy никогда
     const action = pickEnterAction({
       parsedRef,
@@ -166,8 +143,10 @@
         </button>
       {/if}
 
-      {#if indexing}
-        <div class="px-3 py-2 text-xs text-faint">Индексация перевода…</div>
+      {#if client.indexing}
+        <div class="flex items-center gap-2 px-3 py-2 text-xs text-faint">
+          <LoaderCircle size={12} class="animate-spin" />Индексация перевода…
+        </div>
       {/if}
 
       {#if verseHits.length}

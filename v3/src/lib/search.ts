@@ -75,85 +75,130 @@ const miniOptions = {
 }
 
 // ── Песни ──────────────────────────────────────────────
-let songIndex: MiniSearch<SongRow> | null = null
 
-export function buildSongIndex(songs: SongRow[]) {
-  songIndex = new MiniSearch<SongRow>({
+export interface SongSearch {
+  search(query: string, limit?: number): SongRow[]
+}
+
+/** Изолированный поисковый инстанс по песням (fuzzy/префикс, номер — первым) */
+export function createSongSearch(songs: SongRow[]): SongSearch {
+  const index = new MiniSearch<SongRow>({
     fields: ['title', 'alternateTitle', 'songNumber', 'text'],
     storeFields: ['title', 'songNumber'],
     boost: { title: 4, alternateTitle: 3, songNumber: 5, text: 1 },
     ...miniOptions,
   })
-  songIndex.addAll(songs)
+  index.addAll(songs)
+  const byId = new Map(songs.map((s) => [s.id, s]))
+
+  return {
+    search(query, limit = 8) {
+      const q = query.trim()
+      if (!q) return []
+      // Точный номер песни — всегда первым
+      const byNumber = /^\d+$/.test(q) ? songs.filter((s) => s.songNumber === q) : []
+      const hits = index
+        .search(q)
+        .slice(0, limit)
+        .map((h) => byId.get(h.id as number))
+        .filter((s): s is SongRow => !!s && !byNumber.includes(s))
+      return [...byNumber, ...hits].slice(0, limit)
+    },
+  }
 }
 
-export function searchSongs(query: string, songs: SongRow[], limit = 8): SongRow[] {
-  const q = query.trim()
-  if (!q || !songIndex) return []
-  // Точный номер песни — всегда первым
-  const byNumber = /^\d+$/.test(q) ? songs.filter((s) => s.songNumber === q) : []
-  const hits = songIndex
-    .search(q)
-    .slice(0, limit)
-    .map((h) => songs.find((s) => s.id === h.id))
-    .filter((s): s is SongRow => !!s && !byNumber.includes(s))
-  return [...byNumber, ...hits].slice(0, limit)
+// Модульный синглтон — для обратной совместимости со старым API
+let defaultSongSearch: SongSearch | null = null
+
+export function buildSongIndex(songs: SongRow[]) {
+  defaultSongSearch = createSongSearch(songs)
+}
+
+export function searchSongs(query: string, _songs: SongRow[], limit = 8): SongRow[] {
+  return defaultSongSearch ? defaultSongSearch.search(query, limit) : []
 }
 
 // ── Библия ─────────────────────────────────────────────
-const verseIndexes = new Map<string, MiniSearch<VerseHit>>()
-const verseDocs = new Map<string, Map<string, VerseHit>>()
+
+export interface VerseSearch {
+  build(translation: string, db: BibleDb, getTitle: (bookId: number) => string): void
+  has(translation: string): boolean
+  search(query: string, translation: string, limit?: number): VerseHit[]
+}
+
+/** Изолированный набор стих-индексов (по одному на перевод) */
+export function createVerseSearch(): VerseSearch {
+  const indexes = new Map<string, MiniSearch<VerseHit>>()
+  const docsByTranslation = new Map<string, Map<string, VerseHit>>()
+
+  return {
+    build(translation, db, getTitle) {
+      if (indexes.has(translation)) return
+      const index = new MiniSearch<VerseHit>({
+        fields: ['text'],
+        ...miniOptions,
+      })
+      const docs = new Map<string, VerseHit>()
+      const all: VerseHit[] = []
+      for (const book of db.Books) {
+        const title = getTitle(book.BookId)
+        for (const chapter of book.Chapters) {
+          for (const verse of chapter.Verses) {
+            const id = `${book.BookId}:${chapter.ChapterId}:${verse.VerseId}`
+            // В исходных данных встречаются задвоенные VerseId (напр. Пс 12:6 в РСТ)
+            if (docs.has(id)) continue
+            const doc: VerseHit = {
+              id,
+              ref: `${title} ${chapter.ChapterId}:${verse.VerseId}`,
+              text: stripTags(verse.Text),
+              canonicalCode: '',
+              bookId: book.BookId,
+              chapter: chapter.ChapterId,
+              verse: verse.VerseId,
+            }
+            docs.set(doc.id, doc)
+            all.push(doc)
+          }
+        }
+      }
+      index.addAll(all)
+      indexes.set(translation, index)
+      docsByTranslation.set(translation, docs)
+    },
+
+    has(translation) {
+      return indexes.has(translation)
+    },
+
+    search(query, translation, limit = 8) {
+      const index = indexes.get(translation)
+      const docs = docsByTranslation.get(translation)
+      const q = query.trim()
+      if (!index || !docs || q.length < 3) return []
+      return index
+        .search(q)
+        .slice(0, limit)
+        .map((h) => docs.get(h.id as string))
+        .filter((d): d is VerseHit => !!d)
+    },
+  }
+}
+
+// Модульный синглтон — для обратной совместимости со старым API
+const defaultVerseSearch = createVerseSearch()
 
 export function buildVerseIndex(
   translation: string,
   db: BibleDb,
   getTitle: (bookId: number) => string,
 ) {
-  if (verseIndexes.has(translation)) return
-  const index = new MiniSearch<VerseHit>({
-    fields: ['text'],
-    ...miniOptions,
-  })
-  const docs = new Map<string, VerseHit>()
-  const all: VerseHit[] = []
-  for (const book of db.Books) {
-    const title = getTitle(book.BookId)
-    for (const chapter of book.Chapters) {
-      for (const verse of chapter.Verses) {
-        const id = `${book.BookId}:${chapter.ChapterId}:${verse.VerseId}`
-        // В исходных данных встречаются задвоенные VerseId (напр. Пс 12:6 в РСТ)
-        if (docs.has(id)) continue
-        const doc: VerseHit = {
-          id,
-          ref: `${title} ${chapter.ChapterId}:${verse.VerseId}`,
-          text: stripTags(verse.Text),
-          canonicalCode: '',
-          bookId: book.BookId,
-          chapter: chapter.ChapterId,
-          verse: verse.VerseId,
-        }
-        docs.set(doc.id, doc)
-        all.push(doc)
-      }
-    }
-  }
-  index.addAll(all)
-  verseIndexes.set(translation, index)
-  verseDocs.set(translation, docs)
+  defaultVerseSearch.build(translation, db, getTitle)
 }
 
 export function hasVerseIndex(translation: string) {
-  return verseIndexes.has(translation)
+  return defaultVerseSearch.has(translation)
 }
 
 export function searchVerses(query: string, translation: string, limit = 8): VerseHit[] {
-  const index = verseIndexes.get(translation)
-  const docs = verseDocs.get(translation)
-  const q = query.trim()
-  if (!index || !docs || q.length < 3) return []
-  return index
-    .search(q)
-    .slice(0, limit)
-    .map((h) => docs.get(h.id as string))
-    .filter((d): d is VerseHit => !!d)
+  return defaultVerseSearch.search(query, translation, limit)
 }

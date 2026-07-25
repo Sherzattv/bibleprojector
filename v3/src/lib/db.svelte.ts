@@ -43,8 +43,12 @@ export const TRANSLATIONS: Array<[code: string, label: string]> = [
 const IS_DEMO = import.meta.env.MODE === 'demo'
 
 class DataStore {
-  bibles = $state<Record<string, BibleDb>>({})
-  songs = $state<SongRow[]>([])
+  // $state.raw: данные иммутабельны, глубокие прокси на 43 МБ —
+  // лишние CPU и память; реактивность только на замену ссылки
+  bibles = $state.raw<Record<string, BibleDb>>({})
+  songs = $state.raw<SongRow[]>([])
+  /** O(1)-доступ к песне: номера не уникальны, id — единственный ключ */
+  songsById = $derived(new Map(this.songs.map((s) => [s.id, s])))
   translation = $state('RST')
   status = $state<LoadStatus>('loading')
   /** Статус фоновой загрузки по каждому переводу */
