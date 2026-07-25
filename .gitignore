@@ -10,6 +10,9 @@ archive/ktb_temp/
 archive/temp_inspect/
 tmp/
 
+# Скриншоты из npm run verify:layout
+.layout-shots/
+
 # Source data (large files, already converted to app/js/data/)
 archive/sources/*.zip
 archive/sources/*.json

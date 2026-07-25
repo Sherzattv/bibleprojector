@@ -10,7 +10,7 @@
  * ВАЖНО: при изменении оболочки/данных поднимайте версию кэша ниже.
  */
 
-const CACHE_VERSION = 'v14';
+const CACHE_VERSION = 'v15';
 const CACHE_NAME = `bibleprojector-${CACHE_VERSION}`;
 const OFFLINE_URL = './offline.html';
 
@@ -36,7 +36,9 @@ const CORE_ASSETS = [
     './js/modules/history.js',
     './js/modules/settings.js',
     './js/modules/dom-utils.js',
-    './js/modules/songs.js'
+    './js/modules/songs.js',
+    './js/modules/setlist.js',
+    './js/modules/layout.js'
 ];
 
 // Тяжёлые базы переводов (кэшируются по отдельности: сбой одной не срывает установку)

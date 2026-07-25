@@ -10,6 +10,7 @@
         "test:watch": "vitest",
         "lint": "eslint app/js --ext .js",
         "lint:fix": "eslint app/js --ext .js --fix",
+        "verify:layout": "node scripts/verify_layout.js",
         "build:v3": "cd v3 && npm run data && npx vite build --base=/next/ --outDir ../next --emptyOutDir",
         "deploy": "npm run build:v3 && npx wrangler deploy"
     },
