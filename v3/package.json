@@ -9,10 +9,11 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "data": "node scripts/convert-data.mjs",
-    "build:demo": "node scripts/convert-data.mjs && vite build --mode demo",
+    "build:demo": "node scripts/convert-data.mjs && vite build --mode demo --outDir dist-demo",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "npm run data && npm run build && playwright test"
+    "test:e2e": "npm run data && npm run build && playwright test",
+    "build:app": "vite build --base /app/ --outDir ../dist/app --emptyOutDir"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.0",

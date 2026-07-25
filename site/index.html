@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bible Projector — стихи и песни на проекторе за секунды</title>
+  <meta name="description" content="Бесплатный пульт для вывода стихов Библии и песен на проектор: умный поиск, второй экран, работает офлайн. 4 перевода, 11 500+ песен." />
+  <link rel="icon" type="image/svg+xml" href="/app/favicon.svg" />
+  <meta property="og:title" content="Bible Projector" />
+  <meta property="og:description" content="Стихи Библии и песни на проекторе за секунды. Бесплатно, офлайн." />
+  <meta property="og:url" content="https://bibleprojector.kz/" />
+  <style>
+    :root {
+      --bg: #0b0c0e;
+      --panel: #111316;
+      --stroke: #22262c;
+      --ink: #e8eaed;
+      --muted: #9aa0a8;
+      --faint: #7d8694;
+      --accent: #4f83f1;
+      --go: #2f9e63;
+      --amber: #d8a94e;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+    header.site {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 0;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px; }
+    .brand svg { color: var(--accent); }
+    .hero { padding: 72px 0 56px; }
+    .hero h1 {
+      font-size: clamp(30px, 5vw, 44px);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      max-width: 17ch;
+      text-wrap: balance;
+    }
+    .hero p.lead {
+      margin-top: 18px; max-width: 52ch;
+      font-size: 17px; color: var(--muted);
+    }
+    .cta-row { margin-top: 32px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .cta {
+      display: inline-block;
+      background: var(--go); color: #fff;
+      font-weight: 700; font-size: 16px;
+      padding: 12px 28px; border-radius: 8px;
+    }
+    .cta:hover { filter: brightness(1.08); }
+    .cta-note { font-size: 13px; color: var(--faint); }
+    .features {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px; padding: 8px 0 64px;
+    }
+    .feature {
+      background: var(--panel);
+      border: 1px solid var(--stroke);
+      border-radius: 10px;
+      padding: 18px 20px;
+    }
+    .feature h3 { font-size: 15px; margin-bottom: 6px; }
+    .feature p { font-size: 14px; color: var(--muted); }
+    .feature .k { color: var(--amber); font-family: ui-monospace, 'SF Mono', Consolas, monospace; font-size: 13px; }
+    footer.site {
+      border-top: 1px solid var(--stroke);
+      padding: 24px 0 40px;
+      font-size: 13px; color: var(--faint);
+      display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <span class="brand">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 7.75a.75.75 0 0 1 1.142-.638l3.664 2.249a.75.75 0 0 1 0 1.278l-3.664 2.25a.75.75 0 0 1-1.142-.64z"/><path d="M12 17v4"/><path d="M8 21h8"/><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+        Bible Projector
+      </span>
+      <a href="/app/">Открыть приложение →</a>
+    </header>
+
+    <section class="hero">
+      <h1>Стихи и песни на проекторе — за секунды</h1>
+      <p class="lead">
+        Бесплатный пульт для служения: наберите «ин 3 16» или пару слов из песни —
+        и текст уже на экране. 4 перевода Библии, 11&nbsp;500+ песен, работает без интернета.
+      </p>
+      <div class="cta-row">
+        <a class="cta" href="/app/">Открыть приложение</a>
+        <span class="cta-note">Бесплатно · без регистрации · Chrome или Edge на компьютере</span>
+      </div>
+    </section>
+
+    <section class="features" aria-label="Возможности">
+      <div class="feature">
+        <h3>Умный поиск</h3>
+        <p>Ссылка (<span class="k">ин 3 16</span>), номер песни (<span class="k">579</span>) или просто текст —
+        одно поле понимает всё и прощает опечатки.</p>
+      </div>
+      <div class="feature">
+        <h3>Второй экран</h3>
+        <p>Отдельное окно на проектор: превью → GO → эфир. Blackout одной клавишей,
+        экран не гаснет во время служения.</p>
+      </div>
+      <div class="feature">
+        <h3>Работает офлайн</h3>
+        <p>Все переводы и песни сохраняются на компьютере после первого запуска.
+        Интернет в зале не нужен.</p>
+      </div>
+      <div class="feature">
+        <h3>Порядок служения</h3>
+        <p>Соберите песни, отрывки и объявления заранее — во время служения
+        только листайте. История показов всегда под рукой.</p>
+      </div>
+    </section>
+
+    <footer class="site">
+      <span>Bible Projector · Синодальный, Новый русский, қазақша, кыргызча</span>
+      <a href="https://github.com/Sherzattv/bibleprojector">Открытый код на GitHub</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@
   import { Pencil, Check, X } from '@lucide/svelte'
   import { show, type ShowSlide } from '../show.svelte'
   import { projSettings } from '../proj-settings.svelte'
+  import { autofitScale } from '../autofit'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -86,7 +87,7 @@
       <div class="max-w-[94%]">
         <div
           class="font-serif leading-[1.55] text-balance text-white"
-          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale})"
+          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale * autofitScale(slide.text)})"
         >
           {#each slide.text.split('\n') as line, i (i)}
             {line}<br />

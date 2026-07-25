@@ -2,7 +2,8 @@
   import { Search, BookOpen, Music, CornerDownLeft, LoaderCircle } from '@lucide/svelte'
   import { data } from '../db.svelte'
   import { commands } from '../commands.svelte'
-  import { parseQuery, codeForBookId, pickEnterAction, type VerseHit } from '../search'
+  import { parseQuery, codeForBookId, type VerseHit } from '../search'
+  import { buildOptions, nextIndex, pickActionAt, type OmniOption } from '../omni-list'
   import { getSearchClient } from '../search-service.svelte'
   import { ui } from '../ui.svelte'
   import { getBookTitle } from '../legacy/canonical.js'
@@ -10,6 +11,7 @@
 
   let query = $state('')
   let open = $state(false)
+  let active = $state(-1)
   let input: HTMLInputElement
 
   const client = getSearchClient()
@@ -49,6 +51,22 @@
   const verseHits = $derived(client.results.verses)
   const empty = $derived(!parsedRef && !verseHits.length && !songHits.length && !client.indexing)
 
+  const options = $derived(buildOptions(!!parsedRef, verseHits.length, songHits.length))
+
+  // Состав результатов изменился — активная позиция больше не осмысленна
+  $effect(() => {
+    void options.length
+    active = -1
+  })
+
+  /** Плоский индекс опции для ARIA и подсветки */
+  function optionIdx(kind: OmniOption['kind'], index = 0): number {
+    const refOffset = parsedRef ? 1 : 0
+    if (kind === 'ref') return 0
+    if (kind === 'verse') return refOffset + index
+    return refOffset + verseHits.length + index
+  }
+
   export function focus() {
     input.focus()
   }
@@ -79,25 +97,25 @@
     if (commands.openSong(song.id)) close()
   }
 
-  function onEnter(e: KeyboardEvent) {
+  function onKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       open = false
       input.blur()
       return
     }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      active = nextIndex(options.length, active, e.key === 'ArrowDown' ? 1 : -1)
+      return
+    }
     if (e.key !== 'Enter') return
     client.flush()
     // В эфир по Ctrl+Enter уходит только точная ссылка — fuzzy никогда
-    const action = pickEnterAction({
-      parsedRef,
-      verseHits,
-      songHits,
-      withModifier: e.ctrlKey || e.metaKey,
-    })
+    const action = pickActionAt(options, active, e.ctrlKey || e.metaKey)
     if (!action) return
     if (action.type === 'ref') openRef(parsedRef!, action.live)
-    else if (action.type === 'verse') openVerseHit(verseHits[0])
-    else openSong(songHits[0])
+    else if (action.type === 'verse') openVerseHit(verseHits[action.index])
+    else openSong(songHits[action.index])
   }
 
   const group = 'px-3 pt-2 pb-1 text-2xs font-semibold tracking-wide text-faint uppercase'
@@ -111,8 +129,13 @@
     bind:value={query}
     oninput={() => (open = query.trim().length > 0)}
     onblur={() => setTimeout(() => (open = false), 150)}
-    onkeydown={onEnter}
+    onkeydown={onKeydown}
     type="text"
+    role="combobox"
+    aria-expanded={open}
+    aria-controls="omni-listbox"
+    aria-autocomplete="list"
+    aria-activedescendant={active >= 0 ? `omni-opt-${active}` : undefined}
     placeholder="Стих, песня или текст…"
     autocomplete="off"
     class="h-7 w-full rounded border border-stroke-2 bg-bg pr-14 pl-8 text-sm text-ink
@@ -122,12 +145,26 @@
 
   {#if open}
     <div
+      id="omni-listbox"
+      role="listbox"
+      aria-label="Результаты поиска"
       class="absolute top-full right-0 left-0 z-50 mt-1 max-h-[420px] overflow-y-auto rounded-md
              border border-stroke-2 bg-panel-2 pb-1 shadow-xl shadow-black/50"
     >
       {#if parsedRef}
         <div class={group}>Ссылка на стих</div>
-        <button class={item} onclick={() => openRef(parsedRef)}>
+        <!-- pointerdown срабатывает до blur инпута — клик не теряется -->
+        <button
+          id="omni-opt-{optionIdx('ref')}"
+          role="option"
+          aria-selected={active === optionIdx('ref')}
+          tabindex="-1"
+          class="{item} {active === optionIdx('ref') ? 'bg-hover' : ''}"
+          onpointerdown={(e) => {
+            e.preventDefault()
+            openRef(parsedRef)
+          }}
+        >
           <BookOpen size={14} class="shrink-0 text-accent" />
           <span class="min-w-0">
             <span class="text-base font-medium">{parsedRef.label}</span>
@@ -147,8 +184,18 @@
 
       {#if verseHits.length}
         <div class={group}>Найдено в Библии · {data.translation}</div>
-        {#each verseHits as v (v.id)}
-          <button class={item} onclick={() => openVerseHit(v)}>
+        {#each verseHits as v, vi (v.id)}
+          <button
+            id="omni-opt-{optionIdx('verse', vi)}"
+            role="option"
+            aria-selected={active === optionIdx('verse', vi)}
+            tabindex="-1"
+            class="{item} {active === optionIdx('verse', vi) ? 'bg-hover' : ''}"
+            onpointerdown={(e) => {
+              e.preventDefault()
+              openVerseHit(v)
+            }}
+          >
             <BookOpen size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
               <span class="text-base font-medium">{v.ref}</span>
@@ -160,8 +207,18 @@
 
       {#if songHits.length}
         <div class={group}>Песни</div>
-        {#each songHits as song (song.id)}
-          <button class={item} onclick={() => openSong(song)}>
+        {#each songHits as song, si (song.id)}
+          <button
+            id="omni-opt-{optionIdx('song', si)}"
+            role="option"
+            aria-selected={active === optionIdx('song', si)}
+            tabindex="-1"
+            class="{item} {active === optionIdx('song', si) ? 'bg-hover' : ''}"
+            onpointerdown={(e) => {
+              e.preventDefault()
+              openSong(song)
+            }}
+          >
             <Music size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
               <span class="text-base font-medium">{song.title}</span>

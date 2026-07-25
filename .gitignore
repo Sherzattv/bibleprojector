@@ -26,3 +26,6 @@ archive/sources/*.json
 # Playwright E2E artifacts
 /v3/playwright-report/
 /v3/test-results/
+
+# Deploy output (site + app), built by npm run build
+/dist/

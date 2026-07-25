@@ -14,7 +14,9 @@
   --color-stroke-2: #2d323a;
   --color-ink: #e8eaed;
   --color-muted: #9aa0a8;
-  --color-faint: #5c6370;
+  /* faint используется для текста 10–11px — контраст обязан быть ≥4.5:1
+     (страж: tests/contrast.test.ts) */
+  --color-faint: #7d8694;
   --color-accent: #4f83f1;
   --color-accent-dim: rgba(79, 131, 241, 0.12);
   --color-live: #e5484d;

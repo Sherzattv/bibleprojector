@@ -1,6 +1,7 @@
 <script lang="ts">
   import { DisplayReceiver } from '../projector-link.svelte'
   import { bcChannel } from '../projector-service.svelte'
+  import { autofitScale } from '../autofit'
   import type { ProjectionContent, ProjectionSettings } from '../projection'
 
   const receiver = new DisplayReceiver(bcChannel())
@@ -39,7 +40,7 @@
     <div class="max-w-[92%]">
       <div
         class="font-serif leading-[1.5] text-balance text-white"
-        style="font-size: calc(clamp(28px, 4.5vw, 72px) * {settings.fontScale})"
+        style="font-size: calc(clamp(28px, 4.5vw, 72px) * {settings.fontScale * autofitScale(content.text)})"
       >
         {#each content.text.split('\n') as line, i (i)}
           {line}<br />
@@ -64,7 +65,7 @@
       </div>
       <div
         class="leading-[1.6] text-balance text-white"
-        style="font-size: calc(clamp(24px, 3.5vw, 56px) * {settings.fontScale})"
+        style="font-size: calc(clamp(24px, 3.5vw, 56px) * {settings.fontScale * autofitScale(content.text)})"
       >
         {#each content.text.split('\n') as line, i (i)}
           {line}<br />

@@ -6,9 +6,19 @@
     show.setPreview(i)
     commands.go()
   }
+
+  let grid: HTMLElement | undefined
+
+  // Активный слайд всегда в кадре — оператор не теряет позицию при Space/стрелках
+  $effect(() => {
+    const idx = show.liveIdx >= 0 ? show.liveIdx : show.previewIdx
+    void show.previewIdx
+    const el = grid?.children[idx] as HTMLElement | undefined
+    el?.scrollIntoView({ block: 'nearest' })
+  })
 </script>
 
-<div class="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2">
+<div bind:this={grid} class="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] gap-2">
   {#each show.slides as slide, i (i)}
     {@const onAir = i === show.liveIdx}
     {@const inPreview = i === show.previewIdx && !onAir}
