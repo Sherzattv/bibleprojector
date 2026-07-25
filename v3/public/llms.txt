@@ -5,17 +5,16 @@ Bible Projector — PWA-система для трансляции библей�
 
 ## Current Version
 - Active development: 3.0.0-preview.1 (`v3/`)
-- Published legacy: 2.2.0 (`app/`)
+- Production: 3.0.0-preview.1
 
 ## Primary URLs
 - https://bibleprojector.kz/
-- https://bibleprojector.kz/contacts.html
-- https://bibleprojector.kz/app/controller.html
 - https://github.com/Sherzattv/bibleprojector/tree/main/v3
 
 ## Development Policy
 - All new product work happens only in `v3/`.
-- `app/` is frozen legacy and a source of data for the v3 converter.
+- v2 runtime and UI have been removed.
+- Source datasets live in `v3/data/source/`.
 - `ROADMAP.md` is the only current backlog.
 - `docs/AUDIT-2026-07.md` and `docs/REDESIGN_PLAN.md` are historical records.
 

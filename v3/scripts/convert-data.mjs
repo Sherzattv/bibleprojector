@@ -1,5 +1,5 @@
 /**
- * Конвертирует существующие базы (app/js/data/*.js, глобальные window.*)
+ * Конвертирует исходные базы (v3/data/source/*.js, глобальные window.*)
  * в чистый JSON для v3:
  *   public/data/{rst,nrt,ktb,kyb,songs}.json — полные данные (gitignored)
  *   src/lib/demo-data.json — срез для демо-сборки одним файлом (gitignored)
@@ -11,13 +11,12 @@ import { dirname, join } from 'node:path'
 import { parseGlobalJs, sanitizeBible, validateBible, buildManifest } from './convert-core.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const repo = join(here, '..', '..')
-const dataDir = join(repo, 'app', 'js', 'data')
+const dataDir = join(here, '..', 'data', 'source')
 const outDir = join(here, '..', 'public', 'data')
 mkdirSync(outDir, { recursive: true })
 
 const { TRANSLATION_MAPS } = await import(
-  join(repo, 'app', 'js', 'modules', 'canonical.js')
+  join(here, '..', 'src', 'lib', 'legacy', 'canonical.js')
 )
 
 const translations = {

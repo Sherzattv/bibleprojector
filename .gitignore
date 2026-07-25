@@ -13,14 +13,14 @@ tmp/
 # Исторические локальные скриншоты legacy-интерфейса
 .layout-shots/
 
-# Архивные источники; рабочие входные базы конвертера лежат в app/js/data/
+# Архивные источники; рабочие входные базы лежат в v3/data/source/
 archive/sources/*.zip
 archive/sources/*.json
 
 # IDE/Editor
 .vscode/
 
-# v3 production build (built at deploy time, served at /next/)
+# Старый локальный preview-build; production v3 собирается в v3/dist/
 /next/
 
 # Playwright E2E artifacts

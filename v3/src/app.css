@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@source not "../data";
 
 /* Дизайн-токены Bible Projector 3.0.
    Принципы: плоские поверхности, чёткие 1px-границы, один акцент,
