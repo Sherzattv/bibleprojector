@@ -8,7 +8,8 @@ Bible Projector — PWA-система для трансляции библей�
 - Production: 3.0.0-preview.1
 
 ## Primary URLs
-- https://bibleprojector.kz/
+- https://bibleprojector.kz/ — landing page
+- https://bibleprojector.kz/app/ — the application itself
 - https://github.com/Sherzattv/bibleprojector/tree/main/v3
 
 ## Development Policy
