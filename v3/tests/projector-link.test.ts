@@ -208,6 +208,65 @@ describe('ProjectorLink: sendState и hello', () => {
   })
 })
 
+describe('ProjectorLink: состояние fullscreen и команды', () => {
+  it('стартует с displayFullscreen=false', () => {
+    expect(new ProjectorLink(new FakeChannel()).displayFullscreen).toBe(false)
+  })
+
+  it('признак fullscreen приезжает вместе с pong и hello', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.start()
+
+    channel.onmessage?.({ type: 'pong', fullscreen: true })
+    expect(link.displayFullscreen).toBe(true)
+
+    channel.onmessage?.({ type: 'pong', fullscreen: false })
+    expect(link.displayFullscreen).toBe(false)
+
+    channel.onmessage?.({ type: 'hello', fullscreen: true })
+    expect(link.displayFullscreen).toBe(true)
+    link.stop()
+  })
+
+  it('потеря связи сбрасывает fullscreen: про молчащий экран мы ничего не знаем', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.start()
+    channel.onmessage?.({ type: 'pong', fullscreen: true })
+
+    vi.advanceTimersByTime(6000)
+    expect(link.connected).toBe(false)
+    expect(link.displayFullscreen).toBe(false)
+    link.stop()
+  })
+
+  it('command постит {type:"cmd", cmd}', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.command('fullscreen')
+    link.command('close')
+
+    expect(sentOfType(channel, 'cmd')).toEqual([
+      { type: 'cmd', cmd: 'fullscreen' },
+      { type: 'cmd', cmd: 'close' },
+    ])
+  })
+
+  it('onReady зовётся на hello — окно загрузилось и готово к командам', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    let ready = 0
+    link.onReady = () => ready++
+
+    channel.onmessage?.({ type: 'pong' })
+    expect(ready).toBe(0)
+
+    channel.onmessage?.({ type: 'hello' })
+    expect(ready).toBe(1)
+  })
+})
+
 describe('DisplayReceiver', () => {
   it('стартует с content {kind:"empty"} и settings null', () => {
     const channel = new FakeChannel()
@@ -243,6 +302,36 @@ describe('DisplayReceiver', () => {
 
     channel.onmessage?.({ type: 'ping' })
     expect(sentOfType(channel, 'pong')).toHaveLength(2)
+  })
+
+  it('в pong и hello уезжает текущее состояние fullscreen', () => {
+    const channel = new FakeChannel()
+    const receiver = new DisplayReceiver(channel)
+    expect(sentOfType(channel, 'hello')[0]).toEqual({ type: 'hello', fullscreen: false })
+
+    receiver.fullscreen = true
+    channel.onmessage?.({ type: 'ping' })
+    expect(sentOfType(channel, 'pong')[0]).toEqual({ type: 'pong', fullscreen: true })
+  })
+
+  it('команды пульта уходят в onCommand', () => {
+    const channel = new FakeChannel()
+    const receiver = new DisplayReceiver(channel)
+    const got: string[] = []
+    receiver.onCommand = (cmd) => got.push(cmd)
+
+    channel.onmessage?.({ type: 'cmd', cmd: 'fullscreen' })
+    channel.onmessage?.({ type: 'cmd', cmd: 'close' })
+    // мусорная команда без cmd не должна доходить
+    channel.onmessage?.({ type: 'cmd' })
+
+    expect(got).toEqual(['fullscreen', 'close'])
+  })
+
+  it('команда без подписчика не бросает', () => {
+    const channel = new FakeChannel()
+    new DisplayReceiver(channel)
+    expect(() => channel.onmessage?.({ type: 'cmd', cmd: 'close' })).not.toThrow()
   })
 })
 

@@ -1,12 +1,21 @@
 /**
  * Связь с окном проектора в рантайме: BroadcastChannel-адаптер,
- * синглтон ProjectorLink и открытие окна на внешнем мониторе
- * (Window Management API с фоллбеком на обычный popup).
+ * синглтон ProjectorLink, открытие окна на выбранном мониторе
+ * (Window Management API) и управление им — fullscreen и закрытие.
  */
 import { ProjectorLink, type Channel } from './projector-link.svelte'
+import { ScreensStore, matchScreen, type ScreenInfo } from './screens.svelte'
 import { ui } from './ui.svelte'
 
 export const PROJECTION_CHANNEL = 'bp3-projection'
+
+/** Именованное окно: повторный window.open попадает в него же, а не в новое */
+const WINDOW_NAME = 'bp3-display'
+
+/** Сколько ждём «hello» от экрана, прежде чем разворачивать вслепую */
+const READY_TIMEOUT_MS = 4000
+
+export const screens = new ScreensStore()
 
 export function bcChannel(name: string = PROJECTION_CHANNEL): Channel {
   const bc = new BroadcastChannel(name)
@@ -19,53 +28,142 @@ export function bcChannel(name: string = PROJECTION_CHANNEL): Channel {
 }
 
 let link: ProjectorLink | null = null
+let displayWindow: Window | null = null
 
 export function getProjectorLink(): ProjectorLink {
   if (!link) {
     link = new ProjectorLink(bcChannel())
+    link.onReady = () => notifyDisplayReady()
     link.start()
   }
   return link
 }
 
-interface ScreenDetailsLike {
-  screens: Array<{ left: number; top: number; width: number; height: number }>
-  currentScreen: unknown
+const readyWaiters = new Set<() => void>()
+
+/** Экран доложил о готовности — можно двигать окно и разворачивать его */
+export function notifyDisplayReady(): void {
+  const waiters = [...readyWaiters]
+  readyWaiters.clear()
+  for (const fn of waiters) fn()
+}
+
+function onDisplayReady(fn: () => void): void {
+  let done = false
+  const once = () => {
+    if (done) return
+    done = true
+    fn()
+  }
+  readyWaiters.add(once)
+  // Страховка: BroadcastChannel мог не доехать (расширение, приватный режим)
+  setTimeout(once, READY_TIMEOUT_MS)
+}
+
+/** Параметры window.open: на известном мониторе — сразу его прямоугольник */
+export function displayFeatures(target: ScreenInfo | null): string {
+  if (!target) return 'popup,width=1024,height=768'
+  return `popup,left=${target.left},top=${target.top},width=${target.width},height=${target.height}`
+}
+
+function fullscreenTarget(win: Window): Element | null {
+  const doc = win.document as (Document & { fullscreenElement?: Element | null }) | undefined
+  return doc?.fullscreenElement ?? null
 }
 
 /**
- * Перенести уже открытое окно на внешний монитор.
- * Вызывается ПОСЛЕ window.open: запрос разрешения Window Management
- * может ждать ответа оператора сколько угодно — окно уже есть.
+ * Развернуть окно проектора. Вызов идёт из пульта на элемент чужого документа —
+ * так Chrome разрешает fullscreen по той же активации, что открыла окно
+ * (Fullscreen Companion Window). Если активация уже истекла, просим экран
+ * развернуться самому; не выйдет — он покажет подсказку оператору.
  */
-async function moveToExternalScreen(win: Window): Promise<void> {
-  if (!('getScreenDetails' in window)) return
+async function enterFullscreen(win: Window, target: ScreenInfo | null): Promise<void> {
+  if (win.closed) return
+  if (fullscreenTarget(win)) return
+  const el = win.document?.documentElement as
+    | (HTMLElement & { requestFullscreen(options?: unknown): Promise<void> })
+    | undefined
+  if (typeof el?.requestFullscreen !== 'function') {
+    link?.command('fullscreen')
+    return
+  }
+  const raw = screens.rawFor(target)
   try {
-    const details = await (
-      window as unknown as { getScreenDetails(): Promise<ScreenDetailsLike> }
-    ).getScreenDetails()
-    const external =
-      details.screens.find((s) => s !== details.currentScreen) ?? details.screens[0]
-    if (!external || win.closed) return
-    win.moveTo(external.left, external.top)
-    win.resizeTo(external.width, external.height)
+    await el.requestFullscreen(raw ? { screen: raw } : undefined)
   } catch {
-    // разрешение не дано — окно остаётся там, где открылось
+    link?.command('fullscreen')
   }
 }
 
-/** Открыть окно проектора — на внешнем мониторе, если браузер умеет */
-export function openDisplayWindow(): void {
+/**
+ * Довести окно до нужного монитора. Возвращает экран, на котором оно стоит,
+ * или null — когда монитор один и разворачивать нечего (иначе окно проектора
+ * накрыло бы сам пульт).
+ */
+async function placeDisplay(win: Window, wanted: ScreenInfo | null): Promise<ScreenInfo | null> {
+  const list = await screens.refresh({ prompt: true })
+  if (win.closed) return null
+
+  const target = list.length ? (matchScreen(wanted, list) ?? screens.target) : wanted
+  if (!target) return null
+
+  // Окно, которое уже развёрнуто, двигать нельзя — fullscreen просто слетит
+  if (!fullscreenTarget(win)) {
+    win.moveTo(target.left, target.top)
+    win.resizeTo(target.width, target.height)
+  }
+  // Автоподбор тоже запоминаем: в следующий раз окно откроется здесь сразу
+  if (!screens.saved) screens.select(target)
+  return target
+}
+
+/**
+ * Открыть окно проектора. Без аргумента — на запомненном или автоматически
+ * выбранном мониторе; с аргументом — на указанном, и этот выбор запоминается.
+ */
+export function openDisplayWindow(target?: ScreenInfo): void {
   const url = new URL(window.location.href)
   url.hash = '#display'
 
+  if (target) screens.select(target)
+  const wanted = target ?? screens.target
+
   // Окно открываем синхронно, пока жива transient activation от клика (~5 с):
   // getScreenDetails() при первом обращении показывает запрос разрешения и висит
-  // до ответа оператора — активация истекает, и window.open ловит попап-блокер
-  const win = window.open(url.toString(), 'bp3-display', 'width=1024,height=768')
+  // до ответа оператора — активация истекает, и window.open ловит попап-блокер.
+  // Геометрию берём из localStorage, поэтому на знакомом мониторе окно
+  // появляется сразу там, где нужно, и до разрешения дело даже не доходит.
+  const win = window.open(url.toString(), WINDOW_NAME, displayFeatures(wanted))
   if (!win) {
     ui.notify('Браузер заблокировал окно проектора — разрешите всплывающие окна для этого сайта.')
     return
   }
-  void moveToExternalScreen(win)
+  displayWindow = win
+
+  const placed = placeDisplay(win, wanted)
+  // Ждать готовности начинаем до первого await: иначе «hello» от быстро
+  // загрузившегося экрана уйдёт в пустоту, пока мы ждём разрешение
+  onDisplayReady(() => {
+    void placed.then((screen) => (screen ? enterFullscreen(win, screen) : undefined))
+  })
+}
+
+/** Развернуть окно проектора по клику оператора — активация свежая, сработает */
+export function requestDisplayFullscreen(): void {
+  const win = displayWindow
+  if (!win || win.closed) {
+    // Пульт перезагружали — ссылки на окно нет, просим экран развернуться самому
+    link?.command('fullscreen')
+    return
+  }
+  void enterFullscreen(win, screens.target)
+}
+
+/** Закрыть окно проектора */
+export function closeDisplayWindow(): void {
+  const win = displayWindow
+  displayWindow = null
+  if (win && !win.closed) win.close()
+  // И на случай, если ссылка устарела (пульт перезагружали): экран закроется сам
+  link?.command('close')
 }

@@ -10,6 +10,8 @@
     (receiver.settings as ProjectionSettings | null) ?? { fontScale: 1, showReference: true },
   )
 
+  let fullscreen = $state(false)
+
   // Экран проектора не должен засыпать во время служения
   $effect(() => {
     let lock: { release?: () => Promise<void> } | undefined
@@ -22,9 +24,31 @@
     }
   })
 
+  // Пульт показывает состояние окна честно: признак едет вместе с pong
+  $effect(() => {
+    const sync = () => {
+      fullscreen = Boolean(document.fullscreenElement)
+      receiver.fullscreen = fullscreen
+    }
+    sync()
+    document.addEventListener('fullscreenchange', sync)
+    return () => document.removeEventListener('fullscreenchange', sync)
+  })
+
+  function enterFullscreen() {
+    void document.documentElement.requestFullscreen().catch(() => {})
+  }
+
+  // Пульт мог не успеть развернуть окно сам (истекла активация клика) —
+  // тогда он просит об этом экран, и здесь тоже есть шанс, что сработает
+  receiver.onCommand = (cmd) => {
+    if (cmd === 'close') window.close()
+    else if (cmd === 'fullscreen' && !document.fullscreenElement) enterFullscreen()
+  }
+
   function toggleFullscreen() {
     if (document.fullscreenElement) void document.exitFullscreen()
-    else void document.documentElement.requestFullscreen().catch(() => {})
+    else enterFullscreen()
   }
 </script>
 
@@ -33,7 +57,8 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <main
   aria-label="Экран проектора"
-  class="grid h-screen cursor-none place-items-center bg-black p-[6%] text-center select-none"
+  class="grid h-screen place-items-center bg-black p-[6%] text-center select-none"
+  class:cursor-none={fullscreen}
   ondblclick={toggleFullscreen}
 >
   {#if content.kind === 'slide'}
@@ -75,3 +100,18 @@
   {/if}
   <!-- blackout и empty — просто чёрный экран -->
 </main>
+
+<!--
+  Тихого отказа быть не должно: если развернуть окно автоматически не вышло
+  (истекла активация клика или браузер без Window Management API), оператор
+  видит на самом экране, что делать. В полноэкранном режиме подсказки нет.
+-->
+{#if !fullscreen}
+  <button
+    onclick={enterFullscreen}
+    class="fixed bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-md border border-white/25 bg-white/10
+           px-4 py-2 text-sm text-white/75 backdrop-blur hover:bg-white/20 hover:text-white"
+  >
+    Развернуть на весь экран · двойной клик тоже
+  </button>
+{/if}

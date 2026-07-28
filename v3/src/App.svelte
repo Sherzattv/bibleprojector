@@ -1,7 +1,6 @@
 <script lang="ts">
   import {
     MonitorPlay,
-    MonitorUp,
     Clock4,
     LoaderCircle,
     Settings2,
@@ -15,6 +14,7 @@
   import SlideGrid from './lib/components/SlideGrid.svelte'
   import Dock from './lib/components/Dock.svelte'
   import Library from './lib/components/Library.svelte'
+  import ProjectorControls from './lib/components/ProjectorControls.svelte'
   import { show } from './lib/show.svelte'
   import { data } from './lib/db.svelte'
   import { setlist } from './lib/setlist.svelte'
@@ -22,7 +22,7 @@
   import { commands } from './lib/commands.svelte'
   import { projSettings } from './lib/proj-settings.svelte'
   import { buildContent } from './lib/projection'
-  import { getProjectorLink, openDisplayWindow } from './lib/projector-service.svelte'
+  import { getProjectorLink } from './lib/projector-service.svelte'
   import { pushSongs, pushBible } from './lib/search-service.svelte'
   import { resolveHotkey } from './lib/hotkeys'
 
@@ -154,21 +154,7 @@
     <Omnibox bind:this={omnibox} />
 
     <div class="app-actions ml-auto flex shrink-0 items-center gap-2.5">
-      {#if projector.connected}
-        <span class="projector-status flex items-center gap-1.5 text-sm text-muted">
-          <span class="size-1.5 rounded-full bg-go"></span>
-          <span>Проектор подключён</span>
-        </span>
-      {:else}
-        <button
-          onclick={() => openDisplayWindow()}
-          class="projector-button flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm
-                 font-medium text-muted hover:bg-hover hover:text-ink"
-          title="Открыть экран проектора"
-        >
-          <MonitorUp size={13} /><span>Открыть экран</span>
-        </button>
-      {/if}
+      <ProjectorControls />
 
       <div class="relative">
         <button
