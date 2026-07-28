@@ -3,7 +3,13 @@
   import { data } from '../db.svelte'
   import { commands } from '../commands.svelte'
   import { parseQuery, codeForBookId, type VerseHit } from '../search'
-  import { buildOptions, nextIndex, pickActionAt, type OmniOption } from '../omni-list'
+  import {
+    buildOptions,
+    createDeferredClose,
+    nextIndex,
+    pickActionAt,
+    type OmniOption,
+  } from '../omni-list'
   import { getSearchClient } from '../search-service.svelte'
   import { ui } from '../ui.svelte'
   import { getBookTitle } from '../legacy/canonical.js'
@@ -15,6 +21,7 @@
   let input: HTMLInputElement
 
   const client = getSearchClient()
+  const deferredClose = createDeferredClose(() => (open = false))
 
   interface RefResult {
     canonicalCode: string
@@ -72,6 +79,7 @@
   }
 
   function close() {
+    deferredClose.cancel()
     open = false
     query = ''
     client.search('', data.translation)
@@ -128,7 +136,8 @@
     bind:this={input}
     bind:value={query}
     oninput={() => (open = query.trim().length > 0)}
-    onblur={() => setTimeout(() => (open = false), 150)}
+    onfocus={deferredClose.onFocus}
+    onblur={deferredClose.onBlur}
     onkeydown={onKeydown}
     type="text"
     role="combobox"

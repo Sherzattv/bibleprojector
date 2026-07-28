@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 test('точная ссылка проходит Preview → Live и переживает перезагрузку', async ({ page }) => {
   const search = page.getByPlaceholder('Стих, песня или текст…')
   await search.fill('ин 3 16')
-  await page.getByRole('button', { name: /От Иоанна 3:16\s+RST/ }).click()
+  await page.getByRole('option', { name: /От Иоанна 3:16\s+RST/ }).click()
 
   const preview = page.getByRole('region', { name: 'Предпросмотр' })
   await expect(preview).toContainText('Ибо так возлюбил Бог мир')
@@ -44,7 +44,7 @@ test('точная ссылка проходит Preview → Live и переж�
 test('песня с несколькими секциями переключается и уходит в Live', async ({ page }) => {
   const search = page.getByPlaceholder('Стих, песня или текст…')
   await search.fill('1000 рук')
-  await page.getByRole('button', { name: /1000 рук\s+№ 579/ }).click()
+  await page.getByRole('option', { name: /1000 рук\s+№ 579/ }).click()
 
   await expect(page.getByText('№ 579 · 3 слайдов')).toBeVisible()
 
@@ -90,11 +90,11 @@ test('порядок создаётся, переставляется, эксп�
 
   const search = page.getByPlaceholder('Стих, песня или текст…')
   await search.fill('ин 3 16')
-  await page.getByRole('button', { name: /От Иоанна 3:16\s+RST/ }).click()
+  await page.getByRole('option', { name: /От Иоанна 3:16\s+RST/ }).click()
   await setlist.getByRole('button', { name: 'Добавить' }).click()
 
   await search.fill('1000 рук')
-  await page.getByRole('button', { name: /1000 рук\s+№ 579/ }).click()
+  await page.getByRole('option', { name: /1000 рук\s+№ 579/ }).click()
   await setlist.getByRole('button', { name: 'Добавить' }).click()
 
   const songItem = setlist.getByRole('button', { name: '1000 рук · № 579 Песня' })
@@ -167,7 +167,7 @@ test('порядок, история и настройки проекции во
 }) => {
   const search = page.getByPlaceholder('Стих, песня или текст…')
   await search.fill('ин 3 16')
-  await page.getByRole('button', { name: /От Иоанна 3:16\s+RST/ }).click()
+  await page.getByRole('option', { name: /От Иоанна 3:16\s+RST/ }).click()
 
   const setlist = page.getByRole('complementary', { name: 'Порядок служения' })
   await setlist.getByRole('button', { name: 'Добавить' }).click()
@@ -221,7 +221,7 @@ test('окно проектора подключается, получает э�
 
   const search = page.getByPlaceholder('Стих, песня или текст…')
   await search.fill('ин 3 16')
-  await page.getByRole('button', { name: /От Иоанна 3:16\s+RST/ }).click()
+  await page.getByRole('option', { name: /От Иоанна 3:16\s+RST/ }).click()
   await page.getByRole('button', { name: /GO\s+Space/ }).click()
 
   const screen = display.getByRole('main', { name: 'Экран проектора' })

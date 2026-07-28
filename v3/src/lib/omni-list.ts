@@ -28,6 +28,45 @@ export function nextIndex(count: number, current: number, delta: 1 | -1): number
 }
 
 /**
+ * Отложенное закрытие выпадашки по blur: список исчезает не сразу, чтобы
+ * клик по опции успел отработать.
+ *
+ * Возврат фокуса ОБЯЗАН снимать отложенное закрытие. Иначе «хвост» от
+ * прошлого blur (оператор кликнул мимо, тут же вернулся в поиск и набрал
+ * новый запрос) схлопывает выпадашку уже под свежие результаты — на экране
+ * поле с текстом и ни одной опции.
+ */
+export interface DeferredClose {
+  /** Фокус ушёл — закрыть через delayMs */
+  onBlur(): void
+  /** Фокус вернулся — отменить отложенное закрытие */
+  onFocus(): void
+  cancel(): void
+}
+
+export function createDeferredClose(close: () => void, delayMs = 150): DeferredClose {
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  function cancel() {
+    if (timer === null) return
+    clearTimeout(timer)
+    timer = null
+  }
+
+  return {
+    onBlur() {
+      cancel()
+      timer = setTimeout(() => {
+        timer = null
+        close()
+      }, delayMs)
+    },
+    onFocus: cancel,
+    cancel,
+  }
+}
+
+/**
  * Действие для активной опции; вне границ/-1 — первая по приоритету.
  * В эфир с модификатором может уйти ТОЛЬКО точная ссылка.
  */

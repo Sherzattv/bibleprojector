@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest'
-// Модуль omni-list ещё не реализован — тесты красные до реализации (TDD)
-import { buildOptions, nextIndex, pickActionAt, type OmniOption } from '../src/lib/omni-list'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import {
+  buildOptions,
+  createDeferredClose,
+  nextIndex,
+  pickActionAt,
+  type OmniOption,
+} from '../src/lib/omni-list'
 
 describe('buildOptions — плоский список опций выпадашки', () => {
   it('порядок: ссылка, потом стихи, потом песни', () => {
@@ -102,5 +107,76 @@ describe('pickActionAt — действие Enter для активной опц
   it('пустой список → null', () => {
     expect(pickActionAt([], -1, false)).toBeNull()
     expect(pickActionAt([], -1, true)).toBeNull()
+  })
+})
+
+describe('createDeferredClose — закрытие выпадашки по blur', () => {
+  let closed: number
+  let deferred: ReturnType<typeof createDeferredClose>
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+    closed = 0
+    deferred = createDeferredClose(() => closed++, 150)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('blur закрывает не сразу, а через задержку — клик по опции успевает', () => {
+    deferred.onBlur()
+    vi.advanceTimersByTime(149)
+    expect(closed).toBe(0)
+
+    vi.advanceTimersByTime(1)
+    expect(closed).toBe(1)
+  })
+
+  it('РЕГРЕССИЯ: фокус вернулся до срабатывания — выпадашка не закрывается', () => {
+    // Оператор кликнул мимо поля (blur), тут же вернулся в поиск
+    // и набрал следующий запрос. Хвост от прошлого blur не должен
+    // схлопнуть список уже под новые результаты.
+    deferred.onBlur()
+    vi.advanceTimersByTime(20)
+    deferred.onFocus()
+
+    vi.runAllTimers()
+    expect(closed).toBe(0)
+  })
+
+  it('повторный blur перезапускает задержку, закрытие всё равно одно', () => {
+    deferred.onBlur()
+    vi.advanceTimersByTime(100)
+    deferred.onBlur()
+    vi.advanceTimersByTime(100)
+    expect(closed).toBe(0)
+
+    vi.runAllTimers()
+    expect(closed).toBe(1)
+  })
+
+  it('cancel снимает отложенное закрытие', () => {
+    deferred.onBlur()
+    deferred.cancel()
+    vi.runAllTimers()
+    expect(closed).toBe(0)
+  })
+
+  it('onFocus и cancel без отложенного закрытия безвредны', () => {
+    deferred.onFocus()
+    deferred.cancel()
+    vi.runAllTimers()
+    expect(closed).toBe(0)
+  })
+
+  it('после закрытия следующий blur снова закрывает', () => {
+    deferred.onBlur()
+    vi.runAllTimers()
+    expect(closed).toBe(1)
+
+    deferred.onBlur()
+    vi.runAllTimers()
+    expect(closed).toBe(2)
   })
 })
