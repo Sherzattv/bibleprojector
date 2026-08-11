@@ -168,6 +168,19 @@ input:focus-visible {
     display: flex;
   }
 
+  /* Подключённый проектор даёт три контрола сразу — на узкой шапке они
+     выдавливают строку поиска, поэтому остаются только иконки и точка */
+  .projector-status span:last-child,
+  .projector-action span {
+    display: none;
+  }
+
+  .projector-action {
+    width: 28px;
+    justify-content: center;
+    padding-inline: 0;
+  }
+
   .dock {
     flex-wrap: wrap;
   }
