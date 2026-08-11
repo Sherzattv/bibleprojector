@@ -194,6 +194,7 @@ input:focus-visible {
   .app-brand span,
   .projector-button span,
   .projector-status span:last-child,
+  .app-update span,
   .app-clock {
     display: none;
   }
