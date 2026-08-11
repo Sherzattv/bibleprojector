@@ -178,6 +178,19 @@ describe('пустой запрос', () => {
     expect(sentSearches()).toHaveLength(1) // только первый запрос, новых нет
   })
 
+  it('ответ на уже отменённый запрос не воскрешает results', () => {
+    client.search('благодать', 'RST')
+    vi.advanceTimersByTime(120)
+    const { seq } = sentSearches()[0]
+
+    // Оператор выбрал опцию/очистил поле, пока запрос был в пути
+    client.search('', 'RST')
+    reply({ type: 'results', seq, songs: [songs[0]], verses: [] } satisfies ResultsMsg)
+
+    expect(client.results).toEqual({ songs: [], verses: [] })
+    expect(client.indexing).toBe(false)
+  })
+
   it('пробельный query отменяет отложенный неотправленный запрос', () => {
     client.search('благодать', 'RST')
     vi.advanceTimersByTime(50) // debounce ещё не истёк

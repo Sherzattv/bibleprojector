@@ -56,6 +56,10 @@ export class SearchClient {
   search(query: string, translation: string) {
     if (!query.trim()) {
       this.cancelPending()
+      // Запрос уже в пути — его ответ больше не наш: без сброса seq он
+      // вернёт в results выдачу отменённого запроса
+      this.lastSearchSeq = -1
+      this.lastSearchQuery = ''
       this.results = EMPTY
       this.indexing = false
       return
