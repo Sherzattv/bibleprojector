@@ -3,35 +3,26 @@
   import { show } from '../show.svelte'
   import { data, TRANSLATIONS } from '../db.svelte'
   import { commands } from '../commands.svelte'
+  import TranslationPicker from './TranslationPicker.svelte'
 
+  // Отступы кнопок и зазоры дока подобраны так, чтобы весь ряд помещался в
+  // одну строку на 1280 с открытым порядком служения — там центру достаётся
+  // 732px. Шире тянуть нечего: следующий запас даёт только сворачиваемая
+  // библиотека, а не сжатие кнопок.
   const btn =
-    'flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm font-medium text-muted hover:bg-hover hover:text-ink disabled:opacity-40 disabled:pointer-events-none'
+    'flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2 text-sm font-medium text-muted hover:bg-hover hover:text-ink disabled:opacity-40 disabled:pointer-events-none'
   const kbd = 'font-mono text-2xs text-faint'
 
   const failedTranslations = $derived(
     TRANSLATIONS.filter(([code]) => data.translationStatus[code] === 'error').map(([code]) => code),
   )
 
-  function changeTranslation(e: Event) {
-    const code = (e.target as HTMLSelectElement).value
-    if (!commands.setTranslation(code)) {
-      ;(e.target as HTMLSelectElement).value = data.translation
-    }
-  }
-
   async function retryFailed() {
     for (const code of failedTranslations) await data.retryTranslation(code)
   }
-
-  function statusSuffix(code: string): string {
-    const s = data.translationStatus[code]
-    if (s === 'loading') return ' · загрузка…'
-    if (s === 'error') return ' · ошибка'
-    return ''
-  }
 </script>
 
-<div class="dock flex shrink-0 items-center gap-2 border-t border-stroke bg-panel px-3 py-2">
+<div class="dock flex shrink-0 items-center gap-1.5 border-t border-stroke bg-panel px-2.5 py-2">
   <button class={btn} onclick={() => commands.prev()} disabled={!show.slides.length}>
     <ChevronLeft size={14} />Назад <kbd class={kbd}>←</kbd>
   </button>
@@ -63,21 +54,9 @@
     <X size={13} />Очистить <kbd class={kbd}>Esc</kbd>
   </button>
 
-  <label class="ml-auto flex items-center gap-1.5 text-xs text-faint">
-    Перевод
-    <select
-      value={data.translation}
-      onchange={changeTranslation}
-      class="h-7 rounded border border-stroke-2 bg-panel-2 px-1.5 text-sm font-medium text-muted
-             hover:text-ink focus:border-accent focus:outline-none"
-    >
-      {#each TRANSLATIONS as [code, label] (code)}
-        <option value={code} disabled={!data.bibles[code]}>
-          {code} · {label}{statusSuffix(code)}
-        </option>
-      {/each}
-    </select>
-  </label>
+  <div class="ml-auto">
+    <TranslationPicker />
+  </div>
   {#if failedTranslations.length}
     <button
       class="{btn} border-live/50 text-live"

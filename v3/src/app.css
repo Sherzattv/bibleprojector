@@ -83,8 +83,10 @@ input:focus-visible {
   background: #000;
 }
 
+/* Библиотека — центр — план */
 .workspace-main {
-  grid-template-columns: var(--setlist-column) minmax(0, 1fr) 284px;
+  position: relative;
+  grid-template-columns: var(--library-column) minmax(0, 1fr) var(--setlist-column);
 }
 
 .workspace-setlist,
@@ -94,17 +96,78 @@ input:focus-visible {
   border-color: var(--color-stroke);
 }
 
-.workspace-setlist {
+.workspace-library {
   border-right-width: 1px;
 }
 
-.workspace-library {
+.workspace-setlist {
   border-left-width: 1px;
 }
 
 .workspace-setlist > *,
 .workspace-library > * {
   height: 100%;
+}
+
+/* Разделитель лежит поверх границы, а не занимает колонку в сетке: свои
+   9px он бы отнял у центра, а там каждый пиксель на счету (док на 1280
+   помещается в одну строку с запасом ровно ноль). Схватить 1px мышью
+   невозможно, поэтому зона захвата шире линии — закон Фиттса. */
+.panel-resizer {
+  position: absolute;
+  z-index: 20;
+  inset-block: 0;
+  width: 9px;
+  cursor: col-resize;
+  /* иначе на тачпаде/сенсоре перетаскивание превращается в прокрутку */
+  touch-action: none;
+}
+
+.panel-resizer.is-library {
+  left: calc(var(--library-column) - 4px);
+}
+
+.panel-resizer.is-setlist {
+  right: calc(var(--setlist-column) - 4px);
+}
+
+.panel-resizer::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: transparent;
+  transition: width 90ms ease, background-color 90ms ease;
+}
+
+.panel-resizer:hover::before,
+.panel-resizer:focus-visible::before,
+.panel-resizer.is-dragging::before {
+  width: 3px;
+  background: var(--color-accent);
+}
+
+/* Подсветка самой линии заметнее рамки вокруг полоски */
+.panel-resizer:focus-visible {
+  outline: none;
+}
+
+/* Пока тянут — курсор ресайза над всей страницей, и ни одного случайного
+   выделения текста под быстрым движением мыши */
+.is-resizing,
+.is-resizing * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* Док не обрезается никогда: если ширины не хватило, выбор перевода уходит
+   на вторую строку, а не за край. Запас нужен на любом экране, а не только
+   на узком: на 1280 с открытым порядком служения центру остаётся 730px,
+   тогда как доку нужно 758 даже с коротким кодом перевода. */
+.dock {
+  flex-wrap: wrap;
 }
 
 .mobile-panel-toggle,
@@ -117,12 +180,22 @@ input:focus-visible {
     gap: 8px;
   }
 
+  /* В шапке появились кнопки боковых панелей — версия уступает им место */
+  .app-version {
+    display: none;
+  }
+
   .mobile-panel-toggle {
     display: grid;
   }
 
   .workspace-main {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Панели уехали в шторки — тянуть нечего, и лишняя строка сетки не нужна */
+  .panel-resizer {
+    display: none;
   }
 
   .workspace-setlist,
@@ -137,12 +210,13 @@ input:focus-visible {
     transition: transform 160ms ease;
   }
 
-  .workspace-setlist {
+  /* Шторка выезжает с той же стороны, где панель живёт на десктопе */
+  .workspace-library {
     left: 0;
     transform: translateX(-105%);
   }
 
-  .workspace-library {
+  .workspace-setlist {
     right: 0;
     transform: translateX(105%);
   }
@@ -180,10 +254,6 @@ input:focus-visible {
     justify-content: center;
     padding-inline: 0;
   }
-
-  .dock {
-    flex-wrap: wrap;
-  }
 }
 
 @media (max-width: 700px) {
@@ -215,12 +285,6 @@ input:focus-visible {
 
   .dock > span {
     display: none;
-  }
-
-  .dock label {
-    width: 100%;
-    margin-left: 0;
-    justify-content: space-between;
   }
 }
 

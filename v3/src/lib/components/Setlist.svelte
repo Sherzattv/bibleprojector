@@ -10,8 +10,8 @@
     Upload,
     Trash2,
     X,
-    PanelLeftClose,
-    PanelLeftOpen,
+    PanelRightClose,
+    PanelRightOpen,
   } from '@lucide/svelte'
   import { setlist } from '../setlist.svelte'
   import { ui } from '../ui.svelte'
@@ -99,7 +99,7 @@
           onclick={onToggle}
           title="Свернуть панель"
         >
-          <PanelLeftClose size={14} />
+          <PanelRightClose size={14} />
         </button>
       </span>
     </div>
@@ -191,7 +191,7 @@
         onclick={onToggle}
         title="Развернуть панель"
       >
-        <PanelLeftOpen size={14} />
+        <PanelRightOpen size={14} />
       </button>
     </div>
     <div class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto py-1.5">
