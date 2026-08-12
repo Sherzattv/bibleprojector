@@ -13,7 +13,7 @@ export interface Channel {
 export type DisplayCommand = 'fullscreen' | 'close'
 
 interface LinkMsg {
-  type: 'ping' | 'pong' | 'hello' | 'state' | 'cmd'
+  type: 'ping' | 'pong' | 'hello' | 'state' | 'cmd' | 'fullscreen-failed'
   content?: unknown
   settings?: unknown
   cmd?: DisplayCommand
@@ -28,6 +28,8 @@ export class ProjectorLink {
   displayFullscreen = $state(false)
   /** Экран поздоровался: окно загрузилось и готово принимать команды */
   onReady: (() => void) | null = null
+  /** Экран не смог развернуться даже с переданным правом — тихо промолчать нельзя */
+  onFullscreenFailed: (() => void) | null = null
 
   private channel: Channel
   private pingIntervalMs: number
@@ -60,6 +62,17 @@ export class ProjectorLink {
     this.timer = null
   }
 
+  /**
+   * Окно проектора закрыто по нашей же команде — ждать пяти секунд молчания
+   * heartbeat незачем, иначе кнопки управления ещё живут и ничего не делают.
+   * Если окно всё-таки уцелело, ближайший pong вернёт признак обратно.
+   */
+  markDisconnected() {
+    this.lastAlive = -Infinity
+    this.connected = false
+    this.displayFullscreen = false
+  }
+
   sendState(content: unknown, settings: unknown) {
     this.lastState = { content, settings }
     this.channel.post({ type: 'state', content, settings })
@@ -86,6 +99,8 @@ export class ProjectorLink {
         this.channel.post({ type: 'state', ...this.lastState })
       }
       this.onReady?.()
+    } else if (msg.type === 'fullscreen-failed') {
+      this.onFullscreenFailed?.()
     }
   }
 }
@@ -108,6 +123,11 @@ export class DisplayReceiver {
     this.channel = channel
     channel.onmessage = (msg) => this.onMessage(msg as LinkMsg)
     channel.post({ type: 'hello', fullscreen: this.fullscreen })
+  }
+
+  /** Развернуться не вышло — пусть пульт скажет оператору, а не молчит */
+  reportFullscreenFailed() {
+    this.channel.post({ type: 'fullscreen-failed' })
   }
 
   private onMessage(msg: LinkMsg) {

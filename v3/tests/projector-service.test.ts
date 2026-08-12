@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   closeDisplayWindow,
   displayFeatures,
+  FULLSCREEN_GRANT,
   notifyDisplayReady,
   openDisplayWindow,
   screens,
@@ -33,6 +34,8 @@ class FakeDisplayWindow {
   moves: Array<[number, number]> = []
   resizes: Array<[number, number]> = []
   fullscreens: unknown[] = []
+  /** Переданные права развернуться: [сообщение, опции postMessage] */
+  grants: Array<[unknown, unknown]> = []
   document = {
     fullscreenElement: null as unknown,
     documentElement: {
@@ -41,6 +44,9 @@ class FakeDisplayWindow {
         return Promise.resolve()
       },
     },
+  }
+  postMessage(msg: unknown, options: unknown) {
+    this.grants.push([msg, options])
   }
   moveTo(x: number, y: number) {
     this.moves.push([x, y])
@@ -68,7 +74,10 @@ function stubWindow(o: StubOptions) {
   calls = []
   openArgs = []
   const win: Record<string, unknown> = {
-    location: { href: 'https://bibleprojector.example/app/' },
+    location: {
+      href: 'https://bibleprojector.example/app/',
+      origin: 'https://bibleprojector.example',
+    },
     open: (url: string, name: string, features: string) => {
       calls.push('open')
       openArgs.push([url, name, features])
@@ -275,6 +284,31 @@ describe('openDisplayWindow: полный экран', () => {
 
     // ScreenDetailed нужного монитора уезжает в requestFullscreen({ screen })
     expect(display.fullscreens).toEqual([{ screen: projector }])
+  })
+
+  it('вместе с разворачиванием экрану передаётся право на fullscreen', async () => {
+    const display = new FakeDisplayWindow()
+    stubWindow({
+      opened: display,
+      getScreenDetails: async () => ({
+        screens: [internal, projector],
+        currentScreen: internal,
+      }),
+    })
+
+    openDisplayWindow()
+    await flush()
+    notifyDisplayReady()
+    await flush()
+
+    // Без delegate экран получает просьбу, но не право её исполнить:
+    // requestFullscreen требует жеста в своём документе, а клик был в пульте
+    expect(display.grants).toEqual([
+      [
+        FULLSCREEN_GRANT,
+        { targetOrigin: 'https://bibleprojector.example', delegate: 'fullscreen' },
+      ],
+    ])
   })
 
   it('единственный монитор не разворачивают', async () => {

@@ -118,6 +118,33 @@ describe('ProjectorLink: честный connected', () => {
     link.stop()
   })
 
+  it('markDisconnected гасит connected сразу, не дожидаясь таймаута', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.start()
+    channel.onmessage?.({ type: 'pong', fullscreen: true })
+    expect(link.connected).toBe(true)
+    expect(link.displayFullscreen).toBe(true)
+
+    // Окно закрыли из пульта: кнопки управления не должны жить ещё 5 секунд
+    link.markDisconnected()
+    expect(link.connected).toBe(false)
+    expect(link.displayFullscreen).toBe(false)
+    link.stop()
+  })
+
+  it('уцелевший экран возвращает connected ближайшим pong', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.start()
+    link.markDisconnected()
+    expect(link.connected).toBe(false)
+
+    channel.onmessage?.({ type: 'pong' })
+    expect(link.connected).toBe(true)
+    link.stop()
+  })
+
   it('пока pong приходят регулярно, connected держится true', () => {
     const channel = new FakeChannel()
     const link = new ProjectorLink(channel)
