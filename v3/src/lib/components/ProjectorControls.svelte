@@ -3,6 +3,7 @@
   import {
     getProjectorLink,
     openDisplayWindow,
+    presentFromHere,
     closeDisplayWindow,
     requestDisplayFullscreen,
     screens,
@@ -55,8 +56,15 @@
     }
   }
 
-  function pick(screen: ScreenInfo) {
+  /**
+   * Вывести проекцию. Сначала пробуем путь, который браузер не оспаривает:
+   * это окно само разворачивается на проекторе, а пульт открывается рядом.
+   * Не вышло — второго монитора нет, разрешение не дано или браузер не тот —
+   * откатываемся на отдельное окно проектора, как раньше.
+   */
+  async function present(screen?: ScreenInfo) {
     menuOpen = false
+    if (await presentFromHere(screen)) return
     openDisplayWindow(screen)
   }
 </script>
@@ -86,7 +94,7 @@
 {:else}
   <div class="relative flex items-center">
     <button
-      onclick={() => openDisplayWindow()}
+      onclick={() => present()}
       class="projector-button flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm
              font-medium text-muted hover:bg-hover hover:text-ink
              {multiScreen ? 'rounded-r-none border-r-0' : ''}"
@@ -117,7 +125,7 @@
         {#if screens.list.length}
           {#each screens.list as screen (screen.id)}
             <button
-              onclick={() => pick(screen)}
+              onclick={() => present(screen)}
               class="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-muted hover:bg-hover hover:text-ink"
             >
               <span class="w-3.5 shrink-0 text-accent">

@@ -4,6 +4,7 @@
  * (Window Management API) и управление им — fullscreen и закрытие.
  */
 import { ProjectorLink, type Channel } from './projector-link.svelte'
+import { mode } from './mode.svelte'
 import { ScreensStore, matchScreen, type ScreenInfo } from './screens.svelte'
 import { ui } from './ui.svelte'
 
@@ -25,22 +26,37 @@ const READY_TIMEOUT_MS = 4000
 
 export const screens = new ScreensStore()
 
-export function bcChannel(name: string = PROJECTION_CHANNEL): Channel {
+export function bcChannel(name: string = PROJECTION_CHANNEL): Channel & { close(): void } {
   const bc = new BroadcastChannel(name)
-  const channel: Channel = {
+  const channel: Channel & { close(): void } = {
     post: (msg) => bc.postMessage(msg),
     onmessage: null,
+    close: () => bc.close(),
   }
   bc.onmessage = (e) => channel.onmessage?.(e.data)
   return channel
 }
 
 let link: ProjectorLink | null = null
+let linkChannel: (Channel & { close(): void }) | null = null
 let displayWindow: Window | null = null
+
+/**
+ * Пульт закончился: это окно само становится экраном. Линк надо погасить,
+ * иначе он продолжит слать ping, получит pong от собственного приёмника в
+ * этом же окне и решит, что подключён сам к себе.
+ */
+export function teardownProjectorLink(): void {
+  link?.stop()
+  link = null
+  linkChannel?.close()
+  linkChannel = null
+}
 
 export function getProjectorLink(): ProjectorLink {
   if (!link) {
-    link = new ProjectorLink(bcChannel())
+    linkChannel = bcChannel()
+    link = new ProjectorLink(linkChannel)
     link.onReady = () => notifyDisplayReady()
     // Экран не смог развернуться сам — тихого отказа быть не должно.
     // Причину показываем рядом: без неё непонятно, чинить код или настройки.
@@ -151,6 +167,61 @@ async function placeDisplay(win: Window, wanted: ScreenInfo | null): Promise<Scr
   // Автоподбор тоже запоминаем: в следующий раз окно откроется здесь сразу
   if (!screens.saved) screens.select(target)
   return target
+}
+
+/** Окно-спутник с пультом: повторное открытие попадает в него же */
+const CONSOLE_WINDOW_NAME = 'bp3-console'
+
+/**
+ * Вывести проекцию так, как это делают браузеры без сопротивления.
+ *
+ * Ключ в том, ЧЬЁ окно разворачивается. Развернуть чужое окно снаружи браузер
+ * не даёт: жеста в том документе нет. А развернуть окно, в котором оператор
+ * только что кликнул, — можно всегда, и `{ screen }` при этом уводит его на
+ * нужный монитор. Поэтому экраном становится текущее окно, а пульт переезжает
+ * в новое, на монитор оператора.
+ *
+ * Оба действия укладываются в один клик: успешный fullscreen на одном экране
+ * разрешает открыть окно-спутник на другом (Fullscreen Companion Window,
+ * Chrome 104+). Порядок обязателен — сначала полный экран, потом window.open.
+ *
+ * Список экранов берём заранее подготовленным: `getScreenDetails()` на первом
+ * вызове ждёт ответа оператора на запрос разрешения, а это съедает активацию.
+ *
+ * @returns удалось ли; false — вызывающий откатывается на обычное окно
+ */
+export async function presentFromHere(target?: ScreenInfo): Promise<boolean> {
+  if (target) screens.select(target)
+  const wanted = target ?? screens.target
+  const raw = screens.rawFor(wanted)
+  // Без второго монитора разворачивать некуда: проекция накрыла бы сам пульт
+  if (!wanted || !raw || screens.list.length < 2) return false
+
+  const el = document.documentElement as HTMLElement & {
+    requestFullscreen(options?: unknown): Promise<void>
+  }
+  if (typeof el.requestFullscreen !== 'function') return false
+
+  try {
+    await el.requestFullscreen({ screen: raw })
+  } catch {
+    return false
+  }
+
+  // Пульт в этом окне закончился — гасим линк до того, как поднимется приёмник,
+  // иначе окно начнёт пинговать само себя
+  teardownProjectorLink()
+  mode.becomeDisplay()
+
+  // Спутник — на том мониторе, где остался оператор
+  const here = screens.list.find((s) => s.id !== wanted.id) ?? null
+  const url = new URL(window.location.href)
+  url.hash = ''
+  const consoleWin = window.open(url.toString(), CONSOLE_WINDOW_NAME, displayFeatures(here))
+  if (!consoleWin) {
+    ui.notify('Разрешите всплывающие окна — пульт должен открыться отдельным окном.')
+  }
+  return true
 }
 
 /**
