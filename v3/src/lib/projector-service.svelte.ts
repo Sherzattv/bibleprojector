@@ -42,9 +42,14 @@ export function getProjectorLink(): ProjectorLink {
   if (!link) {
     link = new ProjectorLink(bcChannel())
     link.onReady = () => notifyDisplayReady()
-    // Экран не смог развернуться сам — тихого отказа быть не должно
-    link.onFullscreenFailed = () =>
-      ui.notify('Не удалось развернуть автоматически — кликните по окну проектора.')
+    // Экран не смог развернуться сам — тихого отказа быть не должно.
+    // Причину показываем рядом: без неё непонятно, чинить код или настройки.
+    link.onFullscreenFailed = (reason) =>
+      ui.notify(
+        reason
+          ? `Не удалось развернуть: ${reason}. Кликните по окну проектора.`
+          : 'Не удалось развернуть автоматически — кликните по окну проектора.',
+      )
     link.start()
   }
   return link
@@ -103,28 +108,27 @@ function delegateFullscreen(win: Window): void {
 }
 
 /**
- * Развернуть окно проектора. Делегирование — основной путь; прямой вызов
- * оставлен для браузеров без него, где fullscreen иногда проходит по той же
- * активации, что открыла окно (Fullscreen Companion Window). Если не вышло
- * и там, экран сам доложит о неудаче, и пульт подскажет оператору.
+ * Развернуть окно проектора.
+ *
+ * Прямой вызов `requestFullscreen()` на документе чужого окна здесь не делаем
+ * намеренно. Он всё равно не проходит — активации в том документе нет, — но по
+ * спецификации попытка без активации ещё и вычищает запись делегирования,
+ * то есть способна отобрать право, которое мы только что передали.
+ *
+ * Окно перед этим фокусируем: свёрнутое или спрятанное за пультом окно
+ * браузеры разворачивать отказываются, а фокус заодно поднимает его к оператору.
+ * Монитор при этом не теряется — `placeDisplay` уже поставил окно на нужный
+ * экран, и полноэкранный режим включается именно там.
  */
-async function enterFullscreen(win: Window, target: ScreenInfo | null): Promise<void> {
+function enterFullscreen(win: Window): void {
   if (win.closed) return
   if (fullscreenTarget(win)) return
-  delegateFullscreen(win)
-  const el = win.document?.documentElement as
-    | (HTMLElement & { requestFullscreen(options?: unknown): Promise<void> })
-    | undefined
-  if (typeof el?.requestFullscreen !== 'function') return
-  // Экран мог уже развернуться по делегированию — второй вызов не нужен
-  if (fullscreenTarget(win)) return
-  const raw = screens.rawFor(target)
   try {
-    await el.requestFullscreen(raw ? { screen: raw } : undefined)
+    win.focus()
   } catch {
-    // Дальше слово за экраном: он либо развернулся по делегированию,
-    // либо пришлёт fullscreen-failed, и оператор увидит подсказку
+    // Фокус — вспомогательный шаг: не вышло, пробуем развернуть как есть
   }
+  delegateFullscreen(win)
 }
 
 /**
@@ -176,7 +180,7 @@ export function openDisplayWindow(target?: ScreenInfo): void {
   // Ждать готовности начинаем до первого await: иначе «hello» от быстро
   // загрузившегося экрана уйдёт в пустоту, пока мы ждём разрешение
   onDisplayReady(() => {
-    void placed.then((screen) => (screen ? enterFullscreen(win, screen) : undefined))
+    void placed.then((screen) => (screen ? enterFullscreen(win) : undefined))
   })
 }
 
@@ -190,7 +194,7 @@ export function requestDisplayFullscreen(): void {
     ui.notify('Кликните по окну проектора, чтобы развернуть его.')
     return
   }
-  void enterFullscreen(win, screens.target)
+  enterFullscreen(win)
 }
 
 /** Закрыть окно проектора */

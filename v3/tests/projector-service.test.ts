@@ -36,6 +36,8 @@ class FakeDisplayWindow {
   fullscreens: unknown[] = []
   /** Переданные права развернуться: [сообщение, опции postMessage] */
   grants: Array<[unknown, unknown]> = []
+  /** Сколько раз окно поднимали к оператору перед разворачиванием */
+  focuses = 0
   document = {
     fullscreenElement: null as unknown,
     documentElement: {
@@ -47,6 +49,9 @@ class FakeDisplayWindow {
   }
   postMessage(msg: unknown, options: unknown) {
     this.grants.push([msg, options])
+  }
+  focus() {
+    this.focuses++
   }
   moveTo(x: number, y: number) {
     this.moves.push([x, y])
@@ -277,13 +282,20 @@ describe('openDisplayWindow: полный экран', () => {
 
     openDisplayWindow()
     await flush()
-    expect(display.fullscreens).toEqual([]) // экран ещё не доложил о готовности
+    expect(display.grants).toEqual([]) // экран ещё не доложил о готовности
 
     notifyDisplayReady()
     await flush()
 
-    // ScreenDetailed нужного монитора уезжает в requestFullscreen({ screen })
-    expect(display.fullscreens).toEqual([{ screen: projector }])
+    // Монитор задаёт не requestFullscreen({ screen }), а само положение окна:
+    // оно уже стоит на проекторе, и полный экран включается именно там
+    expect(display.moves).toEqual([[projector.left, projector.top]])
+    expect(display.resizes).toEqual([[projector.width, projector.height]])
+    expect(display.focuses).toBe(1)
+    expect(display.grants).toHaveLength(1)
+    // Прямой вызов на чужом документе не делаем: он не проходит и способен
+    // вычистить только что переданное право
+    expect(display.fullscreens).toEqual([])
   })
 
   it('вместе с разворачиванием экрану передаётся право на fullscreen', async () => {

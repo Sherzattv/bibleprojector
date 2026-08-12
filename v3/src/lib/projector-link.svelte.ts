@@ -19,6 +19,8 @@ interface LinkMsg {
   cmd?: DisplayCommand
   /** Экран сообщает вместе с признаком жизни, развёрнут ли он */
   fullscreen?: boolean
+  /** Почему не вышло развернуть — имя и текст DOMException как есть */
+  reason?: string
 }
 
 /** Сторона контроллера */
@@ -29,7 +31,7 @@ export class ProjectorLink {
   /** Экран поздоровался: окно загрузилось и готово принимать команды */
   onReady: (() => void) | null = null
   /** Экран не смог развернуться даже с переданным правом — тихо промолчать нельзя */
-  onFullscreenFailed: (() => void) | null = null
+  onFullscreenFailed: ((reason?: string) => void) | null = null
 
   private channel: Channel
   private pingIntervalMs: number
@@ -100,7 +102,7 @@ export class ProjectorLink {
       }
       this.onReady?.()
     } else if (msg.type === 'fullscreen-failed') {
-      this.onFullscreenFailed?.()
+      this.onFullscreenFailed?.(msg.reason)
     }
   }
 }
@@ -125,9 +127,13 @@ export class DisplayReceiver {
     channel.post({ type: 'hello', fullscreen: this.fullscreen })
   }
 
-  /** Развернуться не вышло — пусть пульт скажет оператору, а не молчит */
-  reportFullscreenFailed() {
-    this.channel.post({ type: 'fullscreen-failed' })
+  /**
+   * Развернуться не вышло — пусть пульт скажет оператору, а не молчит.
+   * Причину везём как есть: без неё «не сработало» не отличить от
+   * «браузер не даёт», и чинить нечего.
+   */
+  reportFullscreenFailed(reason?: string) {
+    this.channel.post({ type: 'fullscreen-failed', reason })
   }
 
   private onMessage(msg: LinkMsg) {
