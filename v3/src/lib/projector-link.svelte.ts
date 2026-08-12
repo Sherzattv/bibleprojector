@@ -124,7 +124,16 @@ export class DisplayReceiver {
   constructor(channel: Channel) {
     this.channel = channel
     channel.onmessage = (msg) => this.onMessage(msg as LinkMsg)
-    channel.post({ type: 'hello', fullscreen: this.fullscreen })
+    this.hello()
+  }
+
+  /**
+   * Поздороваться: пульт в ответ пришлёт текущее состояние. Кроме старта
+   * нужно и при подключении нового контроллера (Presentation API): его
+   * соединение поднимается позже, и стартовое hello ушло в пустоту.
+   */
+  hello() {
+    this.channel.post({ type: 'hello', fullscreen: this.fullscreen })
   }
 
   /**

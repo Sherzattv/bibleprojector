@@ -3,7 +3,7 @@
   import {
     getProjectorLink,
     openDisplayWindow,
-    presentFromHere,
+    openProjection,
     closeDisplayWindow,
     requestDisplayFullscreen,
     screens,
@@ -57,15 +57,14 @@
   }
 
   /**
-   * Вывести проекцию. Сначала пробуем путь, который браузер не оспаривает:
-   * это окно само разворачивается на проекторе, а пульт открывается рядом.
-   * Не вышло — второго монитора нет, разрешение не дано или браузер не тот —
-   * откатываемся на отдельное окно проектора, как раньше.
+   * Вывести проекцию. Главная кнопка идёт через Presentation API — браузер
+   * сам покажет выбор экрана и откроет проекцию там во весь экран, пульт
+   * останется на месте. Выбор монитора из нашего меню и браузеры без этого
+   * API получают прежний попап (openProjection разбирается сама).
    */
   async function present(screen?: ScreenInfo) {
     menuOpen = false
-    if (await presentFromHere(screen)) return
-    openDisplayWindow(screen)
+    await openProjection(screen)
   }
 </script>
 

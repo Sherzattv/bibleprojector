@@ -2,13 +2,11 @@
 import { mount } from 'svelte'
 import { registerSW } from 'virtual:pwa-register'
 import './app.css'
-import Root from './Root.svelte'
-import { mode } from './lib/mode.svelte'
+import App from './App.svelte'
+import DisplayView from './lib/components/DisplayView.svelte'
 
-// #display — окно проектора: только приём и показ, без данных и пульта.
-// Роль больше не приколочена к загрузке: окно, из которого вывели проекцию,
-// становится экраном на лету (см. lib/mode.svelte.ts)
-const isDisplay = mode.isDisplay
+// #display — окно проектора: только приём и показ, без данных и пульта
+const isDisplay = window.location.hash === '#display'
 
 // Как часто длинноживущая вкладка пульта сама спрашивает про новую версию
 const UPDATE_CHECK_MS = 60 * 60 * 1000
@@ -54,7 +52,7 @@ window.addEventListener('bp3:apply-update', () => {
   updateSW().catch(() => {})
 })
 
-const app = mount(Root, {
+const app = mount(isDisplay ? DisplayView : App, {
   target: document.getElementById('app')!,
 })
 

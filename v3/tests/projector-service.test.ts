@@ -5,7 +5,7 @@ import {
   FULLSCREEN_GRANT,
   notifyDisplayReady,
   openDisplayWindow,
-  presentFromHere,
+  openProjection,
   screens,
 } from '../src/lib/projector-service.svelte'
 import { toScreenInfo, type ScreenDetailedLike } from '../src/lib/screens.svelte'
@@ -339,17 +339,6 @@ describe('openDisplayWindow: полный экран', () => {
     expect(display.fullscreens).toEqual([])
   })
 
-  it('с одним монитором пульт не превращается в экран', async () => {
-    stubWindow({
-      opened: new FakeDisplayWindow(),
-      getScreenDetails: async () => ({ screens: [internal], currentScreen: internal }),
-    })
-    await screens.refresh({ prompt: true })
-
-    // Иначе проекция накрыла бы сам пульт, и оператор остался бы без управления
-    expect(await presentFromHere()).toBe(false)
-  })
-
   it('уже развёрнутое окно не двигают и не разворачивают повторно', async () => {
     const display = new FakeDisplayWindow()
     display.document.fullscreenElement = {}
@@ -386,5 +375,40 @@ describe('closeDisplayWindow', () => {
   it('без открытого окна не бросает', () => {
     stubWindow({ opened: null })
     expect(() => closeDisplayWindow()).not.toThrow()
+  })
+})
+
+describe('openProjection: когда Presentation API не в игре', () => {
+  it('браузер без Presentation API получает прежний попап', async () => {
+    stubWindow({ opened: new FakeDisplayWindow() })
+
+    await openProjection()
+
+    expect(calls).toEqual(['open'])
+  })
+
+  it('явно выбранный монитор минует диалог браузера — попап сразу на нём', async () => {
+    stubWindow({
+      opened: new FakeDisplayWindow(),
+      getScreenDetails: () => new Promise(() => {}),
+    })
+
+    await openProjection(toScreenInfo(projector, false))
+
+    expect(openArgs[0][2]).toBe('popup,left=1440,top=-120,width=1920,height=1080')
+  })
+
+  it('офлайн — сразу попап: приёмнику неоткуда загрузить страницу', async () => {
+    stubWindow({ opened: new FakeDisplayWindow() })
+    // Presentation API есть, но сети нет — у приёмника отдельный профиль без SW
+    ;(window as unknown as Record<string, unknown>).PresentationRequest = class {}
+    vi.stubGlobal('navigator', {
+      permissions: { query: async () => ({ state: 'granted' }) },
+      onLine: false,
+    })
+
+    await openProjection()
+
+    expect(calls).toEqual(['open'])
   })
 })

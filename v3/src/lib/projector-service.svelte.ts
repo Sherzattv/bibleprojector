@@ -4,7 +4,11 @@
  * (Window Management API) и управление им — fullscreen и закрытие.
  */
 import { ProjectorLink, type Channel } from './projector-link.svelte'
-import { mode } from './mode.svelte'
+import {
+  presentationSupported,
+  startPresentation,
+  type PresentationConnectionLike,
+} from './presentation'
 import { ScreensStore, matchScreen, type ScreenInfo } from './screens.svelte'
 import { ui } from './ui.svelte'
 
@@ -26,37 +30,45 @@ const READY_TIMEOUT_MS = 4000
 
 export const screens = new ScreensStore()
 
-export function bcChannel(name: string = PROJECTION_CHANNEL): Channel & { close(): void } {
+export function bcChannel(name: string = PROJECTION_CHANNEL): Channel {
   const bc = new BroadcastChannel(name)
-  const channel: Channel & { close(): void } = {
+  const channel: Channel = {
     post: (msg) => bc.postMessage(msg),
     onmessage: null,
-    close: () => bc.close(),
   }
   bc.onmessage = (e) => channel.onmessage?.(e.data)
   return channel
 }
 
 let link: ProjectorLink | null = null
-let linkChannel: (Channel & { close(): void }) | null = null
+/** Канал линка — чтобы подключать транспорты, появившиеся позже */
+let activeChannel: Channel | null = null
+/** Живое соединение Presentation API, если экран вывел сам браузер */
+let presentationConn: PresentationConnectionLike | null = null
 let displayWindow: Window | null = null
-
-/**
- * Пульт закончился: это окно само становится экраном. Линк надо погасить,
- * иначе он продолжит слать ping, получит pong от собственного приёмника в
- * этом же окне и решит, что подключён сам к себе.
- */
-export function teardownProjectorLink(): void {
-  link?.stop()
-  link = null
-  linkChannel?.close()
-  linkChannel = null
-}
 
 export function getProjectorLink(): ProjectorLink {
   if (!link) {
-    linkChannel = bcChannel()
-    link = new ProjectorLink(linkChannel)
+    const bc = bcChannel()
+    // Пульт говорит сразу во все транспорты: BroadcastChannel добивает до
+    // попапа, PresentationConnection — до экрана, который вывел браузер
+    // (тот живёт в изолированном профиле, и BroadcastChannel туда не доходит)
+    const channel: Channel = {
+      post: (msg) => {
+        bc.post(msg)
+        if (presentationConn?.state === 'connected') {
+          try {
+            presentationConn.send(JSON.stringify(msg))
+          } catch {
+            // Соединение закрывается — heartbeat заметит сам
+          }
+        }
+      },
+      onmessage: null,
+    }
+    bc.onmessage = (msg) => channel.onmessage?.(msg)
+    activeChannel = channel
+    link = new ProjectorLink(channel)
     link.onReady = () => notifyDisplayReady()
     // Экран не смог развернуться сам — тихого отказа быть не должно.
     // Причину показываем рядом: без неё непонятно, чинить код или настройки.
@@ -169,59 +181,54 @@ async function placeDisplay(win: Window, wanted: ScreenInfo | null): Promise<Scr
   return target
 }
 
-/** Окно-спутник с пультом: повторное открытие попадает в него же */
-const CONSOLE_WINDOW_NAME = 'bp3-console'
-
 /**
- * Вывести проекцию так, как это делают браузеры без сопротивления.
+ * Вывести проекцию.
  *
- * Ключ в том, ЧЬЁ окно разворачивается. Развернуть чужое окно снаружи браузер
- * не даёт: жеста в том документе нет. А развернуть окно, в котором оператор
- * только что кликнул, — можно всегда, и `{ screen }` при этом уводит его на
- * нужный монитор. Поэтому экраном становится текущее окно, а пульт переезжает
- * в новое, на монитор оператора.
+ * Основной путь — Presentation API: тот самый механизм, которым браузер сам
+ * выводит страницу на выбранный экран. Chrome показывает свой диалог выбора
+ * монитора и открывает приёмник там сразу во весь экран; пульт остаётся на
+ * месте. Так это работает у AirVerse и «Лидера поклонения».
  *
- * Оба действия укладываются в один клик: успешный fullscreen на одном экране
- * разрешает открыть окно-спутник на другом (Fullscreen Companion Window,
- * Chrome 104+). Порядок обязателен — сначала полный экран, потом window.open.
- *
- * Список экранов берём заранее подготовленным: `getScreenDetails()` на первом
- * вызове ждёт ответа оператора на запрос разрешения, а это съедает активацию.
- *
- * @returns удалось ли; false — вызывающий откатывается на обычное окно
+ * Попап — фолбэк: явный выбор монитора из нашего меню, браузер без
+ * Presentation API или офлайн — приёмник живёт в отдельном профиле браузера
+ * без нашего Service Worker, и без сети ему неоткуда загрузить страницу.
  */
-export async function presentFromHere(target?: ScreenInfo): Promise<boolean> {
-  if (target) screens.select(target)
-  const wanted = target ?? screens.target
-  const raw = screens.rawFor(wanted)
-  // Без второго монитора разворачивать некуда: проекция накрыла бы сам пульт
-  if (!wanted || !raw || screens.list.length < 2) return false
-
-  const el = document.documentElement as HTMLElement & {
-    requestFullscreen(options?: unknown): Promise<void>
-  }
-  if (typeof el.requestFullscreen !== 'function') return false
-
-  try {
-    await el.requestFullscreen({ screen: raw })
-  } catch {
-    return false
+export async function openProjection(target?: ScreenInfo): Promise<void> {
+  if (target || !presentationSupported() || navigator.onLine === false) {
+    openDisplayWindow(target)
+    return
   }
 
-  // Пульт в этом окне закончился — гасим линк до того, как поднимется приёмник,
-  // иначе окно начнёт пинговать само себя
-  teardownProjectorLink()
-  mode.becomeDisplay()
-
-  // Спутник — на том мониторе, где остался оператор
-  const here = screens.list.find((s) => s.id !== wanted.id) ?? null
   const url = new URL(window.location.href)
-  url.hash = ''
-  const consoleWin = window.open(url.toString(), CONSOLE_WINDOW_NAME, displayFeatures(here))
-  if (!consoleWin) {
-    ui.notify('Разрешите всплывающие окна — пульт должен открыться отдельным окном.')
+  url.hash = '#display'
+  try {
+    adoptConnection(await startPresentation(url.toString()))
+  } catch (e) {
+    // Диалог закрыл сам оператор — не навязываем попап поверх его отказа
+    if (e instanceof DOMException && e.name === 'NotAllowedError') return
+    openDisplayWindow(target)
   }
-  return true
+}
+
+/** Подключить соединение Presentation API к линку пульта */
+function adoptConnection(conn: PresentationConnectionLike): void {
+  getProjectorLink() // канал должен существовать до первых сообщений экрана
+  presentationConn = conn
+  conn.onmessage = (e) => {
+    if (typeof e.data !== 'string') return
+    try {
+      activeChannel?.onmessage?.(JSON.parse(e.data))
+    } catch {
+      // Битое сообщение протокол не роняет
+    }
+  }
+  const drop = () => {
+    if (presentationConn !== conn) return
+    presentationConn = null
+    link?.markDisconnected()
+  }
+  conn.onclose = drop
+  conn.onterminate = drop
 }
 
 /**
@@ -270,6 +277,17 @@ export function requestDisplayFullscreen(): void {
 
 /** Закрыть окно проектора */
 export function closeDisplayWindow(): void {
+  // Экран, который вывел браузер, закрывается через terminate — window.close
+  // в изолированном приёмнике не работает
+  const conn = presentationConn
+  presentationConn = null
+  if (conn) {
+    try {
+      conn.terminate()
+    } catch {
+      // Уже закрыто — и хорошо
+    }
+  }
   const win = displayWindow
   displayWindow = null
   if (win && !win.closed) win.close()
