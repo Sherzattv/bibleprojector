@@ -1,6 +1,6 @@
 <script lang="ts">
   import { DisplayReceiver } from '../projector-link.svelte'
-  import { bcChannel } from '../projector-service.svelte'
+  import { bcChannel, FULLSCREEN_GRANT } from '../projector-service.svelte'
   import { autofitScale } from '../autofit'
   import type { ProjectionContent, ProjectionSettings } from '../projection'
 
@@ -39,8 +39,23 @@
     void document.documentElement.requestFullscreen().catch(() => {})
   }
 
-  // Пульт мог не успеть развернуть окно сам (истекла активация клика) —
-  // тогда он просит об этом экран, и здесь тоже есть шанс, что сработает
+  // Пульт передал право развернуться вместе с сообщением (capability delegation).
+  // Активацию нужно потратить не отходя от обработчика — любой await до вызова
+  // её теряет, поэтому requestFullscreen идёт здесь же, синхронно.
+  $effect(() => {
+    const onGrant = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin || e.data !== FULLSCREEN_GRANT) return
+      if (document.fullscreenElement) return
+      document.documentElement.requestFullscreen().catch(() => {
+        receiver.reportFullscreenFailed()
+      })
+    }
+    window.addEventListener('message', onGrant)
+    return () => window.removeEventListener('message', onGrant)
+  })
+
+  // Запасной путь для браузеров без делегирования: пульт просит по каналу,
+  // права оно не переносит — сработает лишь там, где жеста не требуют
   receiver.onCommand = (cmd) => {
     if (cmd === 'close') window.close()
     else if (cmd === 'fullscreen' && !document.fullscreenElement) enterFullscreen()

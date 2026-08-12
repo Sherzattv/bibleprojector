@@ -12,6 +12,14 @@ export const PROJECTION_CHANNEL = 'bp3-projection'
 /** Именованное окно: повторный window.open попадает в него же, а не в новое */
 const WINDOW_NAME = 'bp3-display'
 
+/** Токен делегирования: экран разворачивается только по нашему сообщению */
+export const FULLSCREEN_GRANT = 'bp3:fullscreen-grant'
+
+/** `delegate` ещё не описан в lib.dom — объявляем сами */
+interface DelegatingPostMessageOptions extends WindowPostMessageOptions {
+  delegate?: string
+}
+
 /** Сколько ждём «hello» от экрана, прежде чем разворачивать вслепую */
 const READY_TIMEOUT_MS = 4000
 
@@ -34,6 +42,9 @@ export function getProjectorLink(): ProjectorLink {
   if (!link) {
     link = new ProjectorLink(bcChannel())
     link.onReady = () => notifyDisplayReady()
+    // Экран не смог развернуться сам — тихого отказа быть не должно
+    link.onFullscreenFailed = () =>
+      ui.notify('Не удалось развернуть автоматически — кликните по окну проектора.')
     link.start()
   }
   return link
@@ -72,26 +83,47 @@ function fullscreenTarget(win: Window): Element | null {
 }
 
 /**
- * Развернуть окно проектора. Вызов идёт из пульта на элемент чужого документа —
- * так Chrome разрешает fullscreen по той же активации, что открыла окно
- * (Fullscreen Companion Window). Если активация уже истекла, просим экран
- * развернуться самому; не выйдет — он покажет подсказку оператору.
+ * Передать окну проектора право развернуться (Fullscreen Capability Delegation,
+ * Chrome 104+). `requestFullscreen()` требует свежего жеста в том самом
+ * документе, который разворачивается, а клик оператора живёт в пульте — поэтому
+ * и прямой вызов на чужом документе, и просьба по BroadcastChannel одинаково
+ * получают отказ. `postMessage` с `delegate` переносит активацию туда, где она
+ * нужна: экран вызывает fullscreen уже своей властью.
+ */
+function delegateFullscreen(win: Window): void {
+  const options: DelegatingPostMessageOptions = {
+    targetOrigin: window.location.origin,
+    delegate: 'fullscreen',
+  }
+  try {
+    win.postMessage(FULLSCREEN_GRANT, options)
+  } catch {
+    // Отказ в делегировании не должен рушить клик: ниже остаётся прямой вызов
+  }
+}
+
+/**
+ * Развернуть окно проектора. Делегирование — основной путь; прямой вызов
+ * оставлен для браузеров без него, где fullscreen иногда проходит по той же
+ * активации, что открыла окно (Fullscreen Companion Window). Если не вышло
+ * и там, экран сам доложит о неудаче, и пульт подскажет оператору.
  */
 async function enterFullscreen(win: Window, target: ScreenInfo | null): Promise<void> {
   if (win.closed) return
   if (fullscreenTarget(win)) return
+  delegateFullscreen(win)
   const el = win.document?.documentElement as
     | (HTMLElement & { requestFullscreen(options?: unknown): Promise<void> })
     | undefined
-  if (typeof el?.requestFullscreen !== 'function') {
-    link?.command('fullscreen')
-    return
-  }
+  if (typeof el?.requestFullscreen !== 'function') return
+  // Экран мог уже развернуться по делегированию — второй вызов не нужен
+  if (fullscreenTarget(win)) return
   const raw = screens.rawFor(target)
   try {
     await el.requestFullscreen(raw ? { screen: raw } : undefined)
   } catch {
-    link?.command('fullscreen')
+    // Дальше слово за экраном: он либо развернулся по делегированию,
+    // либо пришлёт fullscreen-failed, и оператор увидит подсказку
   }
 }
 
@@ -152,8 +184,10 @@ export function openDisplayWindow(target?: ScreenInfo): void {
 export function requestDisplayFullscreen(): void {
   const win = displayWindow
   if (!win || win.closed) {
-    // Пульт перезагружали — ссылки на окно нет, просим экран развернуться самому
+    // Пульт перезагружали — ссылки на окно нет, а значит и делегировать некуда:
+    // остаётся попросить экран развернуться самому и подсказать оператору
     link?.command('fullscreen')
+    ui.notify('Кликните по окну проектора, чтобы развернуть его.')
     return
   }
   void enterFullscreen(win, screens.target)
@@ -166,4 +200,7 @@ export function closeDisplayWindow(): void {
   if (win && !win.closed) win.close()
   // И на случай, если ссылка устарела (пульт перезагружали): экран закроется сам
   link?.command('close')
+  // Окна уже нет — гасим признак сразу, не дожидаясь таймаута heartbeat,
+  // иначе кнопки управления ещё несколько секунд висят вхолостую
+  link?.markDisconnected()
 }
