@@ -7,6 +7,7 @@
     Settings2,
     PanelRight,
     RotateCw,
+    ArrowDownToLine,
     Library as LibraryIcon,
   } from '@lucide/svelte'
   import Omnibox from './lib/components/Omnibox.svelte'
@@ -36,6 +37,7 @@
   let mobilePanel = $state<'setlist' | 'library' | null>(null)
   let compactLayout = $state(false)
   let retrying = $state(false)
+  let updateReady = $state(false)
   let workspace = $state<HTMLDivElement>()
 
   /** Ширина свёрнутого плана — колонка иконок */
@@ -53,6 +55,16 @@
   $effect(() => {
     const id = setInterval(tick, 15000)
     return () => clearInterval(id)
+  })
+
+  // Новый SW скачался и ждёт в waiting: применится сам, когда закроют все окна
+  // приложения (skipWaiting: false в vite.config.ts). Метка ничего не запускает —
+  // она объясняет оператору, что версия уже здесь и что закрыть надо в том числе
+  // окно проектора: пока оно живо, оно тоже клиент старого SW.
+  $effect(() => {
+    const onUpdateReady = () => (updateReady = true)
+    window.addEventListener('bp3:update-ready', onUpdateReady)
+    return () => window.removeEventListener('bp3:update-ready', onUpdateReady)
   })
 
   // Ширины запомнились на внешнем мониторе, а пульт открыли на ноутбуке —
@@ -202,6 +214,18 @@
     <Omnibox bind:this={omnibox} />
 
     <div class="app-actions ml-auto flex shrink-0 items-center gap-2.5">
+      {#if updateReady}
+        <span
+          class="app-update flex shrink-0 items-center gap-1.5 text-sm text-faint"
+          role="status"
+          aria-live="polite"
+          title="Новая версия загружена. Установится, когда все окна приложения будут закрыты — включая окно проектора."
+        >
+          <ArrowDownToLine size={12} />
+          <span>Новая версия</span>
+        </span>
+      {/if}
+
       <ProjectorControls />
 
       <div class="relative">
