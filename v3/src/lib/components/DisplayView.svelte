@@ -46,8 +46,10 @@
     const onGrant = (e: MessageEvent) => {
       if (e.origin !== window.location.origin || e.data !== FULLSCREEN_GRANT) return
       if (document.fullscreenElement) return
-      document.documentElement.requestFullscreen().catch(() => {
-        receiver.reportFullscreenFailed()
+      document.documentElement.requestFullscreen().catch((err: unknown) => {
+        const reason =
+          err instanceof Error ? `${err.name}: ${err.message}` : String(err ?? 'unknown')
+        receiver.reportFullscreenFailed(reason)
       })
     }
     window.addEventListener('message', onGrant)
