@@ -1,16 +1,29 @@
 <script lang="ts">
   import { DisplayReceiver } from '../projector-link.svelte'
   import { bcChannel, FULLSCREEN_GRANT } from '../projector-service.svelte'
+  import { presentationReceiverChannel } from '../presentation'
   import { autofitScale } from '../autofit'
   import type { ProjectionContent, ProjectionSettings } from '../projection'
 
-  const receiver = new DisplayReceiver(bcChannel())
+  // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
+  // профиле: BroadcastChannel туда не добивает, сообщения ходят через
+  // PresentationConnection. Обычный попап работает по-старому.
+  const presentation = presentationReceiverChannel()
+  const receiver = new DisplayReceiver(presentation ?? bcChannel())
+  const isPresentation = presentation !== null
+  if (presentation) {
+    // Такой экран уже занимает весь монитор — докладываем это пульту
+    receiver.fullscreen = true
+    // Контроллер подключается позже старта: стартовое hello ушло в пустоту,
+    // здороваемся с каждым новым соединением заново
+    presentation.onOpen = () => receiver.hello()
+  }
   const content = $derived(receiver.content as ProjectionContent)
   const settings = $derived(
     (receiver.settings as ProjectionSettings | null) ?? { fontScale: 1, showReference: true },
   )
 
-  let fullscreen = $state(false)
+  let fullscreen = $state(isPresentation)
 
   // Экран проектора не должен засыпать во время служения
   $effect(() => {
@@ -24,10 +37,11 @@
     }
   })
 
-  // Пульт показывает состояние окна честно: признак едет вместе с pong
+  // Пульт показывает состояние окна честно: признак едет вместе с pong.
+  // Экран от Presentation API развёрнут всегда — fullscreenchange там не бывает
   $effect(() => {
     const sync = () => {
-      fullscreen = Boolean(document.fullscreenElement)
+      fullscreen = isPresentation || Boolean(document.fullscreenElement)
       receiver.fullscreen = fullscreen
     }
     sync()
