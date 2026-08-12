@@ -1,14 +1,47 @@
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string
+}
+
+/**
+ * Отпечаток сборки в шапке пульта: по нему видно, та ли версия открыта.
+ * Своего кода версии у оболочки нет — берём коммит.
+ *
+ * Cloudflare Workers Builds кладёт sha в WORKERS_CI_COMMIT_SHA, GitHub
+ * Actions — в GITHUB_SHA; локально спрашиваем git. Времени сборки здесь
+ * намеренно нет: без него один и тот же коммит даёт побайтово одинаковый
+ * бандл, и прод можно сверить с локальной сборкой простым cmp.
+ */
+function buildCommit(): string {
+  const fromCI = process.env.WORKERS_CI_COMMIT_SHA ?? process.env.GITHUB_SHA
+  if (fromCI) return fromCI.slice(0, 7)
+  try {
+    return execFileSync('git', ['rev-parse', '--short=7', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    // Сборка из архива без .git — не повод падать
+    return 'dev'
+  }
+}
+
 // Два режима сборки:
 //  - обычный (прод): чанки + Service Worker (precache оболочки; данные
 //    кэширует data-cache поверх Cache Storage) → полноценный офлайн
 //  - demo: один самодостаточный html-файл для шаринга (без SW)
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_COMMIT__: JSON.stringify(buildCommit()),
+  },
   plugins: [
     svelte(),
     tailwindcss(),

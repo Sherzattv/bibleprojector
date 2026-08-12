@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import {
     MonitorPlay,
     Clock4,
     LoaderCircle,
     Settings2,
-    PanelLeft,
+    PanelRight,
     RotateCw,
     ArrowDownToLine,
     Library as LibraryIcon,
@@ -16,6 +17,9 @@
   import Dock from './lib/components/Dock.svelte'
   import Library from './lib/components/Library.svelte'
   import ProjectorControls from './lib/components/ProjectorControls.svelte'
+  import PanelResizer from './lib/components/PanelResizer.svelte'
+  import { layout } from './lib/layout.svelte'
+  import { fitPanels } from './lib/panel-size'
   import { show } from './lib/show.svelte'
   import { data } from './lib/db.svelte'
   import { setlist } from './lib/setlist.svelte'
@@ -29,12 +33,17 @@
 
   let omnibox = $state<Omnibox>()
   let clock = $state('')
-  let setlistOpen = $state(true)
   let settingsOpen = $state(false)
   let mobilePanel = $state<'setlist' | 'library' | null>(null)
   let compactLayout = $state(false)
   let retrying = $state(false)
   let updateReady = $state(false)
+  let workspace = $state<HTMLDivElement>()
+
+  /** Ширина свёрнутого плана — колонка иконок */
+  const SETLIST_RAIL = 44
+
+  const setlistColumn = $derived(layout.setlistOpen ? layout.setlistWidth : SETLIST_RAIL)
 
   const projector = getProjectorLink()
 
@@ -56,6 +65,36 @@
     const onUpdateReady = () => (updateReady = true)
     window.addEventListener('bp3:update-ready', onUpdateReady)
     return () => window.removeEventListener('bp3:update-ready', onUpdateReady)
+  })
+
+  // Ширины запомнились на внешнем мониторе, а пульт открыли на ноутбуке —
+  // и панели съели центр. Подрезаем сохранённое по реальной ширине окна:
+  // при старте и при каждом изменении размера. untrack — чтобы правка ширины
+  // не перезапускала сам эффект.
+  $effect(() => {
+    const el = workspace
+    if (!el || compactLayout) return
+    const fit = () => {
+      const total = el.getBoundingClientRect().width
+      if (!total) return
+      untrack(() => {
+        if (layout.setlistOpen) {
+          const [lib, plan] = fitPanels([layout.libraryWidth, layout.setlistWidth], {
+            total,
+            reserved: 0,
+          })
+          if (lib !== layout.libraryWidth) layout.setWidth('library', lib)
+          if (plan !== layout.setlistWidth) layout.setWidth('setlist', plan)
+          return
+        }
+        // План свёрнут — ужимать нужно только библиотеку
+        const [lib] = fitPanels([layout.libraryWidth], { total, reserved: SETLIST_RAIL })
+        if (lib !== layout.libraryWidth) layout.setWidth('library', lib)
+      })
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
   })
 
   $effect(() => {
@@ -141,7 +180,7 @@
     if (compactLayout) {
       mobilePanel = mobilePanel === 'setlist' ? null : 'setlist'
     } else {
-      setlistOpen = !setlistOpen
+      layout.toggleSetlist()
     }
   }
 </script>
@@ -153,14 +192,23 @@
   <header class="app-header z-30 flex h-12 items-center gap-3 border-b border-stroke bg-panel px-3">
     <button
       class="mobile-panel-toggle grid size-7 shrink-0 place-items-center rounded border border-stroke-2 text-muted"
-      onclick={() => (mobilePanel = mobilePanel === 'setlist' ? null : 'setlist')}
-      aria-label={mobilePanel === 'setlist' ? 'Закрыть порядок служения' : 'Открыть порядок служения'}
-      aria-expanded={mobilePanel === 'setlist'}
-    ><PanelLeft size={14} /></button>
+      onclick={() => (mobilePanel = mobilePanel === 'library' ? null : 'library')}
+      aria-label={mobilePanel === 'library' ? 'Закрыть библиотеку' : 'Открыть библиотеку'}
+      aria-expanded={mobilePanel === 'library'}
+    ><LibraryIcon size={14} /></button>
 
     <div class="app-brand flex shrink-0 items-center gap-2 text-base font-semibold">
       <MonitorPlay size={16} class="text-accent" />
       <span>Bible Projector</span>
+      <!-- Версия на виду: новый Service Worker ждёт закрытия всех окон, и без
+           этой строки «у меня старая оболочка» не отличить от «не задеплоили».
+           В интерфейсе — понятный номер, коммит сборки прячем в подсказку -->
+      <span
+        class="app-version text-2xs font-normal text-faint tabular-nums"
+        title="Версия {__APP_VERSION__} · сборка {__BUILD_COMMIT__}"
+      >
+        v{__APP_VERSION__}
+      </span>
     </div>
 
     <Omnibox bind:this={omnibox} />
@@ -233,10 +281,10 @@
 
     <button
       class="mobile-panel-toggle grid size-7 shrink-0 place-items-center rounded border border-stroke-2 text-muted"
-      onclick={() => (mobilePanel = mobilePanel === 'library' ? null : 'library')}
-      aria-label={mobilePanel === 'library' ? 'Закрыть библиотеку' : 'Открыть библиотеку'}
-      aria-expanded={mobilePanel === 'library'}
-    ><LibraryIcon size={14} /></button>
+      onclick={() => (mobilePanel = mobilePanel === 'setlist' ? null : 'setlist')}
+      aria-label={mobilePanel === 'setlist' ? 'Закрыть порядок служения' : 'Открыть порядок служения'}
+      aria-expanded={mobilePanel === 'setlist'}
+    ><PanelRight size={14} /></button>
   </header>
 
   {#if data.status === 'loading'}
@@ -269,10 +317,13 @@
       </div>
     </div>
   {:else}
-    <!-- Три зоны -->
+    <!-- Три зоны: библиотека — источник, центр — эфир, план — справа.
+         Порядок «источник → сборка → вывод» читается слева направо, а
+         разделители между колонками тянутся мышью. -->
     <div
+      bind:this={workspace}
       class="workspace-main grid min-h-0"
-      style="--setlist-column: {setlistOpen ? '264px' : '44px'}"
+      style="--library-column: {layout.libraryWidth}px; --setlist-column: {setlistColumn}px"
     >
       <button
         class="workspace-scrim"
@@ -281,9 +332,17 @@
         aria-label="Закрыть боковую панель"
       ></button>
 
-      <div class="workspace-setlist" class:is-mobile-open={mobilePanel === 'setlist'}>
-        <Setlist open={compactLayout || setlistOpen} onToggle={toggleSetlist} />
+      <div class="workspace-library" class:is-mobile-open={mobilePanel === 'library'}>
+        <Library />
       </div>
+
+      <PanelResizer
+        panel="library"
+        edge="left"
+        label="Ширина библиотеки"
+        {workspace}
+        taken={setlistColumn}
+      />
 
       <!-- Центр -->
       <section class="workspace-stage flex min-h-0 min-w-0 flex-col bg-bg">
@@ -308,8 +367,19 @@
         <Dock />
       </section>
 
-      <div class="workspace-library" class:is-mobile-open={mobilePanel === 'library'}>
-        <Library />
+      <!-- Свёрнутый план тянуть не за что -->
+      {#if layout.setlistOpen}
+        <PanelResizer
+          panel="setlist"
+          edge="right"
+          label="Ширина порядка служения"
+          {workspace}
+          taken={layout.libraryWidth}
+        />
+      {/if}
+
+      <div class="workspace-setlist" class:is-mobile-open={mobilePanel === 'setlist'}>
+        <Setlist open={compactLayout || layout.setlistOpen} onToggle={toggleSetlist} />
       </div>
     </div>
   {/if}
