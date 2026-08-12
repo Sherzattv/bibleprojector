@@ -5,6 +5,7 @@ import {
   FULLSCREEN_GRANT,
   notifyDisplayReady,
   openDisplayWindow,
+  presentFromHere,
   screens,
 } from '../src/lib/projector-service.svelte'
 import { toScreenInfo, type ScreenDetailedLike } from '../src/lib/screens.svelte'
@@ -336,6 +337,17 @@ describe('openDisplayWindow: полный экран', () => {
     await flush()
 
     expect(display.fullscreens).toEqual([])
+  })
+
+  it('с одним монитором пульт не превращается в экран', async () => {
+    stubWindow({
+      opened: new FakeDisplayWindow(),
+      getScreenDetails: async () => ({ screens: [internal], currentScreen: internal }),
+    })
+    await screens.refresh({ prompt: true })
+
+    // Иначе проекция накрыла бы сам пульт, и оператор остался бы без управления
+    expect(await presentFromHere()).toBe(false)
   })
 
   it('уже развёрнутое окно не двигают и не разворачивают повторно', async () => {
