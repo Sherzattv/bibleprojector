@@ -4,6 +4,7 @@
   import { projSettings } from '../proj-settings.svelte'
   import { autofitScale } from '../autofit'
   import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
+  import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -20,6 +21,10 @@
     blackout
       ? 'background: #000'
       : `background: ${backgroundPreviewCss(bg)}`,
+  )
+  // Подсветка строки видна и в карточке эфира — оператор знает, где зал
+  const line = $derived(
+    isLive && projSettings.lineHighlight && show.kind === 'song' ? show.liveLine : undefined,
   )
   const dim = $derived(!blackout && isAnimated(bg) ? bg.dim : 0)
 
@@ -101,11 +106,18 @@
     {:else if !blackout && slide}
       <div class="relative max-w-[94%]">
         <div
-          class="font-serif leading-[1.55] text-balance text-white"
-          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale * autofitScale(slide.text)})"
+          class="leading-[1.55] text-balance text-white {projSettings.fontFamily === 'sans'
+            ? 'font-sans font-medium'
+            : 'font-serif'}"
+          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale *
+            FONT_SIZE_FACTOR[projSettings.fontFamily] *
+            autofitScale(slide.text)})"
         >
-          {#each slide.text.split('\n') as line, i (i)}
-            {line}<br />
+          {#each lineStates(slide.text, line) as l, i (i)}
+            <span
+              class="block transition-opacity duration-500"
+              style={l.state ? `opacity: ${LINE_OPACITY[l.state]}` : ''}>{l.text || '\u00a0'}</span
+            >
           {/each}
         </div>
         {#if projSettings.showReference}

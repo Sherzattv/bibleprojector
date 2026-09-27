@@ -114,10 +114,36 @@ describe('ProjSettingsStore', () => {
     expect(migrated.textShadow).toBe(true)
   })
 
+  it('setText меняет шрифт, переход и подсветку, мусор клампится, всё сохраняется', () => {
+    settings.setText({
+      fontFamily: 'sans',
+      transition: 'blur',
+      transitionMs: 5000,
+      lineHighlight: true,
+    })
+    expect(settings.transitionMs).toBe(1600)
+    const restored = new ProjSettingsStore(store)
+    expect(restored).toMatchObject({
+      fontFamily: 'sans',
+      transition: 'blur',
+      transitionMs: 1600,
+      lineHighlight: true,
+    })
+  })
+
   it('snapshot — всё, что едет на экран, и это копия, а не живое состояние', () => {
     const snap = settings.snapshot()
     expect(Object.keys(snap).sort()).toEqual(
-      ['background', 'fontScale', 'showReference', 'textShadow'].sort(),
+      [
+        'background',
+        'fontFamily',
+        'fontScale',
+        'lineHighlight',
+        'showReference',
+        'textShadow',
+        'transition',
+        'transitionMs',
+      ].sort(),
     )
     snap.background.dim = 0.7
     expect(settings.background.dim).not.toBe(0.7)

@@ -6,7 +6,9 @@ import { createBrowserStore, createMemoryStore, type TextStore } from './storage
 import {
   DEFAULT_PROJECTION_SETTINGS,
   normalizeProjectionSettings,
+  type FontFamily,
   type ProjectionSettings,
+  type TransitionKind,
 } from './projection'
 import { findPreset } from './backgrounds/catalog'
 import { normalizeBackground, type BackgroundSettings } from './backgrounds/settings'
@@ -18,6 +20,10 @@ export class ProjSettingsStore {
   fontScale = $state(DEFAULTS.fontScale)
   showReference = $state(DEFAULTS.showReference)
   textShadow = $state(DEFAULTS.textShadow)
+  fontFamily = $state<FontFamily>(DEFAULTS.fontFamily)
+  transition = $state<TransitionKind>(DEFAULTS.transition)
+  transitionMs = $state(DEFAULTS.transitionMs)
+  lineHighlight = $state(DEFAULTS.lineHighlight)
   background = $state<BackgroundSettings>({ ...DEFAULTS.background })
 
   private store: TextStore
@@ -39,6 +45,10 @@ export class ProjSettingsStore {
     this.fontScale = s.fontScale
     this.showReference = s.showReference
     this.textShadow = s.textShadow
+    this.fontFamily = s.fontFamily
+    this.transition = s.transition
+    this.transitionMs = s.transitionMs
+    this.lineHighlight = s.lineHighlight
     this.background = s.background
   }
 
@@ -52,6 +62,10 @@ export class ProjSettingsStore {
       fontScale: this.fontScale,
       showReference: this.showReference,
       textShadow: this.textShadow,
+      fontFamily: this.fontFamily,
+      transition: this.transition,
+      transitionMs: this.transitionMs,
+      lineHighlight: this.lineHighlight,
       background: { ...this.background },
     }
   }
@@ -68,6 +82,21 @@ export class ProjSettingsStore {
 
   setTextShadow(v: boolean) {
     this.textShadow = v
+    this.persist()
+  }
+
+  /** Шрифт, переход и подсветка строки — через ту же нормализацию, что и хранилище */
+  setText(patch: {
+    fontFamily?: FontFamily
+    transition?: TransitionKind
+    transitionMs?: number
+    lineHighlight?: boolean
+  }) {
+    const s = normalizeProjectionSettings({ ...this.snapshot(), ...patch })
+    this.fontFamily = s.fontFamily
+    this.transition = s.transition
+    this.transitionMs = s.transitionMs
+    this.lineHighlight = s.lineHighlight
     this.persist()
   }
 

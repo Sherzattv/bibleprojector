@@ -4,6 +4,7 @@ import { history } from '../src/lib/history.svelte'
 import { show } from '../src/lib/show.svelte'
 import { data } from '../src/lib/db.svelte'
 import { ui } from '../src/lib/ui.svelte'
+import { projSettings } from '../src/lib/proj-settings.svelte'
 import { rstDb, nrtDb, rstShiftDb, nrtShiftDb, songs } from './fixtures'
 
 beforeEach(() => {
@@ -20,6 +21,7 @@ beforeEach(() => {
   show.verseCtx = null
   ui.clearNotice()
   history.clear()
+  projSettings.reset()
 })
 
 describe('commands.openSong', () => {
@@ -185,5 +187,73 @@ describe('интеграция commands.go × history', () => {
     expect(history.items).toHaveLength(1)
     // дедуп по title+reference возможен только если reference не содержит секцию
     expect(history.items[0].reference).toBe('Благодать · № 310')
+  })
+})
+
+describe('commands.go × подсветка строки в песне', () => {
+  function songShow() {
+    show.kind = 'song'
+    show.slides = [
+      { label: 'Куплет', text: 'Раз\nДва\n\nТри', reference: 'Песня · Куплет' },
+      { label: 'Припев', text: 'Четыре', reference: 'Песня · Припев' },
+    ]
+    show.previewIdx = 0
+    show.liveIdx = -1
+  }
+
+  it('подсветка выключена — GO листает слайды, как раньше', () => {
+    songShow()
+    commands.go()
+    commands.go()
+    expect(show.liveIdx).toBe(1)
+  })
+
+  it('подсветка включена — GO сначала идёт по непустым строкам, потом к слайду', () => {
+    projSettings.setText({ lineHighlight: true })
+    songShow()
+    commands.go()
+    expect([show.liveIdx, show.liveLine]).toEqual([0, 0])
+    commands.go()
+    expect([show.liveIdx, show.liveLine]).toEqual([0, 1])
+    commands.go() // пустая строка пропускается: «Три» — третья непустая
+    expect([show.liveIdx, show.liveLine]).toEqual([0, 2])
+    commands.go()
+    expect([show.liveIdx, show.liveLine]).toEqual([1, 0])
+  })
+
+  it('шаг по строке не пишет лишнюю запись в историю', () => {
+    projSettings.setText({ lineHighlight: true })
+    commands.openSong(4) // «Строка один / Строка два»
+    commands.go()
+    commands.go()
+    expect(show.liveLine).toBe(1)
+    expect(history.items).toHaveLength(1)
+  })
+
+  it('оператор выбрал в превью другой слайд — GO отправляет его, строки не трогает', () => {
+    projSettings.setText({ lineHighlight: true })
+    songShow()
+    show.slides = [...show.slides, { label: 'Кода', text: 'Пять', reference: 'Песня · Кода' }]
+    commands.go() // куплет в эфире, в превью припев
+    show.setPreview(2) // оператор перескочил на коду
+    commands.go()
+    expect([show.liveIdx, show.liveLine]).toEqual([2, 0])
+  })
+
+  it('в Библии подсветка не действует', () => {
+    projSettings.setText({ lineHighlight: true })
+    commands.openRef('JHN', 3, 1)
+    commands.go()
+    commands.go()
+    expect(show.liveIdx).toBe(1)
+  })
+
+  it('blackout не даёт шагать по строкам вслепую', () => {
+    projSettings.setText({ lineHighlight: true })
+    songShow()
+    commands.go()
+    show.blackout = true
+    commands.go()
+    expect(show.liveIdx).toBe(1)
   })
 })

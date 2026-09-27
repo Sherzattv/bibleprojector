@@ -7,6 +7,7 @@ import { data } from './db.svelte'
 import { show } from './show.svelte'
 import { ui } from './ui.svelte'
 import { history } from './history.svelte'
+import { projSettings } from './proj-settings.svelte'
 
 export const commands = {
   openSong(id: number): boolean {
@@ -33,6 +34,8 @@ export const commands = {
 
   go(): void {
     if (!show.slides.length) return
+    // Подсветка строк в песне: GO сначала идёт по строкам живого слайда
+    if (projSettings.lineHighlight && show.stepLine()) return
     show.go()
     const live = show.liveSlide
     const source = show.source
