@@ -3,6 +3,8 @@ import {
   buildContent,
   normalizeProjectionSettings,
   DEFAULT_PROJECTION_SETTINGS,
+  lineStates,
+  singableLines,
 } from '../src/lib/projection'
 
 const slide = { text: 'Ибо так возлюбил Бог мир', reference: 'От Иоанна 3:16' }
@@ -104,5 +106,88 @@ describe('normalizeProjectionSettings: экран не верит каналу �
   it('валидный фон проходит как есть', () => {
     const background = { ...DEFAULT_PROJECTION_SETTINGS.background, preset: 'snow' }
     expect(normalizeProjectionSettings({ background }).background).toEqual(background)
+  })
+})
+
+describe('normalizeProjectionSettings: шрифт, переход, подсветка', () => {
+  it('дефолты: засечки, плавная смена 400 мс, подсветка выключена', () => {
+    expect(normalizeProjectionSettings({})).toMatchObject({
+      fontFamily: 'serif',
+      transition: 'fade',
+      transitionMs: 400,
+      lineHighlight: false,
+    })
+  })
+
+  it('мусор отбрасывается, длительность клампится', () => {
+    expect(
+      normalizeProjectionSettings({
+        fontFamily: 'comic',
+        transition: 'взрыв',
+        transitionMs: 99999,
+        lineHighlight: 'да',
+      }),
+    ).toMatchObject({
+      fontFamily: 'serif',
+      transition: 'fade',
+      transitionMs: 1600,
+      lineHighlight: false,
+    })
+    expect(normalizeProjectionSettings({ transitionMs: 1 }).transitionMs).toBe(150)
+  })
+
+  it('валидные значения проходят', () => {
+    expect(
+      normalizeProjectionSettings({
+        fontFamily: 'sans',
+        transition: 'lines',
+        transitionMs: 900,
+        lineHighlight: true,
+      }),
+    ).toMatchObject({
+      fontFamily: 'sans',
+      transition: 'lines',
+      transitionMs: 900,
+      lineHighlight: true,
+    })
+  })
+})
+
+describe('buildContent: подсветка строки', () => {
+  it('в песне номер строки едет на экран', () => {
+    expect(
+      buildContent({ blackout: false, kind: 'song', liveSlide: slide, line: 2 }),
+    ).toMatchObject({
+      kind: 'slide',
+      line: 2,
+    })
+  })
+
+  it('в Библии и без подсветки поля line нет', () => {
+    expect(
+      buildContent({ blackout: false, kind: 'bible', liveSlide: slide, line: 1 }),
+    ).not.toHaveProperty('line')
+    expect(buildContent({ blackout: false, kind: 'song', liveSlide: slide })).not.toHaveProperty(
+      'line',
+    )
+  })
+})
+
+describe('строки для подсветки', () => {
+  const text = 'Первая\n\nВторая\nТретья'
+
+  it('singableLines считает только непустые строки', () => {
+    expect(singableLines(text)).toBe(3)
+    expect(singableLines('')).toBe(0)
+  })
+
+  it('lineStates: пропетые, текущая и следующие; пустые строки без состояния', () => {
+    expect(lineStates(text, 1).map((l) => l.state)).toEqual(['sung', null, 'current', 'ahead'])
+  })
+
+  it('без подсветки состояний нет, текст строк сохраняется', () => {
+    const states = lineStates(text, undefined)
+    expect(states.map((l) => l.state)).toEqual([null, null, null, null])
+    expect(states.map((l) => l.text)).toEqual(['Первая', '', 'Вторая', 'Третья'])
   })
 })

@@ -8,11 +8,32 @@ import {
   type BackgroundSettings,
 } from './backgrounds/settings'
 
+/** Как один слайд сменяет другой на экране */
+export type TransitionKind = 'cut' | 'fade' | 'blur' | 'lines' | 'rise'
+export const TRANSITION_KINDS: readonly TransitionKind[] = ['cut', 'fade', 'blur', 'lines', 'rise']
+export const TRANSITION_MS_MIN = 150
+export const TRANSITION_MS_MAX = 1600
+
+export type FontFamily = 'serif' | 'sans'
+
+/**
+ * Гротеск при том же кегле заметно шире и выше антиквы: без поправки
+ * длинный куплет, влезавший с засечками, вылезает за экран
+ */
+export const FONT_SIZE_FACTOR: Record<FontFamily, number> = { serif: 1, sans: 0.88 }
+
 export interface ProjectionSettings {
   fontScale: number
   showReference: boolean
   /** Мягкая тень под текстом — отделяет буквы от светлых участков фона */
   textShadow: boolean
+  /** С засечками (как раньше) или без — для проекции часто советуют без */
+  fontFamily: FontFamily
+  transition: TransitionKind
+  /** Длительность перехода и затемнения, мс */
+  transitionMs: number
+  /** В песнях подсвечивать текущую строку, пропетые — приглушать */
+  lineHighlight: boolean
   background: BackgroundSettings
 }
 
@@ -20,6 +41,10 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   fontScale: 1,
   showReference: true,
   textShadow: true,
+  fontFamily: 'serif',
+  transition: 'fade',
+  transitionMs: 400,
+  lineHighlight: false,
   background: DEFAULT_BACKGROUND,
 }
 
@@ -38,6 +63,15 @@ export function normalizeProjectionSettings(raw: unknown): ProjectionSettings {
         : d.fontScale,
     showReference: typeof r.showReference === 'boolean' ? r.showReference : d.showReference,
     textShadow: typeof r.textShadow === 'boolean' ? r.textShadow : d.textShadow,
+    fontFamily: r.fontFamily === 'sans' || r.fontFamily === 'serif' ? r.fontFamily : d.fontFamily,
+    transition: TRANSITION_KINDS.includes(r.transition as TransitionKind)
+      ? (r.transition as TransitionKind)
+      : d.transition,
+    transitionMs:
+      typeof r.transitionMs === 'number' && Number.isFinite(r.transitionMs)
+        ? Math.round(Math.min(TRANSITION_MS_MAX, Math.max(TRANSITION_MS_MIN, r.transitionMs)))
+        : d.transitionMs,
+    lineHighlight: typeof r.lineHighlight === 'boolean' ? r.lineHighlight : d.lineHighlight,
     background: normalizeBackground(r.background),
   }
 }
@@ -45,18 +79,56 @@ export function normalizeProjectionSettings(raw: unknown): ProjectionSettings {
 export type ProjectionContent =
   | { kind: 'empty' }
   | { kind: 'blackout' }
-  | { kind: 'slide'; text: string; reference: string }
+  /** line — порядковый номер подсвеченной строки среди непустых (только песни) */
+  | { kind: 'slide'; text: string; reference: string; line?: number }
   | { kind: 'note'; text: string; title: string }
 
 export function buildContent(input: {
   blackout: boolean
   kind: 'song' | 'bible' | 'note' | null
   liveSlide: { text: string; reference: string } | null
+  /** Подсвеченная строка песни; undefined — подсветка выключена */
+  line?: number
 }): ProjectionContent {
   if (input.blackout) return { kind: 'blackout' }
   if (!input.liveSlide || !input.kind) return { kind: 'empty' }
   if (input.kind === 'note') {
     return { kind: 'note', text: input.liveSlide.text, title: input.liveSlide.reference }
   }
-  return { kind: 'slide', text: input.liveSlide.text, reference: input.liveSlide.reference }
+  const slide = {
+    kind: 'slide' as const,
+    text: input.liveSlide.text,
+    reference: input.liveSlide.reference,
+  }
+  return input.kind === 'song' && input.line !== undefined ? { ...slide, line: input.line } : slide
 }
+
+/**
+ * Строки, которые можно подсветить: непустые. Пустые строки в песне —
+ * вёрстка, на них подсветка не останавливается.
+ */
+export function singableLines(text: string): number {
+  return text.split('\n').filter((l) => l.trim()).length
+}
+
+export type LineState = 'current' | 'sung' | 'ahead'
+
+/**
+ * Разметка строк слайда для подсветки. line — порядковый номер среди
+ * непустых; undefined — подсветки нет, у всех строк state null.
+ */
+export function lineStates(
+  text: string,
+  line: number | undefined,
+): Array<{ text: string; state: LineState | null }> {
+  let ordinal = -1
+  return text.split('\n').map((l) => {
+    if (line === undefined || !l.trim()) return { text: l, state: null }
+    ordinal++
+    const state: LineState = ordinal === line ? 'current' : ordinal < line ? 'sung' : 'ahead'
+    return { text: l, state }
+  })
+}
+
+/** Непрозрачность строки: текущая яркая, пропетые уходят в тень */
+export const LINE_OPACITY: Record<LineState, number> = { current: 1, sung: 0.35, ahead: 0.6 }

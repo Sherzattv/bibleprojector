@@ -27,10 +27,23 @@
   import { ui } from './lib/ui.svelte'
   import { commands } from './lib/commands.svelte'
   import { projSettings } from './lib/proj-settings.svelte'
-  import { buildContent } from './lib/projection'
+  import {
+    buildContent,
+    TRANSITION_MS_MAX,
+    TRANSITION_MS_MIN,
+    type TransitionKind,
+  } from './lib/projection'
   import { getProjectorLink } from './lib/projector-service.svelte'
   import { pushSongs, pushBible } from './lib/search-service.svelte'
   import { resolveHotkey } from './lib/hotkeys'
+
+  const TRANSITIONS: Array<[TransitionKind, string]> = [
+    ['cut', 'Резко'],
+    ['fade', 'Плавная смена'],
+    ['blur', 'Из размытия'],
+    ['lines', 'По строкам'],
+    ['rise', 'Мягкий подъём'],
+  ]
 
   let omnibox = $state<Omnibox>()
   let clock = $state('')
@@ -147,7 +160,12 @@
   // Любое изменение эфира или настроек мгновенно уезжает на экран проектора
   $effect(() => {
     projector.sendState(
-      buildContent({ blackout: show.blackout, kind: show.kind, liveSlide: show.liveSlide }),
+      buildContent({
+        blackout: show.blackout,
+        kind: show.kind,
+        liveSlide: show.liveSlide,
+        line: projSettings.lineHighlight ? show.liveLine : undefined,
+      }),
       projSettings.snapshot(),
     )
   })
@@ -246,7 +264,7 @@
           <div
             role="group"
             aria-label="Настройки проекции"
-            class="absolute top-9 right-0 z-50 w-60 rounded-md border border-stroke-2 bg-panel-2 p-3 shadow-xl shadow-black/50"
+            class="absolute top-9 right-0 z-50 w-72 rounded-md border border-stroke-2 bg-panel-2 p-3 shadow-xl shadow-black/50"
           >
             <div class="mb-1.5 flex items-center justify-between text-sm">
               <span class="text-muted">Масштаб шрифта</span>
@@ -272,6 +290,69 @@
                 class="accent-[#4f83f1]"
               />
               Показывать ссылку на экране
+            </label>
+
+            <div class="mt-3 border-t border-stroke pt-3">
+              <div class="mb-1.5 text-sm text-muted">Шрифт</div>
+              <div class="grid grid-cols-2 overflow-hidden rounded border border-stroke-2" role="group" aria-label="Шрифт">
+                {#each [['serif', 'С засечками'], ['sans', 'Без засечек']] as const as [value, name] (value)}
+                  <button
+                    onclick={() => projSettings.setText({ fontFamily: value })}
+                    aria-pressed={projSettings.fontFamily === value}
+                    class="h-7 text-sm {value === 'sans' ? 'border-l border-stroke-2 font-sans' : 'font-serif'}
+                           {projSettings.fontFamily === value ? 'bg-active text-ink' : 'bg-panel text-muted hover:bg-hover'}"
+                  >
+                    {name}
+                  </button>
+                {/each}
+              </div>
+            </div>
+
+            <div class="mt-3 flex items-center justify-between gap-2 text-sm">
+              <span class="text-muted">Переход</span>
+              <select
+                value={projSettings.transition}
+                onchange={(e) =>
+                  projSettings.setText({ transition: e.currentTarget.value as TransitionKind })}
+                class="h-7 rounded border border-stroke-2 bg-panel px-1.5 text-sm text-ink"
+                aria-label="Переход между слайдами"
+              >
+                {#each TRANSITIONS as [value, name] (value)}
+                  <option {value}>{name}</option>
+                {/each}
+              </select>
+            </div>
+            <div class="mt-2 mb-1.5 flex items-center justify-between text-sm">
+              <span class="text-muted">Длительность</span>
+              <span class="font-mono text-xs text-faint tabular-nums">
+                {(projSettings.transitionMs / 1000).toFixed(2)} с
+              </span>
+            </div>
+            <input
+              type="range"
+              min={TRANSITION_MS_MIN}
+              max={TRANSITION_MS_MAX}
+              step="50"
+              value={projSettings.transitionMs}
+              disabled={projSettings.transition === 'cut'}
+              oninput={(e) => projSettings.setText({ transitionMs: parseInt(e.currentTarget.value, 10) })}
+              aria-label="Длительность перехода"
+              class="w-full accent-[#4f83f1] disabled:opacity-40"
+            />
+
+            <label class="mt-3 flex items-start gap-2 border-t border-stroke pt-3 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={projSettings.lineHighlight}
+                onchange={(e) => projSettings.setText({ lineHighlight: e.currentTarget.checked })}
+                class="mt-0.5 accent-[#4f83f1]"
+              />
+              <span>
+                Подсвечивать строку в песнях
+                <span class="block text-xs text-faint">
+                  GO сначала идёт по строкам слайда, пропетые уходят в тень
+                </span>
+              </span>
             </label>
           </div>
         {/if}
