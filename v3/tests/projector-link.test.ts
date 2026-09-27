@@ -462,3 +462,64 @@ describe('интеграция: контроллер и экран через п
     link.stop()
   })
 })
+
+describe('протокол: свои файлы и пульс', () => {
+  it('пульт получает запрос файла только для известных слотов', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    const got: string[] = []
+    link.onMediaRequest = (slot) => got.push(slot)
+    channel.onmessage?.({ type: 'media-request', slot: 'logo' })
+    channel.onmessage?.({ type: 'media-request', slot: 'пароли' })
+    channel.onmessage?.({ type: 'media-request' })
+    expect(got).toEqual(['logo'])
+  })
+
+  it('sendMedia и sendPulse уходят в канал, но не в lastState для hello', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.sendState({ kind: 'empty' }, {})
+    link.sendMedia({ slot: 'background', version: 'v1', dataUrl: 'data:image/png;base64,AA' })
+    link.sendPulse(0.4)
+    expect(sentOfType(channel, 'media')).toHaveLength(1)
+    expect(sentOfType(channel, 'pulse')).toEqual([{ type: 'pulse', level: 0.4 }])
+
+    channel.sent = []
+    channel.onmessage?.({ type: 'hello' })
+    expect(channel.sent.map((m) => (m as Msg).type)).toEqual(['state'])
+  })
+
+  it('экран просит файл и принимает только валидный ответ', () => {
+    const channel = new FakeChannel()
+    const receiver = new DisplayReceiver(channel)
+    receiver.requestMedia('background')
+    expect(sentOfType(channel, 'media-request')).toEqual([
+      { type: 'media-request', slot: 'background' },
+    ])
+
+    const got: unknown[] = []
+    receiver.onMedia = (m) => got.push(m)
+    channel.onmessage?.({
+      type: 'media',
+      media: { slot: 'logo', version: 'v', dataUrl: 'data:image/png;base64,AA' },
+    })
+    channel.onmessage?.({
+      type: 'media',
+      media: { slot: 'logo', version: 'v', dataUrl: 'javascript:x' },
+    })
+    channel.onmessage?.({ type: 'media' })
+    expect(got).toHaveLength(1)
+  })
+
+  it('уровень микрофона клампится в 0..1, мусор игнорируется', () => {
+    const channel = new FakeChannel()
+    const receiver = new DisplayReceiver(channel)
+    channel.onmessage?.({ type: 'pulse', level: 3 })
+    expect(receiver.micLevel).toBe(1)
+    channel.onmessage?.({ type: 'pulse', level: 'громко' })
+    expect(receiver.micLevel).toBe(1)
+    channel.onmessage?.({ type: 'pulse', level: 0.25 })
+    expect(receiver.micLevel).toBe(0.25)
+    expect(receiver.micAt).toBeGreaterThan(0)
+  })
+})

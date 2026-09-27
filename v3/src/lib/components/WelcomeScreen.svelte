@@ -6,10 +6,12 @@
     announcements: string[]
     fontScale: number
     motion: SlideTransitionParams
+    /** Свой логотип общины; null — крест в круге */
+    logoUrl?: string | null
     /** Компактная строка для нижней трети */
     compact?: boolean
   }
-  let { name, announcements, fontScale, motion, compact = false }: Props = $props()
+  let { name, announcements, fontScale, motion, logoUrl = null, compact = false }: Props = $props()
 
   /** Сколько висит одно объявление */
   const ANNOUNCEMENT_MS = 7000
@@ -35,19 +37,28 @@
   </span>
 {:else}
   <div class="flex w-full flex-col items-center gap-[2vw]">
-    <!-- Логотип по умолчанию: крест в круге цветом ссылки -->
-    <svg
-      viewBox="0 0 100 100"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2.5"
-      class="text-amber"
-      style="width: calc(clamp(56px, 8vw, 128px) * {fontScale})"
-      aria-hidden="true"
-    >
-      <circle cx="50" cy="50" r="46" />
-      <path d="M50 22v56M34 40h32" />
-    </svg>
+    {#if logoUrl}
+      <img
+        src={logoUrl}
+        alt=""
+        class="object-contain"
+        style="width: calc(clamp(72px, 12vw, 200px) * {fontScale}); max-height: 22vh"
+      />
+    {:else}
+      <!-- Логотип по умолчанию: крест в круге цветом ссылки -->
+      <svg
+        viewBox="0 0 100 100"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.5"
+        class="text-amber"
+        style="width: calc(clamp(56px, 8vw, 128px) * {fontScale})"
+        aria-hidden="true"
+      >
+        <circle cx="50" cy="50" r="46" />
+        <path d="M50 22v56M34 40h32" />
+      </svg>
+    {/if}
     {#if name}
       <div class="font-serif text-white" style="font-size: calc(clamp(24px, 3.4vw, 56px) * {fontScale})">
         {name}

@@ -14,6 +14,8 @@
   import MotionBackground from './MotionBackground.svelte'
   import CountdownScreen from './CountdownScreen.svelte'
   import WelcomeScreen from './WelcomeScreen.svelte'
+  import { MEDIA_SLOTS, type MediaSlot } from '../media'
+  import { pulseGain } from '../pulse'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
   // профиле: BroadcastChannel туда не добивает, сообщения ходят через
@@ -77,6 +79,76 @@
     if (line !== undefined && lines[line]) return lines[line]
     return lines.join(' ')
   }
+
+  // Свои файлы оператора: в настройках едут только версии, сам файл экран
+  // просит у пульта отдельно. Ответ приходит data-URL'ом — превращаем в
+  // object URL, чтобы видео не держало в DOM строку на десятки мегабайт
+  type Loaded = { version: string; url: string; kind: 'image' | 'video' }
+  let loaded = $state<Record<MediaSlot, Loaded | null>>({ background: null, logo: null })
+  const requestedAt: Record<MediaSlot, number> = { background: 0, logo: 0 }
+  /** Не дождались ответа (пульт перезапускали) — спросим снова через столько */
+  const MEDIA_RETRY_MS = 4000
+
+  function drop(slot: MediaSlot) {
+    const old = loaded[slot]
+    if (old) URL.revokeObjectURL(old.url)
+    loaded = { ...loaded, [slot]: null }
+  }
+
+  receiver.onMedia = async (m) => {
+    const ref = settings.media[m.slot]
+    if (!m.dataUrl) return drop(m.slot)
+    if (!ref || ref.version !== m.version || loaded[m.slot]?.version === m.version) return
+    try {
+      const blob = await (await fetch(m.dataUrl)).blob()
+      drop(m.slot)
+      loaded = { ...loaded, [m.slot]: { version: m.version, url: URL.createObjectURL(blob), kind: ref.kind } }
+    } catch {
+      // Битый файл — останется фон палитры, запрос повторится по таймеру
+    }
+  }
+
+  function syncMedia() {
+    for (const slot of MEDIA_SLOTS) {
+      const ref = settings.media[slot]
+      if (!ref) {
+        if (loaded[slot]) drop(slot)
+        continue
+      }
+      if (loaded[slot]?.version === ref.version) continue
+      if (Date.now() - requestedAt[slot] < MEDIA_RETRY_MS) continue
+      requestedAt[slot] = Date.now()
+      receiver.requestMedia(slot)
+    }
+  }
+  $effect(() => {
+    void settings.media
+    syncMedia()
+    const id = setInterval(syncMedia, MEDIA_RETRY_MS)
+    return () => clearInterval(id)
+  })
+
+  // Пульс музыки: темп экран считает сам, уровень микрофона приходит с пульта
+  let gain = $state(1)
+  $effect(() => {
+    const { mode, bpm } = settings.pulse
+    if (mode === 'off') {
+      gain = 1
+      return
+    }
+    let raf = 0
+    let last = 0
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick)
+      if (t - last < 33) return
+      last = t
+      // Микрофон замолчал (пульт закрыли) — фон успокаивается, а не застывает на пике
+      const level = Date.now() - receiver.micAt < 800 ? receiver.micLevel : 0
+      gain = pulseGain(mode, Date.now(), bpm, level)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  })
 
   // Замер контраста едет в пульт вместе с ближайшим pong
   function onContrast(ratio: number | null) {
@@ -154,7 +226,7 @@
   ondblclick={toggleFullscreen}
 >
   {#if !lowerThird}
-    <MotionBackground settings={settings.background} {onContrast} />
+    <MotionBackground settings={settings.background} media={loaded.background} {gain} {onContrast} />
   {/if}
 
   <!-- Смена слайда — смена ключа: уходящий и входящий живут в одной ячейке
@@ -248,7 +320,12 @@
       {:else if content.kind === 'countdown'}
         <CountdownScreen {...content} fontScale={settings.fontScale} />
       {:else if content.kind === 'welcome'}
-        <WelcomeScreen {...content} fontScale={settings.fontScale} {motion} />
+        <WelcomeScreen
+          {...content}
+          fontScale={settings.fontScale}
+          {motion}
+          logoUrl={loaded.logo?.url ?? null}
+        />
       {/if}
     </div>
   {/key}

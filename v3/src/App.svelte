@@ -28,6 +28,8 @@
   import { commands } from './lib/commands.svelte'
   import { projSettings } from './lib/proj-settings.svelte'
   import { serviceScreen } from './lib/service-screen.svelte'
+  import { mediaLibrary } from './lib/media-library.svelte'
+  import { mic } from './lib/mic.svelte'
   import {
     buildContent,
     TRANSITION_MS_MAX,
@@ -61,6 +63,26 @@
   const setlistColumn = $derived(layout.setlistOpen ? layout.setlistWidth : SETLIST_RAIL)
 
   const projector = getProjectorLink()
+
+  // Свои файлы оператора: подняли из IndexedDB — экран спросит их сам
+  $effect(() => {
+    void mediaLibrary.init()
+  })
+  projector.onMediaRequest = (slot) => {
+    mediaLibrary
+      .payload(slot)
+      .then((p) => {
+        if (p) projector.sendMedia(p)
+      })
+      .catch(() => ui.notify('Не удалось прочитать свой файл — загрузите его заново.'))
+  }
+
+  // Микрофон слушает пульт, пока выбран пульс «от микрофона»
+  $effect(() => {
+    if (projSettings.pulse.mode !== 'mic') return
+    void mic.start((level) => projector.sendPulse(level))
+    return () => mic.stop()
+  })
 
   function tick() {
     const d = new Date()
@@ -168,7 +190,8 @@
         line: projSettings.lineHighlight ? show.liveLine : undefined,
         service: serviceScreen.content(),
       }),
-      projSettings.snapshot(),
+      // $state.snapshot: вложенные ссылки — прокси, BroadcastChannel их не клонирует
+      { ...projSettings.snapshot(), media: $state.snapshot(mediaLibrary.refs) },
     )
   })
 
