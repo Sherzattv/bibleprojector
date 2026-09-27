@@ -26,7 +26,7 @@ export const PALETTES: readonly Palette[] = [
   { id: 'graphite', name: 'Графит', colors: ['#060709', '#2a323e', '#4a5566', '#6a5d49'] },
 ]
 
-export type BackgroundGroup = 'calm' | 'light' | 'nature' | 'season' | 'fx'
+export type BackgroundGroup = 'calm' | 'light' | 'nature' | 'season' | 'fx' | 'own'
 
 export const BACKGROUND_GROUPS: readonly { id: BackgroundGroup; name: string }[] = [
   { id: 'calm', name: 'Спокойные' },
@@ -34,6 +34,7 @@ export const BACKGROUND_GROUPS: readonly { id: BackgroundGroup; name: string }[]
   { id: 'nature', name: 'Природа' },
   { id: 'season', name: 'Сезонные' },
   { id: 'fx', name: 'Эффектные' },
+  { id: 'own', name: 'Своё' },
 ]
 
 export interface BackgroundPreset {
@@ -45,9 +46,10 @@ export interface BackgroundPreset {
   palette: PaletteId
   /**
    * none — чёрный экран без рендера (нулевая нагрузка, прежнее поведение);
-   * shader — фрагментный шейдер из shaders.ts; particles — поток частиц на Canvas 2D
+   * shader — фрагментный шейдер из shaders.ts; particles — поток частиц на Canvas 2D;
+   * media — своё фото или видео оператора (media.ts)
    */
-  kind: 'none' | 'shader' | 'particles'
+  kind: 'none' | 'shader' | 'particles' | 'media'
 }
 
 export const BACKGROUNDS: readonly BackgroundPreset[] = [
@@ -186,6 +188,14 @@ export const BACKGROUNDS: readonly BackgroundPreset[] = [
     group: 'fx',
     palette: 'aurora',
     kind: 'particles',
+  },
+  {
+    id: 'media',
+    name: 'Своё фото/видео',
+    description: 'Ваш файл; фото медленно наезжает',
+    group: 'own',
+    palette: 'graphite',
+    kind: 'media',
   },
 ]
 

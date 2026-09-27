@@ -5,6 +5,8 @@
   import { autofitScale } from '../autofit'
   import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
   import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
+  import { serviceScreen } from '../service-screen.svelte'
+  import { mediaLibrary } from '../media-library.svelte'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -17,10 +19,14 @@
   // Превью фона — статичная CSS-копия палитры: настоящий шейдер крутится
   // только на проекторе, видеокарта у пульта и экрана общая
   const bg = $derived(projSettings.background)
+  // Своё фото показываем как есть; для видео — палитра (кадр в превью не нужен)
+  const ownImage = $derived(bg.preset === 'media' ? mediaLibrary.previews.background : null)
   const backdrop = $derived(
     blackout
       ? 'background: #000'
-      : `background: ${backgroundPreviewCss(bg)}`,
+      : ownImage
+        ? `background: #000 url("${ownImage}") center / cover no-repeat`
+        : `background: ${backgroundPreviewCss(bg)}`,
   )
   // Подсветка строки видна и в карточке эфира — оператор знает, где зал
   const line = $derived(
@@ -48,9 +54,16 @@
       {isLive ? 'Эфир' : 'Превью'}
     </span>
     {#if isLive}
-      <span class="flex items-center gap-1.5 text-xs font-medium {slide || blackout ? 'text-live' : 'text-faint'}">
-        {#if slide || blackout}<span class="size-1.5 rounded-full bg-live"></span>{/if}
-        {blackout ? 'blackout' : slide ? 'идёт показ' : 'пусто'}
+      {@const onAir = slide || blackout || serviceScreen.mode !== 'off'}
+      <span class="flex items-center gap-1.5 text-xs font-medium {onAir ? 'text-live' : 'text-faint'}">
+        {#if onAir}<span class="size-1.5 rounded-full bg-live"></span>{/if}
+        {blackout
+          ? 'blackout'
+          : serviceScreen.mode !== 'off'
+            ? 'заставка'
+            : slide
+              ? 'идёт показ'
+              : 'пусто'}
       </span>
     {:else if editing}
       <span class="flex items-center gap-1">
@@ -103,6 +116,11 @@
           }
         }}
       ></textarea>
+    {:else if isLive && !blackout && serviceScreen.mode !== 'off'}
+      <!-- Заставка перекрывает слайд — карточка эфира не должна врать -->
+      <div class="relative text-sm text-white/80">
+        {serviceScreen.mode === 'countdown' ? 'Отсчёт до начала' : serviceScreen.churchName || 'Экран ожидания'}
+      </div>
     {:else if !blackout && slide}
       <div class="relative max-w-[94%]">
         <div

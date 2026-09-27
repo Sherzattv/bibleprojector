@@ -59,8 +59,17 @@ describe('каталог фонов', () => {
 
   it('в каждой группе есть хотя бы один фон', () => {
     for (const g of BACKGROUND_GROUPS) {
-      expect(BACKGROUNDS.some((b) => b.group === g.id), g.id).toBe(true)
+      expect(
+        BACKGROUNDS.some((b) => b.group === g.id),
+        g.id,
+      ).toBe(true)
     }
+  })
+
+  it('свой файл — отдельный фон без шейдера в группе «Своё»', () => {
+    expect(findPreset('media')).toMatchObject({ kind: 'media', group: 'own' })
+    expect(isAnimated({ ...DEFAULT_BACKGROUND, preset: 'media' })).toBe(true)
+    expect(normalizeBackground({ preset: 'media' }).preset).toBe('media')
   })
 
   it('первый фон — чёрный без рендера: он же запасной для неизвестных id', () => {

@@ -191,3 +191,68 @@ describe('строки для подсветки', () => {
     expect(states.map((l) => l.text)).toEqual(['Первая', '', 'Вторая', 'Третья'])
   })
 })
+
+describe('buildContent: служебные экраны', () => {
+  const countdown = {
+    kind: 'countdown' as const,
+    endsAt: 123,
+    leftMs: 0,
+    title: 'Начало через',
+    subtitle: '',
+  }
+
+  it('включённая заставка перекрывает слайд в эфире', () => {
+    expect(
+      buildContent({ blackout: false, kind: 'song', liveSlide: slide, service: countdown }),
+    ).toEqual(countdown)
+  })
+
+  it('blackout сильнее заставки', () => {
+    expect(
+      buildContent({ blackout: true, kind: null, liveSlide: null, service: countdown }),
+    ).toEqual({ kind: 'blackout' })
+  })
+
+  it('заставка видна и без слайда в эфире', () => {
+    const welcome = { kind: 'welcome' as const, name: 'Слово', announcements: [] }
+    expect(
+      buildContent({ blackout: false, kind: null, liveSlide: null, service: welcome }),
+    ).toEqual(welcome)
+  })
+})
+
+describe('normalizeProjectionSettings: вывод', () => {
+  it('по умолчанию весь экран, хромакей зелёный', () => {
+    expect(normalizeProjectionSettings({})).toMatchObject({ layout: 'full', chroma: 'green' })
+  })
+
+  it('нижняя треть на прозрачном проходит, мусор — нет', () => {
+    expect(
+      normalizeProjectionSettings({ layout: 'lower-third', chroma: 'transparent' }),
+    ).toMatchObject({
+      layout: 'lower-third',
+      chroma: 'transparent',
+    })
+    expect(normalizeProjectionSettings({ layout: 'сбоку', chroma: 'синий' })).toMatchObject({
+      layout: 'full',
+      chroma: 'green',
+    })
+  })
+})
+
+describe('normalizeProjectionSettings: свои файлы и пульс', () => {
+  it('по умолчанию файлов нет, пульс выключен', () => {
+    const s = normalizeProjectionSettings({})
+    expect(s.media).toEqual({ background: null, logo: null })
+    expect(s.pulse).toEqual({ mode: 'off', bpm: 72 })
+  })
+
+  it('ссылки на файлы и темп проходят нормализацию', () => {
+    const s = normalizeProjectionSettings({
+      media: { background: { version: 'v1', kind: 'video' } },
+      pulse: { mode: 'tempo', bpm: 90 },
+    })
+    expect(s.media.background).toEqual({ version: 'v1', kind: 'video' })
+    expect(s.pulse).toEqual({ mode: 'tempo', bpm: 90 })
+  })
+})

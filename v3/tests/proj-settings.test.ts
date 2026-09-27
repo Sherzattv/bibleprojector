@@ -131,14 +131,37 @@ describe('ProjSettingsStore', () => {
     })
   })
 
+  it('setOutput переключает нижнюю треть и хромакей, это сохраняется', () => {
+    settings.setOutput({ layout: 'lower-third', chroma: 'transparent' })
+    const restored = new ProjSettingsStore(store)
+    expect(restored.layout).toBe('lower-third')
+    expect(restored.chroma).toBe('transparent')
+  })
+
+  it('setPulse клампит темп и сохраняется', () => {
+    settings.setPulse({ mode: 'tempo', bpm: 999 })
+    const restored = new ProjSettingsStore(store)
+    expect(restored.pulse).toEqual({ mode: 'tempo', bpm: 150 })
+  })
+
+  it('snapshot клонируется structuredClone — иначе BroadcastChannel молча не отправит ничего', () => {
+    settings.selectBackground('glass')
+    settings.setPulse({ mode: 'tempo' })
+    expect(() => structuredClone(settings.snapshot())).not.toThrow()
+  })
+
   it('snapshot — всё, что едет на экран, и это копия, а не живое состояние', () => {
     const snap = settings.snapshot()
     expect(Object.keys(snap).sort()).toEqual(
       [
         'background',
         'fontFamily',
+        'chroma',
         'fontScale',
+        'layout',
         'lineHighlight',
+        'media',
+        'pulse',
         'showReference',
         'textShadow',
         'transition',

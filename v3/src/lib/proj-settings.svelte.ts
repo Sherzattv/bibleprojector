@@ -6,12 +6,16 @@ import { createBrowserStore, createMemoryStore, type TextStore } from './storage
 import {
   DEFAULT_PROJECTION_SETTINGS,
   normalizeProjectionSettings,
+  type ChromaKey,
   type FontFamily,
+  type OutputLayout,
   type ProjectionSettings,
   type TransitionKind,
 } from './projection'
 import { findPreset } from './backgrounds/catalog'
 import { normalizeBackground, type BackgroundSettings } from './backgrounds/settings'
+import { NO_MEDIA } from './media'
+import { normalizePulse, type PulseSettings } from './pulse'
 
 const KEY = 'bp3-proj-settings'
 const DEFAULTS = DEFAULT_PROJECTION_SETTINGS
@@ -24,7 +28,10 @@ export class ProjSettingsStore {
   transition = $state<TransitionKind>(DEFAULTS.transition)
   transitionMs = $state(DEFAULTS.transitionMs)
   lineHighlight = $state(DEFAULTS.lineHighlight)
+  layout = $state<OutputLayout>(DEFAULTS.layout)
+  chroma = $state<ChromaKey>(DEFAULTS.chroma)
   background = $state<BackgroundSettings>({ ...DEFAULTS.background })
+  pulse = $state<PulseSettings>({ ...DEFAULTS.pulse })
 
   private store: TextStore
 
@@ -49,7 +56,10 @@ export class ProjSettingsStore {
     this.transition = s.transition
     this.transitionMs = s.transitionMs
     this.lineHighlight = s.lineHighlight
+    this.layout = s.layout
+    this.chroma = s.chroma
     this.background = s.background
+    this.pulse = s.pulse
   }
 
   private persist() {
@@ -66,7 +76,12 @@ export class ProjSettingsStore {
       transition: this.transition,
       transitionMs: this.transitionMs,
       lineHighlight: this.lineHighlight,
+      layout: this.layout,
+      chroma: this.chroma,
       background: { ...this.background },
+      // Свои файлы живут в mediaLibrary — их ссылки подставляет App
+      media: { ...NO_MEDIA },
+      pulse: { ...this.pulse },
     }
   }
 
@@ -100,9 +115,22 @@ export class ProjSettingsStore {
     this.persist()
   }
 
+  /** Вывод: весь экран или нижняя треть для трансляции */
+  setOutput(patch: { layout?: OutputLayout; chroma?: ChromaKey }) {
+    const s = normalizeProjectionSettings({ ...this.snapshot(), ...patch })
+    this.layout = s.layout
+    this.chroma = s.chroma
+    this.persist()
+  }
+
   /** Частичное изменение фона; мусор в patch отбрасывается нормализацией */
   setBackground(patch: Partial<BackgroundSettings>) {
     this.background = normalizeBackground({ ...this.background, ...patch })
+    this.persist()
+  }
+
+  setPulse(patch: Partial<PulseSettings>) {
+    this.pulse = normalizePulse({ ...this.pulse, ...patch })
     this.persist()
   }
 

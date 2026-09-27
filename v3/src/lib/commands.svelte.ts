@@ -8,6 +8,7 @@ import { show } from './show.svelte'
 import { ui } from './ui.svelte'
 import { history } from './history.svelte'
 import { projSettings } from './proj-settings.svelte'
+import { serviceScreen } from './service-screen.svelte'
 
 export const commands = {
   openSong(id: number): boolean {
@@ -34,8 +35,11 @@ export const commands = {
 
   go(): void {
     if (!show.slides.length) return
+    // GO во время отсчёта или заставки — оператор начинает служение:
+    // служебный экран уходит, в эфир идёт превью (а не следующая строка)
+    if (serviceScreen.mode !== 'off') serviceScreen.hide()
     // Подсветка строк в песне: GO сначала идёт по строкам живого слайда
-    if (projSettings.lineHighlight && show.stepLine()) return
+    else if (projSettings.lineHighlight && show.stepLine()) return
     show.go()
     const live = show.liveSlide
     const source = show.source
@@ -67,6 +71,7 @@ export const commands = {
 
   clearLive(): void {
     show.clear()
+    serviceScreen.hide()
   },
 
   setTranslation(code: string): boolean {

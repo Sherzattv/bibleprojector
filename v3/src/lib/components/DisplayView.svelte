@@ -12,6 +12,10 @@
   } from '../projection'
   import { lineIn, slideIn, slideOut } from '../transitions'
   import MotionBackground from './MotionBackground.svelte'
+  import CountdownScreen from './CountdownScreen.svelte'
+  import WelcomeScreen from './WelcomeScreen.svelte'
+  import { MEDIA_SLOTS, type MediaSlot } from '../media'
+  import { pulseGain } from '../pulse'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
   // профиле: BroadcastChannel туда не добивает, сообщения ходят через
@@ -46,13 +50,105 @@
 
   // Ключ содержимого: меняется — играет переход. Подсветка строки (line)
   // в ключ не входит — строка перетекает сама, слайд не пересоздаётся
+  // Отсчёт и заставка тоже не пересоздаются от каждого тика и паузы
   const contentKey = $derived(
     content.kind === 'slide'
       ? `slide\u0000${content.text}\u0000${content.reference}`
       : content.kind === 'note'
         ? `note\u0000${content.title}\u0000${content.text}`
-        : 'none',
+        : content.kind === 'welcome'
+          ? `welcome\u0000${content.name}`
+          : content.kind === 'countdown'
+            ? 'countdown'
+            : 'none',
   )
+
+  // Нижняя треть для трансляции: фон — хромакей или прозрачность, текст плашкой
+  const lowerThird = $derived(settings.layout === 'lower-third')
+  const transparent = $derived(lowerThird && settings.chroma === 'transparent')
+  $effect(() => {
+    // Прозрачность нужна всей странице, иначе OBS увидит фон body из app.css
+    const value = transparent ? 'transparent' : ''
+    document.documentElement.style.background = value
+    document.body.style.background = value
+  })
+
+  /** Текст плашки: строки в одну; с подсветкой — только текущая строка песни */
+  function lowerThirdText(text: string, line: number | undefined): string {
+    const lines = text.split('\n').filter((l) => l.trim())
+    if (line !== undefined && lines[line]) return lines[line]
+    return lines.join(' ')
+  }
+
+  // Свои файлы оператора: в настройках едут только версии, сам файл экран
+  // просит у пульта отдельно. Ответ приходит data-URL'ом — превращаем в
+  // object URL, чтобы видео не держало в DOM строку на десятки мегабайт
+  type Loaded = { version: string; url: string; kind: 'image' | 'video' }
+  let loaded = $state<Record<MediaSlot, Loaded | null>>({ background: null, logo: null })
+  const requestedAt: Record<MediaSlot, number> = { background: 0, logo: 0 }
+  /** Не дождались ответа (пульт перезапускали) — спросим снова через столько */
+  const MEDIA_RETRY_MS = 4000
+
+  function drop(slot: MediaSlot) {
+    const old = loaded[slot]
+    if (old) URL.revokeObjectURL(old.url)
+    loaded = { ...loaded, [slot]: null }
+  }
+
+  receiver.onMedia = async (m) => {
+    const ref = settings.media[m.slot]
+    if (!m.dataUrl) return drop(m.slot)
+    if (!ref || ref.version !== m.version || loaded[m.slot]?.version === m.version) return
+    try {
+      const blob = await (await fetch(m.dataUrl)).blob()
+      drop(m.slot)
+      loaded = { ...loaded, [m.slot]: { version: m.version, url: URL.createObjectURL(blob), kind: ref.kind } }
+    } catch {
+      // Битый файл — останется фон палитры, запрос повторится по таймеру
+    }
+  }
+
+  function syncMedia() {
+    for (const slot of MEDIA_SLOTS) {
+      const ref = settings.media[slot]
+      if (!ref) {
+        if (loaded[slot]) drop(slot)
+        continue
+      }
+      if (loaded[slot]?.version === ref.version) continue
+      if (Date.now() - requestedAt[slot] < MEDIA_RETRY_MS) continue
+      requestedAt[slot] = Date.now()
+      receiver.requestMedia(slot)
+    }
+  }
+  $effect(() => {
+    void settings.media
+    syncMedia()
+    const id = setInterval(syncMedia, MEDIA_RETRY_MS)
+    return () => clearInterval(id)
+  })
+
+  // Пульс музыки: темп экран считает сам, уровень микрофона приходит с пульта
+  let gain = $state(1)
+  $effect(() => {
+    const { mode, bpm } = settings.pulse
+    if (mode === 'off') {
+      gain = 1
+      return
+    }
+    let raf = 0
+    let last = 0
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick)
+      if (t - last < 33) return
+      last = t
+      // Микрофон замолчал (пульт закрыли) — фон успокаивается, а не застывает на пике
+      const level = Date.now() - receiver.micAt < 800 ? receiver.micLevel : 0
+      gain = pulseGain(mode, Date.now(), bpm, level)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  })
 
   // Замер контраста едет в пульт вместе с ближайшим pong
   function onContrast(ratio: number | null) {
@@ -124,11 +220,14 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <main
   aria-label="Экран проектора"
-  class="relative grid h-screen place-items-center overflow-hidden bg-black p-[6%] text-center select-none"
+  class="relative grid h-screen place-items-center overflow-hidden p-[6%] text-center select-none
+         {!lowerThird ? 'bg-black' : transparent ? 'bg-transparent' : 'bg-[#00b140]'}"
   class:cursor-none={fullscreen}
   ondblclick={toggleFullscreen}
 >
-  <MotionBackground settings={settings.background} {onContrast} />
+  {#if !lowerThird}
+    <MotionBackground settings={settings.background} media={loaded.background} {gain} {onContrast} />
+  {/if}
 
   <!-- Смена слайда — смена ключа: уходящий и входящий живут в одной ячейке
        сетки одновременно, пока идёт переход -->
@@ -139,7 +238,40 @@
       in:slideIn={motion}
       out:slideOut={motion}
     >
-      {#if content.kind === 'slide'}
+      {#if lowerThird}
+        {#if content.kind !== 'empty' && content.kind !== 'blackout'}
+          <!-- Плашка внизу: подпись сверху, текст в одну-две строки -->
+          <div class="flex size-full flex-col justify-end">
+            <div
+              class="max-w-full self-start border-l-[0.35vw] border-amber bg-[#080a0e]/85 px-[2.2vw] py-[1.4vw] text-left"
+              style="font-size: calc(clamp(16px, 2.1vw, 40px) * {settings.fontScale})"
+            >
+              {#if content.kind === 'slide' || content.kind === 'note'}
+                {@const caption = content.kind === 'slide' ? content.reference : content.title}
+                {#if caption && (settings.showReference || content.kind === 'note')}
+                  <div class="mb-[0.4em] text-[0.6em] font-semibold tracking-[0.12em] text-amber uppercase">
+                    {caption}
+                  </div>
+                {/if}
+                <div class="leading-[1.35] font-medium text-white">
+                  {lowerThirdText(content.text, content.kind === 'slide' ? content.line : undefined)}
+                </div>
+              {:else if content.kind === 'countdown'}
+                <div class="font-medium text-white">
+                  <CountdownScreen {...content} fontScale={settings.fontScale} compact />
+                </div>
+              {:else if content.kind === 'welcome'}
+                <div class="mb-[0.4em] text-[0.6em] font-semibold tracking-[0.12em] text-amber uppercase">
+                  {content.name}
+                </div>
+                <div class="font-medium text-white">
+                  <WelcomeScreen {...content} fontScale={settings.fontScale} {motion} compact />
+                </div>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      {:else if content.kind === 'slide'}
         <div class="max-w-[92%]">
           <div
             class="leading-[1.5] text-balance text-white {settings.fontFamily === 'sans'
@@ -185,16 +317,28 @@
             {/each}
           </div>
         </div>
+      {:else if content.kind === 'countdown'}
+        <CountdownScreen {...content} fontScale={settings.fontScale} />
+      {:else if content.kind === 'welcome'}
+        <WelcomeScreen
+          {...content}
+          fontScale={settings.fontScale}
+          {motion}
+          logoUrl={loaded.logo?.url ?? null}
+        />
       {/if}
     </div>
   {/key}
 
   <!-- empty — только фон. Blackout — честный чёрный поверх всего и плавно:
        фон под ним не выключается, чтобы после возврата не перезапускаться рывком -->
-  <div
-    class="pointer-events-none absolute inset-0 bg-black"
-    style="opacity: {content.kind === 'blackout' ? 1 : 0}; transition: opacity {blackoutMs}ms ease"
-  ></div>
+  <!-- В нижней трети blackout — просто пустой кадр: чёрный закрыл бы трансляцию -->
+  {#if !lowerThird}
+    <div
+      class="pointer-events-none absolute inset-0 bg-black"
+      style="opacity: {content.kind === 'blackout' ? 1 : 0}; transition: opacity {blackoutMs}ms ease"
+    ></div>
+  {/if}
 </main>
 
 <!--
@@ -202,7 +346,8 @@
   (истекла активация клика или браузер без Window Management API), оператор
   видит на самом экране, что делать. В полноэкранном режиме подсказки нет.
 -->
-{#if !fullscreen}
+<!-- В нижней трети окно захватывает OBS — подсказка попала бы в трансляцию -->
+{#if !fullscreen && !lowerThird}
   <button
     onclick={enterFullscreen}
     class="fixed bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-md border border-white/25 bg-white/10

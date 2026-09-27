@@ -5,6 +5,7 @@ import { show } from '../src/lib/show.svelte'
 import { data } from '../src/lib/db.svelte'
 import { ui } from '../src/lib/ui.svelte'
 import { projSettings } from '../src/lib/proj-settings.svelte'
+import { serviceScreen } from '../src/lib/service-screen.svelte'
 import { rstDb, nrtDb, rstShiftDb, nrtShiftDb, songs } from './fixtures'
 
 beforeEach(() => {
@@ -22,6 +23,7 @@ beforeEach(() => {
   ui.clearNotice()
   history.clear()
   projSettings.reset()
+  serviceScreen.resetStore()
 })
 
 describe('commands.openSong', () => {
@@ -255,5 +257,37 @@ describe('commands.go × подсветка строки в песне', () => {
     show.blackout = true
     commands.go()
     expect(show.liveIdx).toBe(1)
+  })
+})
+
+describe('commands × служебный экран', () => {
+  it('GO во время отсчёта убирает заставку и отправляет превью в эфир', () => {
+    commands.openRef('JHN', 3, 1)
+    serviceScreen.show('countdown')
+    commands.go()
+    expect(serviceScreen.mode).toBe('off')
+    expect(show.liveIdx).toBe(0)
+  })
+
+  it('GO после заставки не шагает по строкам песни, а выводит слайд', () => {
+    projSettings.setText({ lineHighlight: true })
+    commands.openSong(4)
+    commands.go() // строка 1 в эфире
+    serviceScreen.show('welcome')
+    commands.go()
+    expect(serviceScreen.mode).toBe('off')
+    expect(show.liveLine).toBe(0)
+  })
+
+  it('без слайдов GO заставку не трогает', () => {
+    serviceScreen.show('welcome')
+    commands.go()
+    expect(serviceScreen.mode).toBe('welcome')
+  })
+
+  it('«Очистить» убирает и заставку', () => {
+    serviceScreen.show('countdown')
+    commands.clearLive()
+    expect(serviceScreen.mode).toBe('off')
   })
 })
