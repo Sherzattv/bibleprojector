@@ -3,6 +3,10 @@
   import { show, type ShowSlide } from '../show.svelte'
   import { projSettings } from '../proj-settings.svelte'
   import { autofitScale } from '../autofit'
+  import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
+  import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
+  import { serviceScreen } from '../service-screen.svelte'
+  import { mediaLibrary } from '../media-library.svelte'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -11,6 +15,24 @@
   }
   let { mode, slide, blackout = false }: Props = $props()
   const isLive = $derived(mode === 'live')
+
+  // Превью фона — статичная CSS-копия палитры: настоящий шейдер крутится
+  // только на проекторе, видеокарта у пульта и экрана общая
+  const bg = $derived(projSettings.background)
+  // Своё фото показываем как есть; для видео — палитра (кадр в превью не нужен)
+  const ownImage = $derived(bg.preset === 'media' ? mediaLibrary.previews.background : null)
+  const backdrop = $derived(
+    blackout
+      ? 'background: #000'
+      : ownImage
+        ? `background: #000 url("${ownImage}") center / cover no-repeat`
+        : `background: ${backgroundPreviewCss(bg)}`,
+  )
+  // Подсветка строки видна и в карточке эфира — оператор знает, где зал
+  const line = $derived(
+    isLive && projSettings.lineHighlight && show.kind === 'song' ? show.liveLine : undefined,
+  )
+  const dim = $derived(!blackout && isAnimated(bg) ? bg.dim : 0)
 
   let editing = $state(false)
   let draft = $state('')
@@ -32,9 +54,16 @@
       {isLive ? 'Эфир' : 'Превью'}
     </span>
     {#if isLive}
-      <span class="flex items-center gap-1.5 text-xs font-medium {slide || blackout ? 'text-live' : 'text-faint'}">
-        {#if slide || blackout}<span class="size-1.5 rounded-full bg-live"></span>{/if}
-        {blackout ? 'blackout' : slide ? 'идёт показ' : 'пусто'}
+      {@const onAir = slide || blackout || serviceScreen.mode !== 'off'}
+      <span class="flex items-center gap-1.5 text-xs font-medium {onAir ? 'text-live' : 'text-faint'}">
+        {#if onAir}<span class="size-1.5 rounded-full bg-live"></span>{/if}
+        {blackout
+          ? 'blackout'
+          : serviceScreen.mode !== 'off'
+            ? 'заставка'
+            : slide
+              ? 'идёт показ'
+              : 'пусто'}
       </span>
     {:else if editing}
       <span class="flex items-center gap-1">
@@ -70,11 +99,15 @@
   <div
     class="projection relative grid aspect-video place-items-center overflow-hidden rounded-md border p-[5%] text-center
            {isLive && slide ? 'border-live/60' : 'border-stroke-2'}"
+    style={backdrop}
   >
+    {#if dim}
+      <div class="pointer-events-none absolute inset-0 bg-black" style="opacity: {dim}"></div>
+    {/if}
     {#if editing && !isLive}
       <textarea
         bind:value={draft}
-        class="h-full w-full resize-none bg-transparent text-center font-serif text-sm leading-[1.55] text-white focus:outline-none"
+        class="relative h-full w-full resize-none bg-transparent text-center font-serif text-sm leading-[1.55] text-white focus:outline-none"
         onkeydown={(e) => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit()
           if (e.key === 'Escape') {
@@ -83,14 +116,26 @@
           }
         }}
       ></textarea>
+    {:else if isLive && !blackout && serviceScreen.mode !== 'off'}
+      <!-- Заставка перекрывает слайд — карточка эфира не должна врать -->
+      <div class="relative text-sm text-white/80">
+        {serviceScreen.mode === 'countdown' ? 'Отсчёт до начала' : serviceScreen.churchName || 'Экран ожидания'}
+      </div>
     {:else if !blackout && slide}
-      <div class="max-w-[94%]">
+      <div class="relative max-w-[94%]">
         <div
-          class="font-serif leading-[1.55] text-balance text-white"
-          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale * autofitScale(slide.text)})"
+          class="leading-[1.55] text-balance text-white {projSettings.fontFamily === 'sans'
+            ? 'font-sans font-medium'
+            : 'font-serif'}"
+          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale *
+            FONT_SIZE_FACTOR[projSettings.fontFamily] *
+            autofitScale(slide.text)})"
         >
-          {#each slide.text.split('\n') as line, i (i)}
-            {line}<br />
+          {#each lineStates(slide.text, line) as l, i (i)}
+            <span
+              class="block transition-opacity duration-500"
+              style={l.state ? `opacity: ${LINE_OPACITY[l.state]}` : ''}>{l.text || '\u00a0'}</span
+            >
           {/each}
         </div>
         {#if projSettings.showReference}

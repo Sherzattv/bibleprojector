@@ -8,6 +8,7 @@ import { getBookId, getBookTitle } from './legacy/canonical.js'
 import { data } from './db.svelte'
 import { edits } from './edits.svelte'
 import type { SongRow } from './db.svelte'
+import { singableLines } from './projection'
 
 export type ShowSource =
   | { kind: 'song'; id: number }
@@ -38,6 +39,8 @@ class ShowState {
   slides = $state<ShowSlide[]>([])
   previewIdx = $state(0)
   liveIdx = $state(-1)
+  /** Подсвеченная строка живого слайда песни — порядковый среди непустых */
+  liveLine = $state(0)
   blackout = $state(false)
   /** Контекст главы для смены перевода */
   verseCtx: VerseContext | null = null
@@ -164,8 +167,27 @@ class ShowState {
     this.setPreview(this.previewIdx - 1)
   }
 
+  /**
+   * Шаг подсветки по строкам живого слайда песни. true — шаг сделан и GO
+   * дальше не идёт. Работает только в естественном потоке: в превью стоит
+   * следующий слайд (или последний уже в эфире). Выбрал оператор в превью
+   * что-то другое — GO отправляет выбранное, как обычно.
+   */
+  stepLine(): boolean {
+    if (this.kind !== 'song' || this.blackout) return false
+    const live = this.liveSlide
+    if (!live) return false
+    const natural =
+      this.previewIdx === this.liveIdx + 1 ||
+      (this.previewIdx === this.liveIdx && this.liveIdx === this.slides.length - 1)
+    if (!natural || this.liveLine >= singableLines(live.text) - 1) return false
+    this.liveLine++
+    return true
+  }
+
   go() {
     if (!this.slides.length) return
+    this.liveLine = 0
     this.liveIdx = this.previewIdx
     if (this.previewIdx < this.slides.length - 1) this.previewIdx++
   }

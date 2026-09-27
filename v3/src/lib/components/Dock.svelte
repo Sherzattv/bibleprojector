@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { ChevronLeft, ChevronRight, Play, SquareSlash, Image, X, RotateCw } from '@lucide/svelte'
+  import { ChevronLeft, ChevronRight, Play, SquareSlash, X, RotateCw } from '@lucide/svelte'
   import { show } from '../show.svelte'
   import { data, TRANSLATIONS } from '../db.svelte'
   import { commands } from '../commands.svelte'
   import TranslationPicker from './TranslationPicker.svelte'
+  import ServiceScreenPanel from './ServiceScreenPanel.svelte'
 
   // Отступы кнопок и зазоры дока подобраны так, чтобы весь ряд помещался в
   // одну строку на 1280 с открытым порядком служения — там центру достаётся
@@ -47,9 +48,7 @@
   >
     <SquareSlash size={13} />Blackout <kbd class={kbd}>B</kbd>
   </button>
-  <button class={btn} disabled title="Логотип и фоны — следующий этап">
-    <Image size={13} />Логотип
-  </button>
+  <ServiceScreenPanel buttonClass={btn} />
   <button class={btn} onclick={() => commands.clearLive()} disabled={show.liveIdx < 0}>
     <X size={13} />Очистить <kbd class={kbd}>Esc</kbd>
   </button>

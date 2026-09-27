@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { buildContent } from '../src/lib/projection'
+import {
+  buildContent,
+  normalizeProjectionSettings,
+  DEFAULT_PROJECTION_SETTINGS,
+  lineStates,
+  singableLines,
+} from '../src/lib/projection'
 
 const slide = { text: 'Ибо так возлюбил Бог мир', reference: 'От Иоанна 3:16' }
 
@@ -76,5 +82,177 @@ describe('buildContent: заметка', () => {
     expect(buildContent({ blackout: false, kind: 'note', liveSlide: null })).toEqual({
       kind: 'empty',
     })
+  })
+})
+
+describe('normalizeProjectionSettings: экран не верит каналу на слово', () => {
+  it('пустое или битое сообщение — настройки по умолчанию', () => {
+    expect(normalizeProjectionSettings(null)).toEqual(DEFAULT_PROJECTION_SETTINGS)
+    expect(normalizeProjectionSettings('мусор')).toEqual(DEFAULT_PROJECTION_SETTINGS)
+  })
+
+  it('пульт 3.1.0 без фона и тени — фон чёрный, тень включена', () => {
+    const s = normalizeProjectionSettings({ fontScale: 1.2, showReference: false })
+    expect(s).toMatchObject({ fontScale: 1.2, showReference: false, textShadow: true })
+    expect(s.background.preset).toBe('black')
+  })
+
+  it('масштаб клампится, мусорный фон заменяется дефолтным', () => {
+    const s = normalizeProjectionSettings({ fontScale: 10, background: { preset: 42 } })
+    expect(s.fontScale).toBe(2)
+    expect(s.background).toEqual(DEFAULT_PROJECTION_SETTINGS.background)
+  })
+
+  it('валидный фон проходит как есть', () => {
+    const background = { ...DEFAULT_PROJECTION_SETTINGS.background, preset: 'snow' }
+    expect(normalizeProjectionSettings({ background }).background).toEqual(background)
+  })
+})
+
+describe('normalizeProjectionSettings: шрифт, переход, подсветка', () => {
+  it('дефолты: засечки, плавная смена 400 мс, подсветка выключена', () => {
+    expect(normalizeProjectionSettings({})).toMatchObject({
+      fontFamily: 'serif',
+      transition: 'fade',
+      transitionMs: 400,
+      lineHighlight: false,
+    })
+  })
+
+  it('мусор отбрасывается, длительность клампится', () => {
+    expect(
+      normalizeProjectionSettings({
+        fontFamily: 'comic',
+        transition: 'взрыв',
+        transitionMs: 99999,
+        lineHighlight: 'да',
+      }),
+    ).toMatchObject({
+      fontFamily: 'serif',
+      transition: 'fade',
+      transitionMs: 1600,
+      lineHighlight: false,
+    })
+    expect(normalizeProjectionSettings({ transitionMs: 1 }).transitionMs).toBe(150)
+  })
+
+  it('валидные значения проходят', () => {
+    expect(
+      normalizeProjectionSettings({
+        fontFamily: 'sans',
+        transition: 'lines',
+        transitionMs: 900,
+        lineHighlight: true,
+      }),
+    ).toMatchObject({
+      fontFamily: 'sans',
+      transition: 'lines',
+      transitionMs: 900,
+      lineHighlight: true,
+    })
+  })
+})
+
+describe('buildContent: подсветка строки', () => {
+  it('в песне номер строки едет на экран', () => {
+    expect(
+      buildContent({ blackout: false, kind: 'song', liveSlide: slide, line: 2 }),
+    ).toMatchObject({
+      kind: 'slide',
+      line: 2,
+    })
+  })
+
+  it('в Библии и без подсветки поля line нет', () => {
+    expect(
+      buildContent({ blackout: false, kind: 'bible', liveSlide: slide, line: 1 }),
+    ).not.toHaveProperty('line')
+    expect(buildContent({ blackout: false, kind: 'song', liveSlide: slide })).not.toHaveProperty(
+      'line',
+    )
+  })
+})
+
+describe('строки для подсветки', () => {
+  const text = 'Первая\n\nВторая\nТретья'
+
+  it('singableLines считает только непустые строки', () => {
+    expect(singableLines(text)).toBe(3)
+    expect(singableLines('')).toBe(0)
+  })
+
+  it('lineStates: пропетые, текущая и следующие; пустые строки без состояния', () => {
+    expect(lineStates(text, 1).map((l) => l.state)).toEqual(['sung', null, 'current', 'ahead'])
+  })
+
+  it('без подсветки состояний нет, текст строк сохраняется', () => {
+    const states = lineStates(text, undefined)
+    expect(states.map((l) => l.state)).toEqual([null, null, null, null])
+    expect(states.map((l) => l.text)).toEqual(['Первая', '', 'Вторая', 'Третья'])
+  })
+})
+
+describe('buildContent: служебные экраны', () => {
+  const countdown = {
+    kind: 'countdown' as const,
+    endsAt: 123,
+    leftMs: 0,
+    title: 'Начало через',
+    subtitle: '',
+  }
+
+  it('включённая заставка перекрывает слайд в эфире', () => {
+    expect(
+      buildContent({ blackout: false, kind: 'song', liveSlide: slide, service: countdown }),
+    ).toEqual(countdown)
+  })
+
+  it('blackout сильнее заставки', () => {
+    expect(
+      buildContent({ blackout: true, kind: null, liveSlide: null, service: countdown }),
+    ).toEqual({ kind: 'blackout' })
+  })
+
+  it('заставка видна и без слайда в эфире', () => {
+    const welcome = { kind: 'welcome' as const, name: 'Слово', announcements: [] }
+    expect(
+      buildContent({ blackout: false, kind: null, liveSlide: null, service: welcome }),
+    ).toEqual(welcome)
+  })
+})
+
+describe('normalizeProjectionSettings: вывод', () => {
+  it('по умолчанию весь экран, хромакей зелёный', () => {
+    expect(normalizeProjectionSettings({})).toMatchObject({ layout: 'full', chroma: 'green' })
+  })
+
+  it('нижняя треть на прозрачном проходит, мусор — нет', () => {
+    expect(
+      normalizeProjectionSettings({ layout: 'lower-third', chroma: 'transparent' }),
+    ).toMatchObject({
+      layout: 'lower-third',
+      chroma: 'transparent',
+    })
+    expect(normalizeProjectionSettings({ layout: 'сбоку', chroma: 'синий' })).toMatchObject({
+      layout: 'full',
+      chroma: 'green',
+    })
+  })
+})
+
+describe('normalizeProjectionSettings: свои файлы и пульс', () => {
+  it('по умолчанию файлов нет, пульс выключен', () => {
+    const s = normalizeProjectionSettings({})
+    expect(s.media).toEqual({ background: null, logo: null })
+    expect(s.pulse).toEqual({ mode: 'off', bpm: 72 })
+  })
+
+  it('ссылки на файлы и темп проходят нормализацию', () => {
+    const s = normalizeProjectionSettings({
+      media: { background: { version: 'v1', kind: 'video' } },
+      pulse: { mode: 'tempo', bpm: 90 },
+    })
+    expect(s.media.background).toEqual({ version: 'v1', kind: 'video' })
+    expect(s.pulse).toEqual({ mode: 'tempo', bpm: 90 })
   })
 })
