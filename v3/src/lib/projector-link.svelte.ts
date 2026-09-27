@@ -9,11 +9,22 @@ export interface Channel {
   onmessage: ((msg: unknown) => void) | null
 }
 
+import { MEDIA_SLOTS, isMediaPayload, type MediaPayload, type MediaSlot } from './media'
+
 /** Команды пульта окну проектора */
 export type DisplayCommand = 'fullscreen' | 'close'
 
 interface LinkMsg {
-  type: 'ping' | 'pong' | 'hello' | 'state' | 'cmd' | 'fullscreen-failed'
+  type:
+    | 'ping'
+    | 'pong'
+    | 'hello'
+    | 'state'
+    | 'cmd'
+    | 'fullscreen-failed'
+    | 'media-request'
+    | 'media'
+    | 'pulse'
   content?: unknown
   settings?: unknown
   cmd?: DisplayCommand
@@ -23,6 +34,12 @@ interface LinkMsg {
   reason?: string
   /** Контраст белого текста с живым фоном по замеру экрана; null — фона нет */
   contrast?: number | null
+  /** Какой свой файл нужен экрану */
+  slot?: MediaSlot
+  /** Сам файл — ответ пульта на media-request */
+  media?: MediaPayload
+  /** Громкость в зале по микрофону пульта, 0..1 */
+  level?: number
 }
 
 /** Сторона контроллера */
@@ -36,6 +53,8 @@ export class ProjectorLink {
   onReady: (() => void) | null = null
   /** Экран не смог развернуться даже с переданным правом — тихо промолчать нельзя */
   onFullscreenFailed: ((reason?: string) => void) | null = null
+  /** Экрану нужен свой файл оператора (фон или логотип) */
+  onMediaRequest: ((slot: MediaSlot) => void) | null = null
 
   private channel: Channel
   private pingIntervalMs: number
@@ -86,6 +105,16 @@ export class ProjectorLink {
     this.channel.post({ type: 'state', content, settings })
   }
 
+  /** Свой файл в ответ на запрос экрана. Не кэшируется в lastState: большой */
+  sendMedia(media: MediaPayload) {
+    this.channel.post({ type: 'media', media })
+  }
+
+  /** Уровень громкости для пульса фона — поток, не состояние */
+  sendPulse(level: number) {
+    this.channel.post({ type: 'pulse', level })
+  }
+
   /** Развернуть экран / закрыть окно — исполняет сама страница проектора */
   command(cmd: DisplayCommand) {
     this.channel.post({ type: 'cmd', cmd })
@@ -113,6 +142,8 @@ export class ProjectorLink {
       this.onReady?.()
     } else if (msg.type === 'fullscreen-failed') {
       this.onFullscreenFailed?.(msg.reason)
+    } else if (msg.type === 'media-request' && MEDIA_SLOTS.includes(msg.slot as MediaSlot)) {
+      this.onMediaRequest?.(msg.slot as MediaSlot)
     }
   }
 }
@@ -130,6 +161,11 @@ export class DisplayReceiver {
   contrast: number | null = null
   /** Пульт прислал команду — исполняет страница проектора */
   onCommand: ((cmd: DisplayCommand) => void) | null = null
+  /** Пришёл свой файл оператора */
+  onMedia: ((media: MediaPayload) => void) | null = null
+  /** Громкость в зале по микрофону пульта и когда она пришла */
+  micLevel = $state(0)
+  micAt = 0
 
   private channel: Channel
 
@@ -146,6 +182,11 @@ export class DisplayReceiver {
    */
   hello() {
     this.channel.post({ type: 'hello', fullscreen: this.fullscreen, contrast: this.contrast })
+  }
+
+  /** Попросить у пульта свой файл оператора */
+  requestMedia(slot: MediaSlot) {
+    this.channel.post({ type: 'media-request', slot })
   }
 
   /**
@@ -169,6 +210,15 @@ export class DisplayReceiver {
       this.settings = msg.settings ?? null
     } else if (msg.type === 'cmd' && msg.cmd) {
       this.onCommand?.(msg.cmd)
+    } else if (msg.type === 'media' && isMediaPayload(msg.media)) {
+      this.onMedia?.(msg.media)
+    } else if (
+      msg.type === 'pulse' &&
+      typeof msg.level === 'number' &&
+      Number.isFinite(msg.level)
+    ) {
+      this.micLevel = Math.min(1, Math.max(0, msg.level))
+      this.micAt = Date.now()
     }
   }
 }

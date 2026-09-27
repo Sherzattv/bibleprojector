@@ -148,6 +148,11 @@ export class BackgroundRenderer {
     return findPreset(this.settings.preset).kind
   }
 
+  /** Этот фон рисует рендер (а не чёрный экран и не свой файл) */
+  private get renders(): boolean {
+    return this.kind === 'shader' || this.kind === 'particles'
+  }
+
   private syncVisibility() {
     const kind = this.kind
     this.glCanvas.hidden = kind !== 'shader'
@@ -156,10 +161,11 @@ export class BackgroundRenderer {
 
   private ensureLoop() {
     if (this.destroyed) return
-    if (this.kind === 'none') {
+    if (!this.renders) {
       cancelAnimationFrame(this.raf)
       this.raf = 0
-      this.onContrast?.(null)
+      // Свой файл контраст меряет сам (MotionBackground), чёрному мерить нечего
+      if (this.kind === 'none') this.onContrast?.(null)
       return
     }
     if (!this.raf) {
@@ -234,7 +240,7 @@ export class BackgroundRenderer {
   }
 
   private frame(now: number) {
-    if (this.destroyed || this.kind === 'none') {
+    if (this.destroyed || !this.renders) {
       this.raf = 0
       return
     }

@@ -6,6 +6,7 @@
   import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
   import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
   import { serviceScreen } from '../service-screen.svelte'
+  import { mediaLibrary } from '../media-library.svelte'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -18,10 +19,14 @@
   // Превью фона — статичная CSS-копия палитры: настоящий шейдер крутится
   // только на проекторе, видеокарта у пульта и экрана общая
   const bg = $derived(projSettings.background)
+  // Своё фото показываем как есть; для видео — палитра (кадр в превью не нужен)
+  const ownImage = $derived(bg.preset === 'media' ? mediaLibrary.previews.background : null)
   const backdrop = $derived(
     blackout
       ? 'background: #000'
-      : `background: ${backgroundPreviewCss(bg)}`,
+      : ownImage
+        ? `background: #000 url("${ownImage}") center / cover no-repeat`
+        : `background: ${backgroundPreviewCss(bg)}`,
   )
   // Подсветка строки видна и в карточке эфира — оператор знает, где зал
   const line = $derived(

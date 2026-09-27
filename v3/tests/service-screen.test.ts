@@ -151,6 +151,13 @@ describe('ServiceScreenStore', () => {
     expect(s2.announcements.length).toBeGreaterThan(0)
   })
 
+  it('content клонируется structuredClone — его везёт BroadcastChannel', () => {
+    s.show('welcome')
+    expect(() => structuredClone(s.content())).not.toThrow()
+    s.show('countdown')
+    expect(() => structuredClone(s.content())).not.toThrow()
+  })
+
   it('длинный текст обрезается до 200 символов', () => {
     s.setTexts({ churchName: 'я'.repeat(500) })
     expect(s.churchName).toHaveLength(200)

@@ -239,3 +239,20 @@ describe('normalizeProjectionSettings: вывод', () => {
     })
   })
 })
+
+describe('normalizeProjectionSettings: свои файлы и пульс', () => {
+  it('по умолчанию файлов нет, пульс выключен', () => {
+    const s = normalizeProjectionSettings({})
+    expect(s.media).toEqual({ background: null, logo: null })
+    expect(s.pulse).toEqual({ mode: 'off', bpm: 72 })
+  })
+
+  it('ссылки на файлы и темп проходят нормализацию', () => {
+    const s = normalizeProjectionSettings({
+      media: { background: { version: 'v1', kind: 'video' } },
+      pulse: { mode: 'tempo', bpm: 90 },
+    })
+    expect(s.media.background).toEqual({ version: 'v1', kind: 'video' })
+    expect(s.pulse).toEqual({ mode: 'tempo', bpm: 90 })
+  })
+})

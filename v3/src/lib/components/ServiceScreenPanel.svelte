@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { Timer, Play, Pause, RotateCcw } from '@lucide/svelte'
+  import { Timer, Play, Pause, RotateCcw, Upload, X } from '@lucide/svelte'
+  import { mediaLibrary } from '../media-library.svelte'
+  import { ui } from '../ui.svelte'
   import {
     COUNTDOWN_MINUTES,
     formatCountdown,
@@ -38,6 +40,15 @@
   function setMode(mode: ServiceMode) {
     if (mode === 'off') serviceScreen.hide()
     else serviceScreen.show(mode)
+  }
+
+  let logoInput = $state<HTMLInputElement>()
+  async function onLogo(e: Event & { currentTarget: HTMLInputElement }) {
+    const file = e.currentTarget.files?.[0]
+    e.currentTarget.value = ''
+    if (!file) return
+    const error = await mediaLibrary.save('logo', file)
+    if (error) ui.notify(error)
   }
 
   const input =
@@ -149,6 +160,27 @@
           aria-label="Объявления, по одному на строку"
         ></textarea>
         <p class="text-xs text-faint">Объявления сменяются каждые 7 секунд.</p>
+        <input bind:this={logoInput} type="file" accept="image/*" class="hidden" onchange={onLogo} />
+        <div class="flex items-center gap-1.5">
+          <button class="{small} min-w-0 flex-1" onclick={() => logoInput?.click()}>
+            {#if mediaLibrary.previews.logo}
+              <img src={mediaLibrary.previews.logo} alt="" class="size-4 object-contain" />
+            {:else}
+              <Upload size={12} />
+            {/if}
+            <span class="truncate">{mediaLibrary.names.logo || 'Загрузить логотип общины…'}</span>
+          </button>
+          {#if mediaLibrary.refs.logo}
+            <button
+              class={small}
+              onclick={() => mediaLibrary.remove('logo')}
+              title="Убрать логотип"
+              aria-label="Убрать логотип"
+            >
+              <X size={12} />
+            </button>
+          {/if}
+        </div>
       </div>
     </div>
   {/if}
