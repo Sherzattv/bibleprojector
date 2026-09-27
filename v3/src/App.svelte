@@ -17,6 +17,7 @@
   import Dock from './lib/components/Dock.svelte'
   import Library from './lib/components/Library.svelte'
   import ProjectorControls from './lib/components/ProjectorControls.svelte'
+  import BackgroundPanel from './lib/components/BackgroundPanel.svelte'
   import PanelResizer from './lib/components/PanelResizer.svelte'
   import { layout } from './lib/layout.svelte'
   import { fitPanels } from './lib/panel-size'
@@ -147,7 +148,7 @@
   $effect(() => {
     projector.sendState(
       buildContent({ blackout: show.blackout, kind: show.kind, liveSlide: show.liveSlide }),
-      { fontScale: projSettings.fontScale, showReference: projSettings.showReference },
+      projSettings.snapshot(),
     )
   })
 
@@ -227,6 +228,8 @@
       {/if}
 
       <ProjectorControls />
+
+      <BackgroundPanel />
 
       <div class="relative">
         <button

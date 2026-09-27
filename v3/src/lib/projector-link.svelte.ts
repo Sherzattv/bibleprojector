@@ -21,6 +21,8 @@ interface LinkMsg {
   fullscreen?: boolean
   /** Почему не вышло развернуть — имя и текст DOMException как есть */
   reason?: string
+  /** Контраст белого текста с живым фоном по замеру экрана; null — фона нет */
+  contrast?: number | null
 }
 
 /** Сторона контроллера */
@@ -28,6 +30,8 @@ export class ProjectorLink {
   connected = $state(false)
   /** Развёрнут ли экран на весь монитор — по докладу самого экрана */
   displayFullscreen = $state(false)
+  /** Контраст текста с живым фоном по замеру экрана; null — фона нет или не мерили */
+  displayContrast = $state<number | null>(null)
   /** Экран поздоровался: окно загрузилось и готово принимать команды */
   onReady: (() => void) | null = null
   /** Экран не смог развернуться даже с переданным правом — тихо промолчать нельзя */
@@ -55,6 +59,7 @@ export class ProjectorLink {
         this.connected = false
         // Об экране, который молчит, мы ничего не знаем — в том числе про fullscreen
         this.displayFullscreen = false
+        this.displayContrast = null
       }
     }, this.pingIntervalMs)
   }
@@ -73,6 +78,7 @@ export class ProjectorLink {
     this.lastAlive = -Infinity
     this.connected = false
     this.displayFullscreen = false
+    this.displayContrast = null
   }
 
   sendState(content: unknown, settings: unknown) {
@@ -89,6 +95,10 @@ export class ProjectorLink {
     this.lastAlive = Date.now()
     this.connected = true
     if (typeof msg.fullscreen === 'boolean') this.displayFullscreen = msg.fullscreen
+    if (msg.contrast === null) this.displayContrast = null
+    else if (typeof msg.contrast === 'number' && Number.isFinite(msg.contrast)) {
+      this.displayContrast = msg.contrast
+    }
   }
 
   private onMessage(msg: LinkMsg) {
@@ -116,6 +126,8 @@ export class DisplayReceiver {
    * страница проектора, а читаем мы только в ответ на ping.
    */
   fullscreen = false
+  /** Последний замер контраста живого фона — тоже едет с pong */
+  contrast: number | null = null
   /** Пульт прислал команду — исполняет страница проектора */
   onCommand: ((cmd: DisplayCommand) => void) | null = null
 
@@ -133,7 +145,7 @@ export class DisplayReceiver {
    * соединение поднимается позже, и стартовое hello ушло в пустоту.
    */
   hello() {
-    this.channel.post({ type: 'hello', fullscreen: this.fullscreen })
+    this.channel.post({ type: 'hello', fullscreen: this.fullscreen, contrast: this.contrast })
   }
 
   /**
@@ -147,7 +159,11 @@ export class DisplayReceiver {
 
   private onMessage(msg: LinkMsg) {
     if (msg.type === 'ping') {
-      this.channel.post({ type: 'pong', fullscreen: this.fullscreen })
+      this.channel.post({
+        type: 'pong',
+        fullscreen: this.fullscreen,
+        contrast: this.contrast,
+      })
     } else if (msg.type === 'state') {
       this.content = msg.content
       this.settings = msg.settings ?? null

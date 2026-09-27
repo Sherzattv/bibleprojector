@@ -77,6 +77,52 @@ describe('ProjSettingsStore', () => {
     expect(broken.showReference).toBe(true)
   })
 
+  it('дефолты фона: чёрный экран, тень под текстом включена', () => {
+    expect(settings.background.preset).toBe('black')
+    expect(settings.textShadow).toBe(true)
+  })
+
+  it('selectBackground ставит фон вместе с его родной палитрой', () => {
+    settings.selectBackground('candles')
+    expect(settings.background.preset).toBe('candles')
+    expect(settings.background.palette).toBe('amber')
+  })
+
+  it('setBackground меняет только переданное и клампит мусор', () => {
+    settings.selectBackground('glass')
+    settings.setBackground({ dim: 5 })
+    expect(settings.background.preset).toBe('glass')
+    expect(settings.background.dim).toBe(0.8)
+  })
+
+  it('фон и тень переживают перезапуск', () => {
+    settings.selectBackground('aurora')
+    settings.setBackground({ palette: 'olive', speed: 0.5 })
+    settings.setTextShadow(false)
+
+    const restored = new ProjSettingsStore(store)
+    expect(restored.background).toMatchObject({ preset: 'aurora', palette: 'olive', speed: 0.5 })
+    expect(restored.textShadow).toBe(false)
+  })
+
+  it('старый формат без фона (3.1.0) читается: фон по умолчанию, масштаб сохранён', () => {
+    store.set('bp3-proj-settings', JSON.stringify({ fontScale: 1.4, showReference: false }))
+    const migrated = new ProjSettingsStore(store)
+    expect(migrated.fontScale).toBe(1.4)
+    expect(migrated.showReference).toBe(false)
+    expect(migrated.background.preset).toBe('black')
+    expect(migrated.textShadow).toBe(true)
+  })
+
+  it('snapshot — всё, что едет на экран, и это копия, а не живое состояние', () => {
+    const snap = settings.snapshot()
+    expect(Object.keys(snap).sort()).toEqual(
+      ['background', 'fontScale', 'showReference', 'textShadow'].sort(),
+    )
+    snap.background.dim = 0.7
+    expect(settings.background.dim).not.toBe(0.7)
+  })
+
   it('reset() без аргумента даёт чистое in-memory состояние', () => {
     settings.setFontScale(1.9)
     settings.setShowReference(false)

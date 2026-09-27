@@ -268,6 +268,39 @@ describe('ProjectorLink: состояние fullscreen и команды', () =>
     link.stop()
   })
 
+  it('контраст живого фона приезжает с pong, null — фона нет, мусор игнорируется', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    expect(link.displayContrast).toBe(null)
+
+    channel.onmessage?.({ type: 'pong', contrast: 9.3 })
+    expect(link.displayContrast).toBe(9.3)
+
+    // Старый экран без поля contrast не стирает известный замер
+    channel.onmessage?.({ type: 'pong' })
+    expect(link.displayContrast).toBe(9.3)
+
+    channel.onmessage?.({ type: 'pong', contrast: 'много' })
+    expect(link.displayContrast).toBe(9.3)
+
+    channel.onmessage?.({ type: 'pong', contrast: null })
+    expect(link.displayContrast).toBe(null)
+  })
+
+  it('потеря связи сбрасывает и контраст', () => {
+    const channel = new FakeChannel()
+    const link = new ProjectorLink(channel)
+    link.start()
+    channel.onmessage?.({ type: 'pong', contrast: 12 })
+    vi.advanceTimersByTime(6000)
+    expect(link.displayContrast).toBe(null)
+
+    channel.onmessage?.({ type: 'pong', contrast: 12 })
+    link.markDisconnected()
+    expect(link.displayContrast).toBe(null)
+    link.stop()
+  })
+
   it('command постит {type:"cmd", cmd}', () => {
     const channel = new FakeChannel()
     const link = new ProjectorLink(channel)
@@ -334,11 +367,27 @@ describe('DisplayReceiver', () => {
   it('в pong и hello уезжает текущее состояние fullscreen', () => {
     const channel = new FakeChannel()
     const receiver = new DisplayReceiver(channel)
-    expect(sentOfType(channel, 'hello')[0]).toEqual({ type: 'hello', fullscreen: false })
+    expect(sentOfType(channel, 'hello')[0]).toEqual({
+      type: 'hello',
+      fullscreen: false,
+      contrast: null,
+    })
 
     receiver.fullscreen = true
     channel.onmessage?.({ type: 'ping' })
-    expect(sentOfType(channel, 'pong')[0]).toEqual({ type: 'pong', fullscreen: true })
+    expect(sentOfType(channel, 'pong')[0]).toEqual({
+      type: 'pong',
+      fullscreen: true,
+      contrast: null,
+    })
+  })
+
+  it('в pong уезжает последний замер контраста живого фона', () => {
+    const channel = new FakeChannel()
+    const receiver = new DisplayReceiver(channel)
+    receiver.contrast = 12.5
+    channel.onmessage?.({ type: 'ping' })
+    expect(sentOfType(channel, 'pong')[0]).toMatchObject({ contrast: 12.5 })
   })
 
   it('команды пульта уходят в onCommand', () => {
@@ -397,7 +446,11 @@ describe('интеграция: контроллер и экран через п
     const [ctrlChannel, dispChannel] = linkedPair()
     const link = new ProjectorLink(ctrlChannel)
     link.start()
-    const content = { kind: 'slide', text: 'Аллилуйя, аллилуйя', reference: 'Аллилуйя · № 156' }
+    const content = {
+      kind: 'slide',
+      text: 'Аллилуйя, аллилуйя',
+      reference: 'Аллилуйя · № 156',
+    }
     const settings = { fontScale: 1.5, showReference: false }
     link.sendState(content, settings)
 

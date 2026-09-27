@@ -1,15 +1,24 @@
 /**
- * Настройки проекции: масштаб шрифта и показ ссылки.
- * Персистентны, устойчивы к мусору в хранилище.
+ * Настройки проекции: масштаб шрифта, показ ссылки, тень под текстом и
+ * живой фон. Персистентны, устойчивы к мусору в хранилище.
  */
 import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import {
+  DEFAULT_PROJECTION_SETTINGS,
+  normalizeProjectionSettings,
+  type ProjectionSettings,
+} from './projection'
+import { findPreset } from './backgrounds/catalog'
+import { normalizeBackground, type BackgroundSettings } from './backgrounds/settings'
 
 const KEY = 'bp3-proj-settings'
-const DEFAULTS = { fontScale: 1, showReference: true }
+const DEFAULTS = DEFAULT_PROJECTION_SETTINGS
 
 export class ProjSettingsStore {
   fontScale = $state(DEFAULTS.fontScale)
   showReference = $state(DEFAULTS.showReference)
+  textShadow = $state(DEFAULTS.textShadow)
+  background = $state<BackgroundSettings>({ ...DEFAULTS.background })
 
   private store: TextStore
 
@@ -19,28 +28,32 @@ export class ProjSettingsStore {
   }
 
   private load() {
-    this.fontScale = DEFAULTS.fontScale
-    this.showReference = DEFAULTS.showReference
+    let parsed: unknown = null
     try {
       const raw = this.store.get(KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as { fontScale?: unknown; showReference?: unknown }
-      if (typeof parsed.fontScale === 'number') {
-        this.fontScale = Math.min(2, Math.max(0.5, parsed.fontScale))
-      }
-      if (typeof parsed.showReference === 'boolean') {
-        this.showReference = parsed.showReference
-      }
+      if (raw) parsed = JSON.parse(raw)
     } catch {
       // повреждённое хранилище — остаёмся на дефолтах
     }
+    const s = normalizeProjectionSettings(parsed)
+    this.fontScale = s.fontScale
+    this.showReference = s.showReference
+    this.textShadow = s.textShadow
+    this.background = s.background
   }
 
   private persist() {
-    this.store.set(
-      KEY,
-      JSON.stringify({ fontScale: this.fontScale, showReference: this.showReference }),
-    )
+    this.store.set(KEY, JSON.stringify(this.snapshot()))
+  }
+
+  /** То, что уезжает на экран проектора */
+  snapshot(): ProjectionSettings {
+    return {
+      fontScale: this.fontScale,
+      showReference: this.showReference,
+      textShadow: this.textShadow,
+      background: { ...this.background },
+    }
   }
 
   setFontScale(v: number) {
@@ -51,6 +64,22 @@ export class ProjSettingsStore {
   setShowReference(v: boolean) {
     this.showReference = v
     this.persist()
+  }
+
+  setTextShadow(v: boolean) {
+    this.textShadow = v
+    this.persist()
+  }
+
+  /** Частичное изменение фона; мусор в patch отбрасывается нормализацией */
+  setBackground(patch: Partial<BackgroundSettings>) {
+    this.background = normalizeBackground({ ...this.background, ...patch })
+    this.persist()
+  }
+
+  /** Выбрать фон: вместе с ним ставится его родная палитра */
+  selectBackground(id: string) {
+    this.setBackground({ preset: id, palette: findPreset(id).palette })
   }
 
   /** Для тестов: подменить хранилище (без аргумента — чистое in-memory) */

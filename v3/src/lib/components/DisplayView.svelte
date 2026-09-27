@@ -3,7 +3,8 @@
   import { bcChannel, FULLSCREEN_GRANT } from '../projector-service.svelte'
   import { presentationReceiverChannel } from '../presentation'
   import { autofitScale } from '../autofit'
-  import type { ProjectionContent, ProjectionSettings } from '../projection'
+  import { normalizeProjectionSettings, type ProjectionContent } from '../projection'
+  import MotionBackground from './MotionBackground.svelte'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
   // профиле: BroadcastChannel туда не добивает, сообщения ходят через
@@ -19,9 +20,16 @@
     presentation.onOpen = () => receiver.hello()
   }
   const content = $derived(receiver.content as ProjectionContent)
-  const settings = $derived(
-    (receiver.settings as ProjectionSettings | null) ?? { fontScale: 1, showReference: true },
+  const settings = $derived(normalizeProjectionSettings(receiver.settings))
+  // Тень держит буквы на светлых бликах фона; на чёрном её не видно
+  const textShadow = $derived(
+    settings.textShadow ? 'text-shadow: 0 0.1vw 0.8vw rgb(0 0 0 / 0.65), 0 0 0.2vw rgb(0 0 0 / 0.5);' : '',
   )
+
+  // Замер контраста едет в пульт вместе с ближайшим pong
+  function onContrast(ratio: number | null) {
+    receiver.contrast = ratio === null ? null : Math.round(ratio * 10) / 10
+  }
 
   let fullscreen = $state(isPresentation)
 
@@ -88,12 +96,14 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <main
   aria-label="Экран проектора"
-  class="grid h-screen place-items-center bg-black p-[6%] text-center select-none"
+  class="relative grid h-screen place-items-center overflow-hidden bg-black p-[6%] text-center select-none"
   class:cursor-none={fullscreen}
   ondblclick={toggleFullscreen}
 >
+  <MotionBackground settings={settings.background} {onContrast} />
+
   {#if content.kind === 'slide'}
-    <div class="max-w-[92%]">
+    <div class="relative max-w-[92%]" style={textShadow}>
       <div
         class="font-serif leading-[1.5] text-balance text-white"
         style="font-size: calc(clamp(28px, 4.5vw, 72px) * {settings.fontScale * autofitScale(content.text)})"
@@ -112,7 +122,7 @@
       {/if}
     </div>
   {:else if content.kind === 'note'}
-    <div class="max-w-[88%]">
+    <div class="relative max-w-[88%]" style={textShadow}>
       <div
         class="mb-8 font-semibold tracking-[0.1em] text-amber uppercase"
         style="font-size: calc(clamp(16px, 1.8vw, 28px) * {settings.fontScale})"
@@ -129,7 +139,11 @@
       </div>
     </div>
   {/if}
-  <!-- blackout и empty — просто чёрный экран -->
+  <!-- empty — только фон. Blackout — честный чёрный поверх всего: фон под ним
+       не выключается, чтобы после возврата не перезапускаться рывком -->
+  {#if content.kind === 'blackout'}
+    <div class="absolute inset-0 bg-black"></div>
+  {/if}
 </main>
 
 <!--

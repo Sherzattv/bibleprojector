@@ -3,6 +3,7 @@
   import { show, type ShowSlide } from '../show.svelte'
   import { projSettings } from '../proj-settings.svelte'
   import { autofitScale } from '../autofit'
+  import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -11,6 +12,16 @@
   }
   let { mode, slide, blackout = false }: Props = $props()
   const isLive = $derived(mode === 'live')
+
+  // Превью фона — статичная CSS-копия палитры: настоящий шейдер крутится
+  // только на проекторе, видеокарта у пульта и экрана общая
+  const bg = $derived(projSettings.background)
+  const backdrop = $derived(
+    blackout
+      ? 'background: #000'
+      : `background: ${backgroundPreviewCss(bg)}`,
+  )
+  const dim = $derived(!blackout && isAnimated(bg) ? bg.dim : 0)
 
   let editing = $state(false)
   let draft = $state('')
@@ -70,11 +81,15 @@
   <div
     class="projection relative grid aspect-video place-items-center overflow-hidden rounded-md border p-[5%] text-center
            {isLive && slide ? 'border-live/60' : 'border-stroke-2'}"
+    style={backdrop}
   >
+    {#if dim}
+      <div class="pointer-events-none absolute inset-0 bg-black" style="opacity: {dim}"></div>
+    {/if}
     {#if editing && !isLive}
       <textarea
         bind:value={draft}
-        class="h-full w-full resize-none bg-transparent text-center font-serif text-sm leading-[1.55] text-white focus:outline-none"
+        class="relative h-full w-full resize-none bg-transparent text-center font-serif text-sm leading-[1.55] text-white focus:outline-none"
         onkeydown={(e) => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit()
           if (e.key === 'Escape') {
@@ -84,7 +99,7 @@
         }}
       ></textarea>
     {:else if !blackout && slide}
-      <div class="max-w-[94%]">
+      <div class="relative max-w-[94%]">
         <div
           class="font-serif leading-[1.55] text-balance text-white"
           style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale * autofitScale(slide.text)})"
