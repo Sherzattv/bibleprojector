@@ -27,6 +27,7 @@
   import { ui } from './lib/ui.svelte'
   import { commands } from './lib/commands.svelte'
   import { projSettings } from './lib/proj-settings.svelte'
+  import { serviceScreen } from './lib/service-screen.svelte'
   import {
     buildContent,
     TRANSITION_MS_MAX,
@@ -165,6 +166,7 @@
         kind: show.kind,
         liveSlide: show.liveSlide,
         line: projSettings.lineHighlight ? show.liveLine : undefined,
+        service: serviceScreen.content(),
       }),
       projSettings.snapshot(),
     )
@@ -339,6 +341,34 @@
               aria-label="Длительность перехода"
               class="w-full accent-[#4f83f1] disabled:opacity-40"
             />
+
+            <div class="mt-3 border-t border-stroke pt-3">
+              <div class="mb-1.5 text-sm text-muted">Вывод</div>
+              <select
+                value={projSettings.layout === 'full' ? 'full' : `lt-${projSettings.chroma}`}
+                onchange={(e) => {
+                  const v = e.currentTarget.value
+                  if (v === 'full') projSettings.setOutput({ layout: 'full' })
+                  else
+                    projSettings.setOutput({
+                      layout: 'lower-third',
+                      chroma: v === 'lt-transparent' ? 'transparent' : 'green',
+                    })
+                }}
+                class="h-7 w-full rounded border border-stroke-2 bg-panel px-1.5 text-sm text-ink"
+                aria-label="Вывод"
+              >
+                <option value="full">Весь экран — проектор</option>
+                <option value="lt-green">Нижняя треть на зелёном — хромакей</option>
+                <option value="lt-transparent">Нижняя треть на прозрачном — OBS</option>
+              </select>
+              {#if projSettings.layout === 'lower-third'}
+                <p class="mt-1.5 text-xs text-faint">
+                  Для трансляции: текст плашкой внизу, фон вырезается. Прозрачный фон — для
+                  источника «Браузер» в OBS.
+                </p>
+              {/if}
+            </div>
 
             <label class="mt-3 flex items-start gap-2 border-t border-stroke pt-3 text-sm text-muted">
               <input

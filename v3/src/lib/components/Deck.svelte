@@ -5,6 +5,7 @@
   import { autofitScale } from '../autofit'
   import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
   import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
+  import { serviceScreen } from '../service-screen.svelte'
 
   interface Props {
     mode: 'preview' | 'live'
@@ -48,9 +49,16 @@
       {isLive ? 'Эфир' : 'Превью'}
     </span>
     {#if isLive}
-      <span class="flex items-center gap-1.5 text-xs font-medium {slide || blackout ? 'text-live' : 'text-faint'}">
-        {#if slide || blackout}<span class="size-1.5 rounded-full bg-live"></span>{/if}
-        {blackout ? 'blackout' : slide ? 'идёт показ' : 'пусто'}
+      {@const onAir = slide || blackout || serviceScreen.mode !== 'off'}
+      <span class="flex items-center gap-1.5 text-xs font-medium {onAir ? 'text-live' : 'text-faint'}">
+        {#if onAir}<span class="size-1.5 rounded-full bg-live"></span>{/if}
+        {blackout
+          ? 'blackout'
+          : serviceScreen.mode !== 'off'
+            ? 'заставка'
+            : slide
+              ? 'идёт показ'
+              : 'пусто'}
       </span>
     {:else if editing}
       <span class="flex items-center gap-1">
@@ -103,6 +111,11 @@
           }
         }}
       ></textarea>
+    {:else if isLive && !blackout && serviceScreen.mode !== 'off'}
+      <!-- Заставка перекрывает слайд — карточка эфира не должна врать -->
+      <div class="relative text-sm text-white/80">
+        {serviceScreen.mode === 'countdown' ? 'Отсчёт до начала' : serviceScreen.churchName || 'Экран ожидания'}
+      </div>
     {:else if !blackout && slide}
       <div class="relative max-w-[94%]">
         <div

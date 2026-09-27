@@ -22,6 +22,13 @@ export type FontFamily = 'serif' | 'sans'
  */
 export const FONT_SIZE_FACTOR: Record<FontFamily, number> = { serif: 1, sans: 0.88 }
 
+/**
+ * Вывод: весь экран (проектор) или нижняя треть для трансляции — текст
+ * плашкой внизу поверх хромакея или прозрачного фона (источник «Браузер» в OBS)
+ */
+export type OutputLayout = 'full' | 'lower-third'
+export type ChromaKey = 'green' | 'transparent'
+
 export interface ProjectionSettings {
   fontScale: number
   showReference: boolean
@@ -34,6 +41,8 @@ export interface ProjectionSettings {
   transitionMs: number
   /** В песнях подсвечивать текущую строку, пропетые — приглушать */
   lineHighlight: boolean
+  layout: OutputLayout
+  chroma: ChromaKey
   background: BackgroundSettings
 }
 
@@ -45,6 +54,8 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   transition: 'fade',
   transitionMs: 400,
   lineHighlight: false,
+  layout: 'full',
+  chroma: 'green',
   background: DEFAULT_BACKGROUND,
 }
 
@@ -72,11 +83,20 @@ export function normalizeProjectionSettings(raw: unknown): ProjectionSettings {
         ? Math.round(Math.min(TRANSITION_MS_MAX, Math.max(TRANSITION_MS_MIN, r.transitionMs)))
         : d.transitionMs,
     lineHighlight: typeof r.lineHighlight === 'boolean' ? r.lineHighlight : d.lineHighlight,
+    layout: r.layout === 'lower-third' || r.layout === 'full' ? r.layout : d.layout,
+    chroma: r.chroma === 'transparent' || r.chroma === 'green' ? r.chroma : d.chroma,
     background: normalizeBackground(r.background),
   }
 }
 
+/** Служебные экраны — перекрывают слайды, пока включены */
+export type ServiceContent =
+  /** Отсчёт: endsAt — момент окончания (идёт), иначе стоит на leftMs */
+  | { kind: 'countdown'; endsAt: number | null; leftMs: number; title: string; subtitle: string }
+  | { kind: 'welcome'; name: string; announcements: string[] }
+
 export type ProjectionContent =
+  | ServiceContent
   | { kind: 'empty' }
   | { kind: 'blackout' }
   /** line — порядковый номер подсвеченной строки среди непустых (только песни) */
@@ -89,8 +109,11 @@ export function buildContent(input: {
   liveSlide: { text: string; reference: string } | null
   /** Подсвеченная строка песни; undefined — подсветка выключена */
   line?: number
+  /** Включённый служебный экран перекрывает слайды */
+  service?: ServiceContent | null
 }): ProjectionContent {
   if (input.blackout) return { kind: 'blackout' }
+  if (input.service) return input.service
   if (!input.liveSlide || !input.kind) return { kind: 'empty' }
   if (input.kind === 'note') {
     return { kind: 'note', text: input.liveSlide.text, title: input.liveSlide.reference }

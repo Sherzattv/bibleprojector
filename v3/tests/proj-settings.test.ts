@@ -131,13 +131,22 @@ describe('ProjSettingsStore', () => {
     })
   })
 
+  it('setOutput переключает нижнюю треть и хромакей, это сохраняется', () => {
+    settings.setOutput({ layout: 'lower-third', chroma: 'transparent' })
+    const restored = new ProjSettingsStore(store)
+    expect(restored.layout).toBe('lower-third')
+    expect(restored.chroma).toBe('transparent')
+  })
+
   it('snapshot — всё, что едет на экран, и это копия, а не живое состояние', () => {
     const snap = settings.snapshot()
     expect(Object.keys(snap).sort()).toEqual(
       [
         'background',
         'fontFamily',
+        'chroma',
         'fontScale',
+        'layout',
         'lineHighlight',
         'showReference',
         'textShadow',
