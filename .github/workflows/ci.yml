@@ -52,5 +52,8 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm test
+      # Демо одним HTML-файлом собирается без Service Worker — сборка
+      # уже ломалась молча, потому что её никто не запускал
+      - run: npm run build:demo
       # E2E (Playwright) гоняются локально перед релизом: cd v3 && npm run test:e2e
       # (решение владельца: браузерные тесты не входят в CI)
