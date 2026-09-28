@@ -7,6 +7,7 @@
     FONT_SIZE_FACTOR,
     LINE_OPACITY,
     lineStates,
+    lowerThirdText,
     normalizeProjectionSettings,
     type ProjectionContent,
   } from '../projection'
@@ -73,12 +74,6 @@
     document.body.style.background = value
   })
 
-  /** Текст плашки: строки в одну; с подсветкой — только текущая строка песни */
-  function lowerThirdText(text: string, line: number | undefined): string {
-    const lines = text.split('\n').filter((l) => l.trim())
-    if (line !== undefined && lines[line]) return lines[line]
-    return lines.join(' ')
-  }
 
   // Свои файлы оператора: в настройках едут только версии, сам файл экран
   // просит у пульта отдельно. Ответ приходит data-URL'ом — превращаем в
@@ -206,7 +201,24 @@
   // права оно не переносит — сработает лишь там, где жеста не требуют
   receiver.onCommand = (cmd) => {
     if (cmd === 'close') window.close()
+    else if (cmd === 'reload') reloadForUpdate()
     else if (cmd === 'fullscreen' && !document.fullscreenElement) enterFullscreen()
+  }
+
+  /**
+   * Пульт ставит новую версию. Попап живёт под тем же Service Worker'ом —
+   * ждём, пока новый возьмёт управление, иначе перезагрузка поднимет старую
+   * оболочку. Экран Presentation API грузится из сети — ему ждать нечего.
+   */
+  function reloadForUpdate() {
+    const sw = navigator.serviceWorker
+    if (!sw?.controller) {
+      location.reload()
+      return
+    }
+    sw.addEventListener('controllerchange', () => location.reload(), { once: true })
+    // Страховка: если смена не пришла, всё равно перезагрузиться
+    setTimeout(() => location.reload(), 5000)
   }
 
   function toggleFullscreen() {

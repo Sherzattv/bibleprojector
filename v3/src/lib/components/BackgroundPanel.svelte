@@ -5,6 +5,7 @@
   import { DIM_MAX, SPEED_MAX, isAnimated } from '../backgrounds/settings'
   import { projSettings } from '../proj-settings.svelte'
   import { getProjectorLink } from '../projector-service.svelte'
+  import { dismissable } from '../dismiss'
   import { mediaLibrary } from '../media-library.svelte'
   import { mic } from '../mic.svelte'
   import { ui } from '../ui.svelte'
@@ -74,7 +75,7 @@
   const row = 'flex items-center justify-between text-sm'
 </script>
 
-<div class="relative">
+<div class="relative" use:dismissable={{ open, close: () => (open = false) }}>
   <button
     onclick={() => (open = !open)}
     class="grid size-7 place-items-center rounded border border-stroke-2 bg-panel-2 text-muted hover:bg-hover hover:text-ink

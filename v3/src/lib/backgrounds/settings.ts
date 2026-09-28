@@ -2,7 +2,7 @@
  * Настройки живого фона: что едет на экран проектора и что хранится.
  * Чистые функции — покрыты tests/backgrounds.test.ts.
  */
-import { BACKGROUNDS, PALETTES, findPalette, findPreset, type PaletteId } from './catalog'
+import { BACKGROUNDS, PALETTES, findPreset, type PaletteId } from './catalog'
 
 export interface BackgroundSettings {
   /** id из BACKGROUNDS */
@@ -67,20 +67,4 @@ export function normalizeBackground(raw: unknown): BackgroundSettings {
 /** Фон рисуется (не чёрный экран) — от этого зависит, нужен ли рендер вообще */
 export function isAnimated(s: BackgroundSettings): boolean {
   return findPreset(s.preset).kind !== 'none'
-}
-
-/**
- * Статичная CSS-копия фона для превью в пульте. Настоящий шейдер там не
- * запускаем: видеокарта одна на пульт и проектор, а превью маленькое —
- * трёх мягких пятен палитры достаточно, чтобы оценить читаемость.
- */
-export function backgroundPreviewCss(s: BackgroundSettings): string {
-  if (!isAnimated(s)) return '#000'
-  const [base, c1, c2, c3] = findPalette(s.palette).colors
-  return [
-    `radial-gradient(60% 80% at 22% 30%, ${c1}cc, transparent 70%)`,
-    `radial-gradient(55% 75% at 80% 72%, ${c2}b3, transparent 70%)`,
-    `radial-gradient(45% 60% at 62% 18%, ${c3}99, transparent 70%)`,
-    base,
-  ].join(', ')
 }

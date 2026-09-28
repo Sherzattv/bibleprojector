@@ -4,6 +4,7 @@ import {
   normalizeProjectionSettings,
   DEFAULT_PROJECTION_SETTINGS,
   lineStates,
+  lowerThirdText,
   singableLines,
 } from '../src/lib/projection'
 
@@ -254,5 +255,19 @@ describe('normalizeProjectionSettings: свои файлы и пульс', () =>
     })
     expect(s.media.background).toEqual({ version: 'v1', kind: 'video' })
     expect(s.pulse).toEqual({ mode: 'tempo', bpm: 90 })
+  })
+})
+
+describe('lowerThirdText: текст плашки нижней трети', () => {
+  it('строки слайда в одну, пустые выпадают', () => {
+    expect(lowerThirdText('Первая\n\nВторая', undefined)).toBe('Первая Вторая')
+  })
+
+  it('с подсветкой — только текущая строка песни', () => {
+    expect(lowerThirdText('Первая\n\nВторая', 1)).toBe('Вторая')
+  })
+
+  it('номер строки за пределами — весь текст', () => {
+    expect(lowerThirdText('Одна', 5)).toBe('Одна')
   })
 })

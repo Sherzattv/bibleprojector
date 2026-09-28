@@ -2,6 +2,7 @@
   import { Timer, Play, Pause, RotateCcw, Upload, X } from '@lucide/svelte'
   import { mediaLibrary } from '../media-library.svelte'
   import { ui } from '../ui.svelte'
+  import { dismissable } from '../dismiss'
   import {
     COUNTDOWN_MINUTES,
     formatCountdown,
@@ -58,7 +59,7 @@
     'flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel px-2 text-sm text-muted hover:bg-hover hover:text-ink'
 </script>
 
-<div class="relative">
+<div class="relative" use:dismissable={{ open, close: () => (open = false) }}>
   <button
     class="{buttonClass} {onAir ? 'border-accent! text-ink!' : ''}"
     onclick={() => (open = !open)}

@@ -24,6 +24,19 @@ describe('LayoutStore — раскладка переживает перезап
     expect(second.setlistOpen).toBe(false)
   })
 
+  it('библиотека сворачивается независимо от плана и это переживает перезапуск', () => {
+    const backing = createMemoryStore()
+    const first = new LayoutStore(backing)
+    expect(first.libraryOpen).toBe(true)
+    first.toggleLibrary()
+    expect(first.libraryOpen).toBe(false)
+    expect(first.setlistOpen).toBe(true)
+
+    const second = new LayoutStore(backing)
+    expect(second.libraryOpen).toBe(false)
+    expect(second.libraryWidth).toBe(DEFAULT_LIBRARY_WIDTH)
+  })
+
   it('мусор в хранилище не ломает пульт', () => {
     const store = new LayoutStore(createMemoryStore({ 'bp3-layout': '{не json' }))
     expect(store.libraryWidth).toBe(DEFAULT_LIBRARY_WIDTH)

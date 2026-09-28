@@ -145,6 +145,19 @@ export function singableLines(text: string): number {
   return text.split('\n').filter((l) => l.trim()).length
 }
 
+/** Текст плашки нижней трети: строки в одну; с подсветкой — только текущая строка песни */
+export function lowerThirdText(text: string, line: number | undefined): string {
+  const lines = text.split('\n').filter((l) => l.trim())
+  if (line !== undefined && lines[line]) return lines[line]
+  return lines.join(' ')
+}
+
+/** Фон под нижней третью: хромакей или шахматка «прозрачно», как в редакторах */
+export const CHROMA_BACKGROUND: Record<ChromaKey, string> = {
+  green: '#00b140',
+  transparent: 'repeating-conic-gradient(#3a3d42 0% 25%, #2a2c30 0% 50%) 0 0 / 16px 16px',
+}
+
 export type LineState = 'current' | 'sung' | 'ahead'
 
 /**
