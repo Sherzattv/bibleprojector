@@ -1,6 +1,6 @@
 {
     "name": "bibleprojector",
-    "version": "3.2.1",
+    "version": "3.2.2",
     "description": "Bible Projector v3 desktop PWA",
     "type": "module",
     "engines": {

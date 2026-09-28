@@ -8,12 +8,10 @@
     settings: BackgroundSettings
     /** Своё фото или видео оператора — object URL, когда файл уже пришёл */
     media?: { url: string; kind: 'image' | 'video' } | null
-    /** Множитель яркости от пульса музыки; 1 — без пульса */
-    gain?: number
     /** Замер контраста белого текста с фоном; null — фон чёрный */
     onContrast?: (ratio: number | null) => void
   }
-  let { settings, media = null, gain = 1, onContrast }: Props = $props()
+  let { settings, media = null, onContrast }: Props = $props()
 
   let glCanvas = $state<HTMLCanvasElement>()
   let flowCanvas = $state<HTMLCanvasElement>()
@@ -78,7 +76,6 @@
      это незаметно, а видеокарта нагружается в разы меньше -->
 <div
   class="pointer-events-none absolute inset-0 overflow-hidden"
-  style={gain !== 1 ? `filter: brightness(${gain.toFixed(3)})` : ''}
   aria-hidden="true"
 >
   <canvas bind:this={glCanvas} class="absolute inset-0 size-full" hidden></canvas>

@@ -8,7 +8,6 @@ import {
   type BackgroundSettings,
 } from './backgrounds/settings'
 import { NO_MEDIA, normalizeMediaRefs, type MediaRefs } from './media'
-import { DEFAULT_PULSE, normalizePulse, type PulseSettings } from './pulse'
 
 /** Как один слайд сменяет другой на экране */
 export type TransitionKind = 'cut' | 'fade' | 'blur' | 'lines' | 'rise'
@@ -48,7 +47,6 @@ export interface ProjectionSettings {
   background: BackgroundSettings
   /** Свои файлы: версии, по которым экран понимает, что пора перезапросить */
   media: MediaRefs
-  pulse: PulseSettings
 }
 
 export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
@@ -63,7 +61,6 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   chroma: 'green',
   background: DEFAULT_BACKGROUND,
   media: NO_MEDIA,
-  pulse: DEFAULT_PULSE,
 }
 
 /**
@@ -73,7 +70,7 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
 export function normalizeProjectionSettings(raw: unknown): ProjectionSettings {
   const d = DEFAULT_PROJECTION_SETTINGS
   if (!raw || typeof raw !== 'object') {
-    return { ...d, background: { ...d.background }, media: { ...d.media }, pulse: { ...d.pulse } }
+    return { ...d, background: { ...d.background }, media: { ...d.media } }
   }
   const r = raw as Record<string, unknown>
   return {
@@ -96,7 +93,6 @@ export function normalizeProjectionSettings(raw: unknown): ProjectionSettings {
     chroma: r.chroma === 'transparent' || r.chroma === 'green' ? r.chroma : d.chroma,
     background: normalizeBackground(r.background),
     media: normalizeMediaRefs(r.media),
-    pulse: normalizePulse(r.pulse),
   }
 }
 

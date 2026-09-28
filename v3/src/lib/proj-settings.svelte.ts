@@ -15,7 +15,6 @@ import {
 import { findPreset } from './backgrounds/catalog'
 import { normalizeBackground, type BackgroundSettings } from './backgrounds/settings'
 import { NO_MEDIA } from './media'
-import { normalizePulse, type PulseSettings } from './pulse'
 
 const KEY = 'bp3-proj-settings'
 const DEFAULTS = DEFAULT_PROJECTION_SETTINGS
@@ -31,7 +30,6 @@ export class ProjSettingsStore {
   layout = $state<OutputLayout>(DEFAULTS.layout)
   chroma = $state<ChromaKey>(DEFAULTS.chroma)
   background = $state<BackgroundSettings>({ ...DEFAULTS.background })
-  pulse = $state<PulseSettings>({ ...DEFAULTS.pulse })
 
   private store: TextStore
 
@@ -59,7 +57,6 @@ export class ProjSettingsStore {
     this.layout = s.layout
     this.chroma = s.chroma
     this.background = s.background
-    this.pulse = s.pulse
   }
 
   private persist() {
@@ -81,7 +78,6 @@ export class ProjSettingsStore {
       background: { ...this.background },
       // Свои файлы живут в mediaLibrary — их ссылки подставляет App
       media: { ...NO_MEDIA },
-      pulse: { ...this.pulse },
     }
   }
 
@@ -126,11 +122,6 @@ export class ProjSettingsStore {
   /** Частичное изменение фона; мусор в patch отбрасывается нормализацией */
   setBackground(patch: Partial<BackgroundSettings>) {
     this.background = normalizeBackground({ ...this.background, ...patch })
-    this.persist()
-  }
-
-  setPulse(patch: Partial<PulseSettings>) {
-    this.pulse = normalizePulse({ ...this.pulse, ...patch })
     this.persist()
   }
 

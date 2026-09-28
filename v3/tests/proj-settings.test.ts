@@ -138,15 +138,8 @@ describe('ProjSettingsStore', () => {
     expect(restored.chroma).toBe('transparent')
   })
 
-  it('setPulse клампит темп и сохраняется', () => {
-    settings.setPulse({ mode: 'tempo', bpm: 999 })
-    const restored = new ProjSettingsStore(store)
-    expect(restored.pulse).toEqual({ mode: 'tempo', bpm: 150 })
-  })
-
   it('snapshot клонируется structuredClone — иначе BroadcastChannel молча не отправит ничего', () => {
     settings.selectBackground('glass')
-    settings.setPulse({ mode: 'tempo' })
     expect(() => structuredClone(settings.snapshot())).not.toThrow()
   })
 
@@ -161,7 +154,6 @@ describe('ProjSettingsStore', () => {
         'layout',
         'lineHighlight',
         'media',
-        'pulse',
         'showReference',
         'textShadow',
         'transition',

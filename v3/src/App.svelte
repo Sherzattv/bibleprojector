@@ -29,7 +29,6 @@
   import { projSettings } from './lib/proj-settings.svelte'
   import { serviceScreen } from './lib/service-screen.svelte'
   import { mediaLibrary } from './lib/media-library.svelte'
-  import { mic } from './lib/mic.svelte'
   import {
     buildContent,
     TRANSITION_MS_MAX,
@@ -96,12 +95,6 @@
       .catch(() => ui.notify('Не удалось прочитать свой файл — загрузите его заново.'))
   }
 
-  // Микрофон слушает пульт, пока выбран пульс «от микрофона»
-  $effect(() => {
-    if (projSettings.pulse.mode !== 'mic') return
-    void mic.start((level) => projector.sendPulse(level))
-    return () => mic.stop()
-  })
 
   function tick() {
     const d = new Date()

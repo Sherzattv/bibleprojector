@@ -16,7 +16,6 @@
   import CountdownScreen from './CountdownScreen.svelte'
   import WelcomeScreen from './WelcomeScreen.svelte'
   import { MEDIA_SLOTS, type MediaSlot } from '../media'
-  import { pulseGain } from '../pulse'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
   // профиле: BroadcastChannel туда не добивает, сообщения ходят через
@@ -123,28 +122,6 @@
     return () => clearInterval(id)
   })
 
-  // Пульс музыки: темп экран считает сам, уровень микрофона приходит с пульта
-  let gain = $state(1)
-  $effect(() => {
-    const { mode, bpm } = settings.pulse
-    if (mode === 'off') {
-      gain = 1
-      return
-    }
-    let raf = 0
-    let last = 0
-    const tick = (t: number) => {
-      raf = requestAnimationFrame(tick)
-      if (t - last < 33) return
-      last = t
-      // Микрофон замолчал (пульт закрыли) — фон успокаивается, а не застывает на пике
-      const level = Date.now() - receiver.micAt < 800 ? receiver.micLevel : 0
-      gain = pulseGain(mode, Date.now(), bpm, level)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  })
-
   // Замер контраста едет в пульт вместе с ближайшим pong
   function onContrast(ratio: number | null) {
     receiver.contrast = ratio === null ? null : Math.round(ratio * 10) / 10
@@ -238,7 +215,7 @@
   ondblclick={toggleFullscreen}
 >
   {#if !lowerThird}
-    <MotionBackground settings={settings.background} media={loaded.background} {gain} {onContrast} />
+    <MotionBackground settings={settings.background} media={loaded.background} {onContrast} />
   {/if}
 
   <!-- Смена слайда — смена ключа: уходящий и входящий живут в одной ячейке

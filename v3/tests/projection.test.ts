@@ -241,20 +241,17 @@ describe('normalizeProjectionSettings: вывод', () => {
   })
 })
 
-describe('normalizeProjectionSettings: свои файлы и пульс', () => {
-  it('по умолчанию файлов нет, пульс выключен', () => {
+describe('normalizeProjectionSettings: свои файлы', () => {
+  it('по умолчанию своих файлов нет', () => {
     const s = normalizeProjectionSettings({})
     expect(s.media).toEqual({ background: null, logo: null })
-    expect(s.pulse).toEqual({ mode: 'off', bpm: 72 })
   })
 
-  it('ссылки на файлы и темп проходят нормализацию', () => {
+  it('ссылки на файлы проходят нормализацию', () => {
     const s = normalizeProjectionSettings({
       media: { background: { version: 'v1', kind: 'video' } },
-      pulse: { mode: 'tempo', bpm: 90 },
     })
     expect(s.media.background).toEqual({ version: 'v1', kind: 'video' })
-    expect(s.pulse).toEqual({ mode: 'tempo', bpm: 90 })
   })
 })
 
@@ -269,5 +266,12 @@ describe('lowerThirdText: текст плашки нижней трети', () =
 
   it('номер строки за пределами — весь текст', () => {
     expect(lowerThirdText('Одна', 5)).toBe('Одна')
+  })
+})
+
+describe('normalizeProjectionSettings: пульс убран в 3.2.2', () => {
+  it('старое поле pulse из хранилища молча отбрасывается', () => {
+    const s = normalizeProjectionSettings({ pulse: { mode: 'mic', bpm: 90 } })
+    expect(s).not.toHaveProperty('pulse')
   })
 })
