@@ -463,7 +463,7 @@ describe('интеграция: контроллер и экран через п
   })
 })
 
-describe('протокол: свои файлы и пульс', () => {
+describe('протокол: свои файлы', () => {
   it('пульт получает запрос файла только для известных слотов', () => {
     const channel = new FakeChannel()
     const link = new ProjectorLink(channel)
@@ -475,14 +475,12 @@ describe('протокол: свои файлы и пульс', () => {
     expect(got).toEqual(['logo'])
   })
 
-  it('sendMedia и sendPulse уходят в канал, но не в lastState для hello', () => {
+  it('sendMedia уходит в канал, но не в lastState для hello', () => {
     const channel = new FakeChannel()
     const link = new ProjectorLink(channel)
     link.sendState({ kind: 'empty' }, {})
     link.sendMedia({ slot: 'background', version: 'v1', dataUrl: 'data:image/png;base64,AA' })
-    link.sendPulse(0.4)
     expect(sentOfType(channel, 'media')).toHaveLength(1)
-    expect(sentOfType(channel, 'pulse')).toEqual([{ type: 'pulse', level: 0.4 }])
 
     channel.sent = []
     channel.onmessage?.({ type: 'hello' })
@@ -511,15 +509,4 @@ describe('протокол: свои файлы и пульс', () => {
     expect(got).toHaveLength(1)
   })
 
-  it('уровень микрофона клампится в 0..1, мусор игнорируется', () => {
-    const channel = new FakeChannel()
-    const receiver = new DisplayReceiver(channel)
-    channel.onmessage?.({ type: 'pulse', level: 3 })
-    expect(receiver.micLevel).toBe(1)
-    channel.onmessage?.({ type: 'pulse', level: 'громко' })
-    expect(receiver.micLevel).toBe(1)
-    channel.onmessage?.({ type: 'pulse', level: 0.25 })
-    expect(receiver.micLevel).toBe(0.25)
-    expect(receiver.micAt).toBeGreaterThan(0)
-  })
 })

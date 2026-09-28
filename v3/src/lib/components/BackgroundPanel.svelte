@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Palette, Upload, X } from '@lucide/svelte'
+  import { Palette, RefreshCw, Upload, X } from '@lucide/svelte'
   import { BACKGROUND_GROUPS, BACKGROUNDS, PALETTES, findPalette } from '../backgrounds/catalog'
   import { contrastLevel } from '../backgrounds/contrast'
   import { DIM_MAX, SPEED_MAX, isAnimated } from '../backgrounds/settings'
@@ -7,9 +7,7 @@
   import { getProjectorLink } from '../projector-service.svelte'
   import { dismissable } from '../dismiss'
   import { mediaLibrary } from '../media-library.svelte'
-  import { mic } from '../mic.svelte'
   import { ui } from '../ui.svelte'
-  import { BPM_MAX, BPM_MIN, tapTempo, type PulseMode } from '../pulse'
 
   const projector = getProjectorLink()
 
@@ -32,13 +30,10 @@
 
   let fileInput = $state<HTMLInputElement>()
 
-  function pickPreset(id: string) {
-    // Своего файла ещё нет — сначала выбрать его
-    if (id === 'media' && !mediaLibrary.refs.background) {
-      fileInput?.click()
-      return
-    }
-    projSettings.selectBackground(id)
+  /** Своего файла ещё нет — выбрать его; есть — поставить фоном */
+  function pickOwn() {
+    if (!mediaLibrary.refs.background) fileInput?.click()
+    else projSettings.selectBackground('media')
   }
 
   async function onFile(e: Event & { currentTarget: HTMLInputElement }) {
@@ -55,21 +50,6 @@
     if (bg.preset === 'media') projSettings.selectBackground('black')
   }
 
-  // Тап-темп: оператор стучит в ритм песни
-  let taps: number[] = []
-  function tap() {
-    const now = performance.now()
-    taps = [...taps.filter((t) => now - t <= 3000), now]
-    const bpm = tapTempo(taps, now)
-    if (projSettings.pulse.mode === 'off') projSettings.setPulse({ mode: 'tempo' })
-    if (bpm) projSettings.setPulse({ bpm })
-  }
-
-  const pulseModes: Array<[PulseMode, string]> = [
-    ['off', 'Выкл'],
-    ['tempo', 'Темп'],
-    ['mic', 'Микрофон'],
-  ]
 
   const label = 'text-2xs font-semibold tracking-wide text-faint uppercase'
   const row = 'flex items-center justify-between text-sm'
@@ -104,69 +84,85 @@
 
       <div class="flex flex-col gap-3 p-3">
         {#each BACKGROUND_GROUPS as group (group.id)}
+          {@const presets = BACKGROUNDS.filter((b) => b.group === group.id && b.kind !== 'media')}
           <div class="flex flex-col gap-1.5">
             <span class={label}>{group.name}</span>
-            <div class="grid grid-cols-2 gap-1.5">
-              {#each BACKGROUNDS.filter((b) => b.group === group.id) as preset (preset.id)}
-                {@const colors = findPalette(preset.palette).colors}
+            {#if presets.length}
+              <div class="grid grid-cols-2 gap-1.5">
+                {#each presets as preset (preset.id)}
+                  {@const colors = findPalette(preset.palette).colors}
+                  <button
+                    onclick={() => projSettings.selectBackground(preset.id)}
+                    aria-pressed={bg.preset === preset.id}
+                    title={preset.description}
+                    class="flex h-7 items-center gap-2 rounded border px-2 text-left text-sm
+                           {bg.preset === preset.id
+                      ? 'border-accent bg-accent-dim text-ink'
+                      : 'border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink'}"
+                  >
+                    <span class="flex h-3 w-6 shrink-0 overflow-hidden rounded border border-stroke-2">
+                      {#if preset.kind === 'none'}
+                        <span class="flex-1 bg-black"></span>
+                      {:else}
+                        {#each colors.slice(1) as c (c)}
+                          <span class="flex-1" style="background: {c}"></span>
+                        {/each}
+                      {/if}
+                    </span>
+                    <span class="truncate">{preset.name}</span>
+                  </button>
+                {/each}
+              </div>
+            {/if}
+
+            {#if group.id === 'own'}
+              <!-- Одна кнопка на свой файл: нет файла — выбрать, есть — поставить фоном -->
+              <input
+                bind:this={fileInput}
+                type="file"
+                accept="image/*,video/mp4,video/webm"
+                class="hidden"
+                onchange={onFile}
+              />
+              <div class="flex items-center gap-1.5">
                 <button
-                  onclick={() => pickPreset(preset.id)}
-                  aria-pressed={bg.preset === preset.id}
-                  title={preset.description}
-                  class="flex h-7 items-center gap-2 rounded border px-2 text-left text-sm
-                         {bg.preset === preset.id
+                  onclick={pickOwn}
+                  aria-pressed={bg.preset === 'media'}
+                  class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded border px-2 text-sm
+                         {bg.preset === 'media'
                     ? 'border-accent bg-accent-dim text-ink'
                     : 'border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink'}"
                 >
-                  <span class="flex h-3 w-6 shrink-0 overflow-hidden rounded border border-stroke-2">
-                    {#if preset.kind === 'none'}
-                      <span class="flex-1 bg-black"></span>
-                    {:else if preset.kind === 'media'}
-                      <span class="flex flex-1 items-center justify-center bg-panel-2 text-faint">
-                        <Upload size={9} />
-                      </span>
-                    {:else}
-                      {#each colors.slice(1) as c (c)}
-                        <span class="flex-1" style="background: {c}"></span>
-                      {/each}
-                    {/if}
+                  <Upload size={12} />
+                  <span class="truncate">
+                    {mediaLibrary.names.background || 'Загрузить фото или видео…'}
                   </span>
-                  <span class="truncate">{preset.name}</span>
                 </button>
-              {/each}
-            </div>
+                {#if mediaLibrary.refs.background}
+                  <button
+                    onclick={() => fileInput?.click()}
+                    class="grid size-7 place-items-center rounded border border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink"
+                    title="Заменить файл"
+                    aria-label="Заменить свой файл"
+                  >
+                    <RefreshCw size={12} />
+                  </button>
+                  <button
+                    onclick={removeFile}
+                    class="grid size-7 place-items-center rounded border border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink"
+                    title="Убрать свой файл"
+                    aria-label="Убрать свой файл"
+                  >
+                    <X size={12} />
+                  </button>
+                {/if}
+              </div>
+              <p class="text-xs text-faint">
+                Картинка до 10 МБ или видео MP4/WebM до 40 МБ, лучше без звука и зацикленное.
+              </p>
+            {/if}
           </div>
         {/each}
-
-        <input
-          bind:this={fileInput}
-          type="file"
-          accept="image/*,video/mp4,video/webm"
-          class="hidden"
-          onchange={onFile}
-        />
-        <div class="flex items-center gap-1.5">
-          <button
-            onclick={() => fileInput?.click()}
-            class="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded border border-stroke-2 bg-panel px-2 text-sm text-muted hover:bg-hover hover:text-ink"
-          >
-            <Upload size={12} />
-            <span class="truncate">
-              {mediaLibrary.names.background || 'Загрузить фото или видео…'}
-            </span>
-          </button>
-          {#if mediaLibrary.refs.background}
-            <button
-              onclick={removeFile}
-              class="grid size-7 place-items-center rounded border border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink"
-              title="Убрать свой файл"
-              aria-label="Убрать свой файл"
-            >
-              <X size={12} />
-            </button>
-          {/if}
-        </div>
-        <p class="text-xs text-faint">Картинка до 10 МБ или видео MP4/WebM до 40 МБ, лучше без звука и зацикленное.</p>
       </div>
 
       <div class="flex flex-col gap-3 border-t border-stroke p-3" class:opacity-40={!animated}>
@@ -256,49 +252,6 @@
         </label>
       </div>
 
-      <div class="flex flex-col gap-2 border-t border-stroke p-3" class:opacity-40={!animated}>
-        <span class={label}>Пульс музыки — фон «дышит» в такт</span>
-        <div class="grid grid-cols-3 overflow-hidden rounded border border-stroke-2" role="group" aria-label="Пульс музыки">
-          {#each pulseModes as [mode, name], i (mode)}
-            <button
-              onclick={() => projSettings.setPulse({ mode })}
-              disabled={!animated}
-              aria-pressed={projSettings.pulse.mode === mode}
-              class="h-7 text-sm {i ? 'border-l border-stroke-2' : ''}
-                     {projSettings.pulse.mode === mode ? 'bg-active text-ink' : 'bg-panel text-muted hover:bg-hover'}"
-            >
-              {name}
-            </button>
-          {/each}
-        </div>
-        {#if projSettings.pulse.mode === 'tempo'}
-          <div class="flex items-center gap-2">
-            <input
-              type="range"
-              min={BPM_MIN}
-              max={BPM_MAX}
-              step="1"
-              value={projSettings.pulse.bpm}
-              oninput={(e) => projSettings.setPulse({ bpm: parseInt(e.currentTarget.value, 10) })}
-              aria-label="Темп, ударов в минуту"
-              class="min-w-0 flex-1 accent-[#4f83f1]"
-            />
-            <span class="w-16 font-mono text-xs text-faint tabular-nums">{projSettings.pulse.bpm} уд/м</span>
-            <button
-              onclick={tap}
-              class="h-7 rounded border border-stroke-2 bg-panel px-2 text-sm text-muted hover:bg-hover hover:text-ink"
-              title="Нажимайте в ритм песни — темп подберётся сам"
-            >
-              Тап
-            </button>
-          </div>
-        {:else if projSettings.pulse.mode === 'mic'}
-          <p class="text-xs {mic.error ? 'text-amber' : 'text-faint'}">
-            {mic.error ?? (mic.active ? 'Слушаем зал: фон реагирует на громкость музыки.' : 'Включаем микрофон…')}
-          </p>
-        {/if}
-      </div>
-
       <div class="flex flex-col gap-2 border-t border-stroke p-3">
         <label class="flex items-center gap-2 text-sm text-muted">
           <input
@@ -335,6 +288,10 @@
             <option value="60">60 к/с</option>
           </select>
         </div>
+        <p class="text-xs text-faint">
+          Больше — чуть чётче и плавнее, но сильнее греет видеокарту. На мягких фонах разница почти
+          не видна; если ноутбук тормозит или шумит, ставьте 50% и 30 к/с.
+        </p>
       </div>
     </div>
   {/if}

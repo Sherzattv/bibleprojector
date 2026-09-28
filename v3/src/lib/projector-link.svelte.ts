@@ -24,7 +24,6 @@ interface LinkMsg {
     | 'fullscreen-failed'
     | 'media-request'
     | 'media'
-    | 'pulse'
   content?: unknown
   settings?: unknown
   cmd?: DisplayCommand
@@ -38,8 +37,6 @@ interface LinkMsg {
   slot?: MediaSlot
   /** Сам файл — ответ пульта на media-request */
   media?: MediaPayload
-  /** Громкость в зале по микрофону пульта, 0..1 */
-  level?: number
 }
 
 /** Сторона контроллера */
@@ -110,11 +107,6 @@ export class ProjectorLink {
     this.channel.post({ type: 'media', media })
   }
 
-  /** Уровень громкости для пульса фона — поток, не состояние */
-  sendPulse(level: number) {
-    this.channel.post({ type: 'pulse', level })
-  }
-
   /** Развернуть экран / закрыть окно — исполняет сама страница проектора */
   command(cmd: DisplayCommand) {
     this.channel.post({ type: 'cmd', cmd })
@@ -163,9 +155,6 @@ export class DisplayReceiver {
   onCommand: ((cmd: DisplayCommand) => void) | null = null
   /** Пришёл свой файл оператора */
   onMedia: ((media: MediaPayload) => void) | null = null
-  /** Громкость в зале по микрофону пульта и когда она пришла */
-  micLevel = $state(0)
-  micAt = 0
 
   private channel: Channel
 
@@ -212,13 +201,6 @@ export class DisplayReceiver {
       this.onCommand?.(msg.cmd)
     } else if (msg.type === 'media' && isMediaPayload(msg.media)) {
       this.onMedia?.(msg.media)
-    } else if (
-      msg.type === 'pulse' &&
-      typeof msg.level === 'number' &&
-      Number.isFinite(msg.level)
-    ) {
-      this.micLevel = Math.min(1, Math.max(0, msg.level))
-      this.micAt = Date.now()
     }
   }
 }
