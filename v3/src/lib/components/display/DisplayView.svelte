@@ -1,22 +1,25 @@
 <script lang="ts">
   import { DisplayReceiver } from '../../projector/link.svelte'
-  import { bcChannel, FULLSCREEN_GRANT } from '../../projector/service.svelte'
+  import { bcChannel } from '../../projector/service.svelte'
   import { presentationReceiverChannel } from '../../projector/presentation'
-  import { autofitScale } from '../../projection/autofit'
+  import { DisplayMedia, MEDIA_RETRY_MS } from '../../projector/display-media.svelte'
   import {
-    FONT_SIZE_FACTOR,
-    LINE_OPACITY,
-    lineStates,
-    lowerThirdText,
-    normalizeProjectionSettings,
-    type ProjectionContent,
-  } from '../../projection/content'
+    acceptFullscreenGrant,
+    enterFullscreen,
+    keepScreenAwake,
+    reloadForUpdate,
+    toggleFullscreen,
+    watchFullscreen,
+  } from '../../projector/display-window'
+  import { autofitScale } from '../../projection/autofit'
+  import { normalizeProjectionSettings, type ProjectionContent } from '../../projection/content'
   import { lineIn, slideIn, slideOut } from '../../projection/transitions'
   import MotionBackground from '../projection/MotionBackground.svelte'
+  import ParallelVerse from '../projection/ParallelVerse.svelte'
+  import SlideText from '../projection/SlideText.svelte'
   import CountdownScreen from './CountdownScreen.svelte'
   import WelcomeScreen from './WelcomeScreen.svelte'
-  import ParallelVerse from '../projection/ParallelVerse.svelte'
-  import { MEDIA_SLOTS, type MediaSlot } from '../../media/protocol'
+  import LowerThirdScreen from './LowerThirdScreen.svelte'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
   // профиле: BroadcastChannel туда не добивает, сообщения ходят через
@@ -74,52 +77,13 @@
     document.body.style.background = value
   })
 
-
-  // Свои файлы оператора: в настройках едут только версии, сам файл экран
-  // просит у пульта отдельно. Ответ приходит data-URL'ом — превращаем в
-  // object URL, чтобы видео не держало в DOM строку на десятки мегабайт
-  type Loaded = { version: string; url: string; kind: 'image' | 'video' }
-  let loaded = $state<Record<MediaSlot, Loaded | null>>({ background: null, logo: null })
-  const requestedAt: Record<MediaSlot, number> = { background: 0, logo: 0 }
-  /** Не дождались ответа (пульт перезапускали) — спросим снова через столько */
-  const MEDIA_RETRY_MS = 4000
-
-  function drop(slot: MediaSlot) {
-    const old = loaded[slot]
-    if (old) URL.revokeObjectURL(old.url)
-    loaded = { ...loaded, [slot]: null }
-  }
-
-  receiver.onMedia = async (m) => {
-    const ref = settings.media[m.slot]
-    if (!m.dataUrl) return drop(m.slot)
-    if (!ref || ref.version !== m.version || loaded[m.slot]?.version === m.version) return
-    try {
-      const blob = await (await fetch(m.dataUrl)).blob()
-      drop(m.slot)
-      loaded = { ...loaded, [m.slot]: { version: m.version, url: URL.createObjectURL(blob), kind: ref.kind } }
-    } catch {
-      // Битый файл — останется фон палитры, запрос повторится по таймеру
-    }
-  }
-
-  function syncMedia() {
-    for (const slot of MEDIA_SLOTS) {
-      const ref = settings.media[slot]
-      if (!ref) {
-        if (loaded[slot]) drop(slot)
-        continue
-      }
-      if (loaded[slot]?.version === ref.version) continue
-      if (Date.now() - requestedAt[slot] < MEDIA_RETRY_MS) continue
-      requestedAt[slot] = Date.now()
-      receiver.requestMedia(slot)
-    }
-  }
+  // Свои файлы оператора: экран сам просит недостающее у пульта
+  const media = new DisplayMedia((slot) => receiver.requestMedia(slot))
+  receiver.onMedia = (payload) => media.accept(payload, settings.media)
   $effect(() => {
-    void settings.media
-    syncMedia()
-    const id = setInterval(syncMedia, MEDIA_RETRY_MS)
+    const refs = settings.media
+    media.sync(refs)
+    const id = setInterval(() => media.sync(refs), MEDIA_RETRY_MS)
     return () => clearInterval(id)
   })
 
@@ -130,50 +94,17 @@
 
   let fullscreen = $state(isPresentation)
 
-  // Экран проектора не должен засыпать во время служения
-  $effect(() => {
-    let lock: { release?: () => Promise<void> } | undefined
-    navigator.wakeLock
-      ?.request('screen')
-      .then((l) => (lock = l))
-      .catch(() => {})
-    return () => {
-      void lock?.release?.()
-    }
-  })
+  $effect(keepScreenAwake)
 
-  // Пульт показывает состояние окна честно: признак едет вместе с pong.
-  // Экран от Presentation API развёрнут всегда — fullscreenchange там не бывает
-  $effect(() => {
-    const sync = () => {
-      fullscreen = isPresentation || Boolean(document.fullscreenElement)
-      receiver.fullscreen = fullscreen
-    }
-    sync()
-    document.addEventListener('fullscreenchange', sync)
-    return () => document.removeEventListener('fullscreenchange', sync)
-  })
+  // Пульт показывает состояние окна честно: признак едет вместе с pong
+  $effect(() =>
+    watchFullscreen(isPresentation, (on) => {
+      fullscreen = on
+      receiver.fullscreen = on
+    }),
+  )
 
-  function enterFullscreen() {
-    void document.documentElement.requestFullscreen().catch(() => {})
-  }
-
-  // Пульт передал право развернуться вместе с сообщением (capability delegation).
-  // Активацию нужно потратить не отходя от обработчика — любой await до вызова
-  // её теряет, поэтому requestFullscreen идёт здесь же, синхронно.
-  $effect(() => {
-    const onGrant = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin || e.data !== FULLSCREEN_GRANT) return
-      if (document.fullscreenElement) return
-      document.documentElement.requestFullscreen().catch((err: unknown) => {
-        const reason =
-          err instanceof Error ? `${err.name}: ${err.message}` : String(err ?? 'unknown')
-        receiver.reportFullscreenFailed(reason)
-      })
-    }
-    window.addEventListener('message', onGrant)
-    return () => window.removeEventListener('message', onGrant)
-  })
+  $effect(() => acceptFullscreenGrant((reason) => receiver.reportFullscreenFailed(reason)))
 
   // Запасной путь для браузеров без делегирования: пульт просит по каналу,
   // права оно не переносит — сработает лишь там, где жеста не требуют
@@ -181,27 +112,6 @@
     if (cmd === 'close') window.close()
     else if (cmd === 'reload') reloadForUpdate()
     else if (cmd === 'fullscreen' && !document.fullscreenElement) enterFullscreen()
-  }
-
-  /**
-   * Пульт ставит новую версию. Попап живёт под тем же Service Worker'ом —
-   * ждём, пока новый возьмёт управление, иначе перезагрузка поднимет старую
-   * оболочку. Экран Presentation API грузится из сети — ему ждать нечего.
-   */
-  function reloadForUpdate() {
-    const sw = navigator.serviceWorker
-    if (!sw?.controller) {
-      location.reload()
-      return
-    }
-    sw.addEventListener('controllerchange', () => location.reload(), { once: true })
-    // Страховка: если смена не пришла, всё равно перезагрузиться
-    setTimeout(() => location.reload(), 5000)
-  }
-
-  function toggleFullscreen() {
-    if (document.fullscreenElement) void document.exitFullscreen()
-    else enterFullscreen()
   }
 </script>
 
@@ -216,7 +126,7 @@
   ondblclick={toggleFullscreen}
 >
   {#if !lowerThird}
-    <MotionBackground settings={settings.background} media={loaded.background} {onContrast} />
+    <MotionBackground settings={settings.background} media={media.loaded.background} {onContrast} />
   {/if}
 
   <!-- Смена слайда — смена ключа: уходящий и входящий живут в одной ячейке
@@ -229,44 +139,12 @@
       out:slideOut={motion}
     >
       {#if lowerThird}
-        {#if content.kind !== 'empty' && content.kind !== 'blackout'}
-          <!-- Плашка внизу: подпись сверху, текст в одну-две строки -->
-          <div class="flex size-full flex-col justify-end">
-            <div
-              class="max-w-full self-start border-l-[0.35vw] border-amber bg-[#080a0e]/85 px-[2.2vw] py-[1.4vw] text-left"
-              style="font-size: calc(clamp(16px, 2.1vw, 40px) * {settings.fontScale})"
-            >
-              {#if content.kind === 'slide' || content.kind === 'note'}
-                {@const caption = content.kind === 'slide' ? content.reference : content.title}
-                {#if caption && (settings.showReference || content.kind === 'note')}
-                  <div class="mb-[0.4em] text-[0.6em] font-semibold tracking-[0.12em] text-amber uppercase">
-                    {caption}
-                  </div>
-                {/if}
-                <div class="leading-[1.35] font-medium text-white">
-                  {lowerThirdText(content.text, content.kind === 'slide' ? content.line : undefined)}
-                </div>
-                {#if content.kind === 'slide' && content.secondary}
-                  <!-- Второй перевод — строкой ниже, чуть тише -->
-                  <div class="mt-[0.3em] text-[0.85em] leading-[1.35] text-white/80">
-                    {lowerThirdText(content.secondary.text, undefined)}
-                  </div>
-                {/if}
-              {:else if content.kind === 'countdown'}
-                <div class="font-medium text-white">
-                  <CountdownScreen {...content} fontScale={settings.fontScale} compact />
-                </div>
-              {:else if content.kind === 'welcome'}
-                <div class="mb-[0.4em] text-[0.6em] font-semibold tracking-[0.12em] text-amber uppercase">
-                  {content.name}
-                </div>
-                <div class="font-medium text-white">
-                  <WelcomeScreen {...content} fontScale={settings.fontScale} {motion} compact />
-                </div>
-              {/if}
-            </div>
-          </div>
-        {/if}
+        <LowerThirdScreen
+          {content}
+          fontScale={settings.fontScale}
+          showReference={settings.showReference}
+          {motion}
+        />
       {:else if content.kind === 'slide' && content.secondary}
         <ParallelVerse
           primary={content}
@@ -279,33 +157,16 @@
           {motion}
         />
       {:else if content.kind === 'slide'}
-        <div class="max-w-[92%]">
-          <div
-            class="leading-[1.5] text-balance text-white {settings.fontFamily === 'sans'
-              ? 'font-sans font-medium'
-              : 'font-serif'}"
-            style="font-size: calc(clamp(28px, 4.5vw, 72px) * {settings.fontScale *
-              FONT_SIZE_FACTOR[settings.fontFamily] *
-              autofitScale(content.text)})"
-          >
-            {#each lineStates(content.text, content.line) as line, i (i)}
-              <span
-                class="block transition-opacity duration-500"
-                style={line.state ? `opacity: ${LINE_OPACITY[line.state]}` : ''}
-                in:lineIn|global={{ ...motion, index: i }}>{line.text || '\u00a0'}</span
-              >
-            {/each}
-          </div>
-          {#if settings.showReference}
-            <div
-              class="mt-8 tracking-[0.12em] text-amber uppercase"
-              style="font-size: calc(clamp(14px, 1.6vw, 24px) * {settings.fontScale})"
-              in:lineIn|global={{ ...motion, index: content.text.split('\n').length }}
-            >
-              {content.reference}
-            </div>
-          {/if}
-        </div>
+        <SlideText
+          text={content.text}
+          reference={content.reference}
+          line={content.line}
+          fontFamily={settings.fontFamily}
+          fontScale={settings.fontScale}
+          showReference={settings.showReference}
+          size="screen"
+          {motion}
+        />
       {:else if content.kind === 'note'}
         <div class="max-w-[88%]">
           <div
@@ -331,7 +192,7 @@
           {...content}
           fontScale={settings.fontScale}
           {motion}
-          logoUrl={loaded.logo?.url ?? null}
+          logoUrl={media.loaded.logo?.url ?? null}
         />
       {/if}
     </div>

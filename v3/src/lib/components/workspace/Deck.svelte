@@ -2,16 +2,10 @@
   import { Pencil, Check, X } from '@lucide/svelte'
   import { show, type ShowSlide } from '../../show/show.svelte'
   import { projSettings } from '../../projection/settings.svelte'
-  import { autofitScale } from '../../projection/autofit'
   import MotionBackground from '../projection/MotionBackground.svelte'
   import ParallelVerse from '../projection/ParallelVerse.svelte'
-  import {
-    CHROMA_BACKGROUND,
-    FONT_SIZE_FACTOR,
-    LINE_OPACITY,
-    lineStates,
-    lowerThirdText,
-  } from '../../projection/content'
+  import SlideText from '../projection/SlideText.svelte'
+  import { CHROMA_BACKGROUND, lowerThirdText } from '../../projection/content'
   import { serviceScreen } from '../../projection/service-screen.svelte'
   import { mediaLibrary } from '../../media/library.svelte'
 
@@ -168,28 +162,15 @@
         />
       </div>
     {:else if !blackout && slide}
-      <div class="relative max-w-[94%]">
-        <div
-          class="leading-[1.55] text-balance text-white {projSettings.fontFamily === 'sans'
-            ? 'font-sans font-medium'
-            : 'font-serif'}"
-          style="font-size: calc(clamp(12px, 1.3vw, 18px) * {projSettings.fontScale *
-            FONT_SIZE_FACTOR[projSettings.fontFamily] *
-            autofitScale(slide.text)})"
-        >
-          {#each lineStates(slide.text, line) as l, i (i)}
-            <span
-              class="block transition-opacity duration-500"
-              style={l.state ? `opacity: ${LINE_OPACITY[l.state]}` : ''}>{l.text || '\u00a0'}</span
-            >
-          {/each}
-        </div>
-        {#if projSettings.showReference}
-          <div class="mt-2 text-amber" style="font-size: calc(clamp(9px, 0.75vw, 11px) * {projSettings.fontScale})">
-            {slide.reference}
-          </div>
-        {/if}
-      </div>
+      <SlideText
+        text={slide.text}
+        reference={slide.reference}
+        {line}
+        fontFamily={projSettings.fontFamily}
+        fontScale={projSettings.fontScale}
+        showReference={projSettings.showReference}
+        size="card"
+      />
     {/if}
   </div>
 </section>
