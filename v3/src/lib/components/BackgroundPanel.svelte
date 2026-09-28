@@ -1,6 +1,13 @@
 <script lang="ts">
-  import { Palette, RefreshCw, Upload, X } from '@lucide/svelte'
-  import { BACKGROUND_GROUPS, BACKGROUNDS, PALETTES, findPalette } from '../backgrounds/catalog'
+  import { Palette, RefreshCw, Star, Upload, X } from '@lucide/svelte'
+  import {
+    BACKGROUND_GROUPS,
+    BACKGROUNDS,
+    PALETTES,
+    findPalette,
+    findPreset,
+    type BackgroundPreset,
+  } from '../backgrounds/catalog'
   import { contrastLevel } from '../backgrounds/contrast'
   import { DIM_MAX, SPEED_MAX, isAnimated } from '../backgrounds/settings'
   import { projSettings } from '../proj-settings.svelte'
@@ -55,6 +62,46 @@
   const row = 'flex items-center justify-between text-sm'
 </script>
 
+<!-- Фон в сетке: выбрать — сам фон, звёздочка справа — в избранное -->
+{#snippet presetCell(preset: BackgroundPreset)}
+  {@const colors = findPalette(preset.palette).colors}
+  {@const fav = projSettings.favorites.includes(preset.id)}
+  <div class="group/cell relative">
+    <button
+      onclick={() => projSettings.selectBackground(preset.id)}
+      aria-pressed={bg.preset === preset.id}
+      title={preset.description}
+      class="flex h-7 w-full items-center gap-2 rounded border pr-7 pl-2 text-left text-sm
+             {bg.preset === preset.id
+        ? 'border-accent bg-accent-dim text-ink'
+        : 'border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink'}"
+    >
+      <span class="flex h-3 w-6 shrink-0 overflow-hidden rounded border border-stroke-2">
+        {#if preset.kind === 'none'}
+          <span class="flex-1 bg-black"></span>
+        {:else}
+          {#each colors.slice(1) as c (c)}
+            <span class="flex-1" style="background: {c}"></span>
+          {/each}
+        {/if}
+      </span>
+      <span class="truncate">{preset.name}</span>
+    </button>
+    <button
+      onclick={() => projSettings.toggleFavorite(preset.id)}
+      aria-pressed={fav}
+      aria-label={fav ? `Убрать «${preset.name}» из избранного` : `Добавить «${preset.name}» в избранное`}
+      title={fav ? 'Убрать из избранного' : 'В избранное'}
+      class="absolute top-0.5 right-0.5 grid size-6 place-items-center rounded hover:bg-hover
+             {fav
+        ? 'text-amber'
+        : 'text-faint opacity-0 group-hover/cell:opacity-100 focus-visible:opacity-100'}"
+    >
+      <Star size={12} fill={fav ? 'currentColor' : 'none'} />
+    </button>
+  </div>
+{/snippet}
+
 <div class="relative" use:dismissable={{ open, close: () => (open = false) }}>
   <button
     onclick={() => (open = !open)}
@@ -83,6 +130,16 @@
       </div>
 
       <div class="flex flex-col gap-3 p-3">
+        {#if projSettings.favorites.length}
+          <div class="flex flex-col gap-1.5">
+            <span class={label}>★ Избранное</span>
+            <div class="grid grid-cols-2 gap-1.5">
+              {#each projSettings.favorites as id (id)}
+                {@render presetCell(findPreset(id))}
+              {/each}
+            </div>
+          </div>
+        {/if}
         {#each BACKGROUND_GROUPS as group (group.id)}
           {@const presets = BACKGROUNDS.filter((b) => b.group === group.id && b.kind !== 'media')}
           <div class="flex flex-col gap-1.5">
@@ -90,27 +147,7 @@
             {#if presets.length}
               <div class="grid grid-cols-2 gap-1.5">
                 {#each presets as preset (preset.id)}
-                  {@const colors = findPalette(preset.palette).colors}
-                  <button
-                    onclick={() => projSettings.selectBackground(preset.id)}
-                    aria-pressed={bg.preset === preset.id}
-                    title={preset.description}
-                    class="flex h-7 items-center gap-2 rounded border px-2 text-left text-sm
-                           {bg.preset === preset.id
-                      ? 'border-accent bg-accent-dim text-ink'
-                      : 'border-stroke-2 bg-panel text-muted hover:bg-hover hover:text-ink'}"
-                  >
-                    <span class="flex h-3 w-6 shrink-0 overflow-hidden rounded border border-stroke-2">
-                      {#if preset.kind === 'none'}
-                        <span class="flex-1 bg-black"></span>
-                      {:else}
-                        {#each colors.slice(1) as c (c)}
-                          <span class="flex-1" style="background: {c}"></span>
-                        {/each}
-                      {/if}
-                    </span>
-                    <span class="truncate">{preset.name}</span>
-                  </button>
+                  {@render presetCell(preset)}
                 {/each}
               </div>
             {/if}
