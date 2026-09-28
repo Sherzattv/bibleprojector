@@ -9,6 +9,7 @@ import { data } from './db.svelte'
 import { edits } from './edits.svelte'
 import type { SongRow } from './db.svelte'
 import { singableLines } from './projection'
+import type { PaletteId } from './backgrounds/catalog'
 
 export type ShowSource =
   | { kind: 'song'; id: number }
@@ -51,6 +52,11 @@ class ShowState {
   blackout = $state(false)
   /** Контекст главы для смены перевода */
   verseCtx: VerseContext | null = null
+  /**
+   * Фон открытого пункта порядка служения — ждёт первого GO. Любая загрузка
+   * (песня, глава, заметка) сбрасывает его; порядок служения ставит заново.
+   */
+  itemBackground: { preset: string; palette: PaletteId } | null = null
   /** Второй перевод на экране (параллельный показ); null — выключен */
   secondaryCode = $state<string | null>(null)
 
@@ -62,6 +68,7 @@ class ShowState {
   }
 
   loadSong(song: SongRow) {
+    this.itemBackground = null
     const sections = splitSongSections(song.text) as Array<{
       label: string
       rawText: string
@@ -94,6 +101,7 @@ class ShowState {
 
     const title = getBookTitle(canonicalCode, langOf(translation)) as string
 
+    this.itemBackground = null
     this.kind = 'bible'
     this.verseCtx = { canonicalCode, chapter }
     this.source = { kind: 'bible', code: canonicalCode, chapter }
@@ -182,6 +190,7 @@ class ShowState {
 
   /** Заметка: один слайд, заголовок в reference */
   loadNote(title: string, text: string) {
+    this.itemBackground = null
     this.kind = 'note'
     this.verseCtx = null
     this.source = { kind: 'note', title, text }

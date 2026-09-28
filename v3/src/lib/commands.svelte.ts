@@ -40,6 +40,11 @@ export const commands = {
     if (serviceScreen.mode !== 'off') serviceScreen.hide()
     // Подсветка строк в песне: GO сначала идёт по строкам живого слайда
     else if (projSettings.lineHighlight && show.stepLine()) return
+    // Пункт порядка служения со своим фоном: включаем вместе с первым слайдом
+    if (show.itemBackground) {
+      projSettings.setBackground(show.itemBackground)
+      show.itemBackground = null
+    }
     show.go()
     const live = show.liveSlide
     const source = show.source

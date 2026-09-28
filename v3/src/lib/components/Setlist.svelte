@@ -12,9 +12,26 @@
     X,
     PanelRightClose,
     PanelRightOpen,
+    Palette,
   } from '@lucide/svelte'
   import { setlist } from '../setlist.svelte'
   import { ui } from '../ui.svelte'
+  import { projSettings } from '../proj-settings.svelte'
+  import { findPalette, findPreset } from '../backgrounds/catalog'
+
+  /** Привязать к пункту текущий фон экрана или снять привязку */
+  function toggleItemBackground(i: number) {
+    const item = setlist.items[i]
+    if (!item) return
+    if (item.background) {
+      setlist.setBackground(i, null)
+      ui.notify(`Фон снят с «${item.title}»`)
+      return
+    }
+    const { preset, palette } = projSettings.background
+    setlist.setBackground(i, { preset, palette })
+    ui.notify(`«${item.title}» — фон «${findPreset(preset).name}» включится с первым GO`)
+  }
 
   interface Props {
     open: boolean
@@ -119,12 +136,39 @@
             <Icon size={15} class={i === setlist.currentIdx ? 'shrink-0 text-accent' : 'shrink-0 text-faint'} />
             <span class="min-w-0">
               <span class="block truncate text-base font-medium">{item.title}</span>
-              <span class="block text-xs text-faint">
+              <span class="flex items-center gap-1.5 text-xs text-faint">
                 {item.kind === 'song' ? 'Песня' : item.kind === 'bible' ? 'Библия' : 'Заметка'}
+                {#if item.background}
+                  {@const colors = findPalette(item.background.palette).colors}
+                  <span class="flex items-center gap-1" title="Свой фон пункта: включится с первым GO">
+                    ·
+                    <span class="flex h-2 w-4 overflow-hidden rounded-sm border border-stroke-2">
+                      {#if findPreset(item.background.preset).kind === 'none'}
+                        <span class="flex-1 bg-black"></span>
+                      {:else}
+                        {#each colors.slice(1) as c (c)}
+                          <span class="flex-1" style="background: {c}"></span>
+                        {/each}
+                      {/if}
+                    </span>
+                    {findPreset(item.background.preset).name}
+                  </span>
+                {/if}
               </span>
             </span>
           </button>
           <span class="setlist-row-tools mr-1 hidden shrink-0 items-center group-hover:flex group-focus-within:flex">
+            <button
+              class="grid size-6 place-items-center rounded hover:bg-panel-2
+                     {item.background ? 'text-accent' : 'text-faint hover:text-muted'}"
+              onclick={() => toggleItemBackground(i)}
+              title={item.background
+                ? `Снять фон «${findPreset(item.background.preset).name}»`
+                : 'Привязать текущий фон экрана к этому пункту'}
+              aria-label={item.background
+                ? `Снять фон с «${item.title}»`
+                : `Привязать текущий фон к «${item.title}»`}
+            ><Palette size={12} /></button>
             <button
               class="grid size-6 place-items-center rounded text-faint hover:bg-panel-2 hover:text-muted disabled:opacity-25"
               onclick={() => setlist.move(i, -1)}
