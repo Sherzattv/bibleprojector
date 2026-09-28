@@ -3,6 +3,7 @@
   import { data, TRANSLATIONS } from '../../data/db.svelte'
   import { commands } from '../../show/commands.svelte'
   import { nextIndex } from '../../search/omni-list'
+  import { popoverSurface } from '../ui/styles'
   import { buildTranslationOptions, initialActive, statusNote } from '../../ui/translation-picker'
 
   let open = $state(false)
@@ -99,8 +100,7 @@
       id="translation-listbox"
       role="listbox"
       aria-label="Перевод"
-      class="absolute right-0 bottom-9 z-50 w-72 rounded-md border border-stroke-2 bg-panel-2 p-1.5
-             shadow-xl shadow-black/50"
+      class="absolute right-0 bottom-9 z-50 w-72 p-1.5 {popoverSurface}"
     >
       {#each options as option, i (option.code)}
         <button

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { countdownLeft, formatCountdown } from '../../projection/service-screen.svelte'
+  import { tickingNow } from '../../ui/now.svelte'
 
   interface Props {
     endsAt: number | null
@@ -13,15 +14,9 @@
   let { endsAt, leftMs, title, subtitle, fontScale, compact = false }: Props = $props()
 
   // Экран тикает сам по своим часам: пульт присылает только момент окончания
-  let now = $state(Date.now())
-  $effect(() => {
-    if (endsAt === null) return
-    now = Date.now()
-    const id = setInterval(() => (now = Date.now()), 250)
-    return () => clearInterval(id)
-  })
+  const now = tickingNow(() => endsAt !== null)
 
-  const left = $derived(countdownLeft({ endsAt, leftMs }, now))
+  const left = $derived(countdownLeft({ endsAt, leftMs }, now.value))
   const finished = $derived(endsAt !== null && left === 0)
 </script>
 

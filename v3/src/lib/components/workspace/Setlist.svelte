@@ -17,7 +17,8 @@
   import { setlist } from '../../show/setlist.svelte'
   import { ui } from '../../ui/notices.svelte'
   import { projSettings } from '../../projection/settings.svelte'
-  import { findPalette, findPreset } from '../../backgrounds/catalog'
+  import { findPreset } from '../../backgrounds/catalog'
+  import PaletteSwatch from '../ui/PaletteSwatch.svelte'
   import { countLabel } from '../../utils/format'
 
   /** Привязать к пункту текущий фон экрана или снять привязку */
@@ -126,18 +127,9 @@
               <span class="flex items-center gap-1.5 text-xs text-faint">
                 {item.kind === 'song' ? 'Песня' : item.kind === 'bible' ? 'Библия' : 'Заметка'}
                 {#if item.background}
-                  {@const colors = findPalette(item.background.palette).colors}
                   <span class="flex items-center gap-1" title="Свой фон пункта: включится с первым GO">
                     ·
-                    <span class="flex h-2 w-4 overflow-hidden rounded-sm border border-stroke-2">
-                      {#if findPreset(item.background.preset).kind === 'none'}
-                        <span class="flex-1 bg-black"></span>
-                      {:else}
-                        {#each colors.slice(1) as c (c)}
-                          <span class="flex-1" style="background: {c}"></span>
-                        {/each}
-                      {/if}
-                    </span>
+                    <PaletteSwatch {...item.background} class="h-2 w-4 rounded-sm" />
                     {findPreset(item.background.preset).name}
                   </span>
                 {/if}

@@ -14,6 +14,7 @@
   import { getSearchClient } from '../../search/service.svelte'
   import { ui } from '../../ui/notices.svelte'
   import type { SongRow } from '../../data/db.svelte'
+  import { popoverSurface, sectionLabel } from '../ui/styles'
 
   let query = $state('')
   let open = $state(false)
@@ -102,7 +103,7 @@
     else openSong(songHits[action.index])
   }
 
-  const group = 'px-3 pt-2 pb-1 text-2xs font-semibold tracking-wide text-faint uppercase'
+  const group = `px-3 pt-2 pb-1 ${sectionLabel}`
   const item = 'flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-hover'
 </script>
 
@@ -133,8 +134,7 @@
       id="omni-listbox"
       role="listbox"
       aria-label="Результаты поиска"
-      class="absolute top-full right-0 left-0 z-50 mt-1 max-h-[420px] overflow-y-auto rounded-md
-             border border-stroke-2 bg-panel-2 pb-1 shadow-xl shadow-black/50"
+      class="absolute top-full right-0 left-0 z-50 mt-1 max-h-[420px] overflow-y-auto pb-1 {popoverSurface}"
     >
       {#if parsedRef}
         <div class={group}>Ссылка на стих</div>
