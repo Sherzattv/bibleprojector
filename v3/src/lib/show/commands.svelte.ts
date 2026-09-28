@@ -6,7 +6,7 @@
 import { data } from '../data/db.svelte'
 import { show } from './show.svelte'
 import { ui } from '../ui/notices.svelte'
-import { history } from './history.svelte'
+import { history, type HistorySource } from './history.svelte'
 import { projSettings } from '../projection/settings.svelte'
 import { serviceScreen } from '../projection/service-screen.svelte'
 
@@ -31,6 +31,14 @@ export const commands = {
 
   openNote(title: string, text: string): void {
     show.loadNote(title, text)
+  },
+
+  /** Повторно открыть то, что уже было в эфире (история) */
+  openSource(source: HistorySource): boolean {
+    if (source.kind === 'song') return commands.openSong(source.id)
+    if (source.kind === 'bible') return commands.openRef(source.code, source.chapter, source.verse)
+    commands.openNote(source.title, source.text)
+    return true
   },
 
   go(): void {

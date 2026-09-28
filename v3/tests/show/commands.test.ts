@@ -291,3 +291,28 @@ describe('commands × служебный экран', () => {
     expect(serviceScreen.mode).toBe('off')
   })
 })
+
+describe('commands.openSource — повтор из истории', () => {
+  it('песня — по id', () => {
+    expect(commands.openSource({ kind: 'song', id: 2 })).toBe(true)
+    expect(show.title).toBe('1000 рук')
+  })
+
+  it('стих — глава в превью на нужном стихе', () => {
+    expect(commands.openSource({ kind: 'bible', code: 'JHN', chapter: 3, verse: 2 })).toBe(true)
+    expect(show.kind).toBe('bible')
+    expect(show.previewSlide?.verse).toBe(2)
+  })
+
+  it('заметка — заголовок и текст как были', () => {
+    expect(commands.openSource({ kind: 'note', title: 'Объявления', text: 'Чай после служения' })).toBe(true)
+    expect(show.slides).toEqual([
+      { label: 'Заметка', text: 'Чай после служения', reference: 'Объявления' },
+    ])
+  })
+
+  it('песни больше нет в каталоге — false и уведомление', () => {
+    expect(commands.openSource({ kind: 'song', id: 999 })).toBe(false)
+    expect(ui.lastNotice).toBeTruthy()
+  })
+})

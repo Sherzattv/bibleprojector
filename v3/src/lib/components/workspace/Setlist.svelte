@@ -20,6 +20,8 @@
   import { findPreset } from '../../backgrounds/catalog'
   import PaletteSwatch from '../ui/PaletteSwatch.svelte'
   import { countLabel } from '../../utils/format'
+  import { downloadText } from '../../utils/download'
+  import NoteDialog from './NoteDialog.svelte'
 
   /** Привязать к пункту текущий фон экрана или снять привязку */
   function toggleItemBackground(i: number) {
@@ -44,17 +46,10 @@
   const icons = { song: Music, bible: BookOpen, note: StickyNote } as const
   let fileInput = $state<HTMLInputElement>()
   let noteOpen = $state(false)
-  let noteTitle = $state('')
-  let noteText = $state('')
 
   function downloadSetlist() {
-    const blob = new Blob([setlist.exportJson()], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `bible-projector-setlist-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    URL.revokeObjectURL(url)
+    const date = new Date().toISOString().slice(0, 10)
+    downloadText(`bible-projector-setlist-${date}.json`, setlist.exportJson(), 'application/json')
   }
 
   async function importSetlist(event: Event) {
@@ -71,19 +66,15 @@
     if (confirm('Очистить весь порядок служения?')) setlist.clear()
   }
 
-  function saveNote() {
-    const title = noteTitle.trim() || 'Заметка'
-    const text = noteText.trim()
+  /** Заметка сразу встаёт в конец порядка и открывается в превью */
+  function saveNote(title: string, text: string): boolean {
     if (!text) {
       ui.notify('Введите текст заметки')
-      return
+      return false
     }
-    if (setlist.add({ kind: 'note', title, text })) {
-      setlist.open(setlist.items.length - 1)
-      noteOpen = false
-      noteTitle = ''
-      noteText = ''
-    }
+    if (!setlist.add({ kind: 'note', title, text })) return false
+    setlist.open(setlist.items.length - 1)
+    return true
   }
 </script>
 
@@ -233,60 +224,4 @@
   {/if}
 </aside>
 
-{#if noteOpen}
-  <button
-    class="fixed inset-0 z-[80] cursor-default bg-black/65"
-    onclick={() => (noteOpen = false)}
-    aria-label="Закрыть создание заметки"
-  ></button>
-  <div
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="new-note-title"
-    class="fixed top-1/2 left-1/2 z-[81] w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2
-           rounded-md border border-stroke-2 bg-panel-2 p-4 shadow-2xl"
-  >
-    <form
-      onsubmit={(event) => {
-        event.preventDefault()
-        saveNote()
-      }}
-    >
-      <div class="mb-3 flex items-center justify-between">
-        <h2 id="new-note-title" class="text-base font-semibold">Новая заметка</h2>
-        <button
-          type="button"
-          class="grid size-7 place-items-center rounded text-faint hover:bg-hover hover:text-muted"
-          onclick={() => (noteOpen = false)}
-          aria-label="Закрыть"
-        ><X size={14} /></button>
-      </div>
-      <label class="mb-3 block text-xs text-muted">
-        Заголовок
-        <input
-          bind:value={noteTitle}
-          class="mt-1 h-8 w-full rounded border border-stroke-2 bg-bg px-2.5 text-sm text-ink focus:border-accent focus:outline-none"
-          placeholder="Например: Объявления"
-        />
-      </label>
-      <label class="block text-xs text-muted">
-        Текст
-        <textarea
-          bind:value={noteText}
-          class="mt-1 h-32 w-full resize-y rounded border border-stroke-2 bg-bg p-2.5 text-sm leading-5 text-ink focus:border-accent focus:outline-none"
-          placeholder="Текст для экрана проектора"
-        ></textarea>
-      </label>
-      <div class="mt-4 flex justify-end gap-2">
-        <button
-          type="button"
-          class="h-8 rounded border border-stroke-2 px-3 text-sm text-muted hover:bg-hover"
-          onclick={() => (noteOpen = false)}
-        >Отмена</button>
-        <button type="submit" class="h-8 rounded bg-accent px-4 text-sm font-semibold text-white hover:brightness-110">
-          Добавить
-        </button>
-      </div>
-    </form>
-  </div>
-{/if}
+<NoteDialog bind:open={noteOpen} onsave={saveNote} />

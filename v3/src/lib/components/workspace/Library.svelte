@@ -3,19 +3,14 @@
     Music,
     BookOpen,
     History,
-    ChevronLeft,
     PanelLeftClose,
     PanelLeftOpen,
   } from '@lucide/svelte'
-  import { data } from '../../data/db.svelte'
-  import { commands } from '../../show/commands.svelte'
-  import { history, type HistoryEntry } from '../../show/history.svelte'
-  import { BOOKS, bookTitleIn } from '../../bible/books'
-  import { findBook } from '../../bible/chapters'
-  import { countLabel, formatClock } from '../../utils/format'
-  import { foldText } from '../../utils/text'
-  import type { SongRow } from '../../data/db.svelte'
+  import LibrarySongs from './LibrarySongs.svelte'
+  import LibraryBible from './LibraryBible.svelte'
+  import LibraryHistory from './LibraryHistory.svelte'
 
+  /** Левая панель: песни, книги Библии и история эфира; сворачивается в колонку иконок */
   interface Props {
     open: boolean
     onToggle: () => void
@@ -36,47 +31,10 @@
     tab = key
     onToggle()
   }
+
+  // Состояние вкладок живёт здесь, чтобы не сбрасываться при переключении
   let songFilter = $state('')
   let selectedBook = $state<string | null>(null)
-
-  const row = 'flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-hover'
-
-  // Фильтр списка — дешёвая подстрока (полный fuzzy-поиск живёт в омнибоксе)
-  const visibleSongs = $derived.by((): SongRow[] => {
-    const q = foldText(songFilter.trim())
-    if (!q) return data.songs.slice(0, 100)
-    return data.songs
-      .filter((s) => foldText(s.title).includes(q) || s.songNumber === q)
-      .slice(0, 50)
-  })
-
-  /** Книги, реально существующие в текущем переводе */
-  const books = $derived.by(() => {
-    const db = data.db
-    if (!db) return []
-    const translation = data.translation
-    return BOOKS.flatMap(({ code }) => {
-      const book = findBook(db, code, translation)
-      return book
-        ? [{ code, title: bookTitleIn(code, translation), chapters: book.Chapters.length }]
-        : []
-    })
-  })
-
-  const selectedBookInfo = $derived(books.find((b) => b.code === selectedBook) ?? null)
-
-  function openSong(song: SongRow) {
-    commands.openSong(song.id)
-  }
-  function openChapter(code: string, chapter: number) {
-    commands.openRef(code, chapter)
-  }
-  function reopenHistory(entry: HistoryEntry) {
-    const s = entry.source
-    if (s.kind === 'song') commands.openSong(s.id)
-    else if (s.kind === 'bible') commands.openRef(s.code, s.chapter, s.verse)
-    else commands.openNote(s.title, s.text)
-  }
 </script>
 
 <aside class="flex min-h-0 flex-col bg-panel" aria-label="Библиотека">
@@ -106,106 +64,34 @@
       {/each}
     </div>
   {:else}
-  <div class="flex h-9 shrink-0 items-stretch border-b border-stroke">
-    {#each TABS as [key, label, Icon] (key)}
+    <div class="flex h-9 shrink-0 items-stretch border-b border-stroke">
+      {#each TABS as [key, label, Icon] (key)}
+        <button
+          onclick={() => (tab = key)}
+          class="flex flex-1 items-center justify-center gap-1.5 border-b-2 text-sm font-medium
+                 {tab === key
+            ? 'border-accent text-ink'
+            : 'border-transparent text-faint hover:text-muted'}"
+        >
+          <Icon size={13} />{label}
+        </button>
+      {/each}
       <button
-        onclick={() => (tab = key)}
-        class="flex flex-1 items-center justify-center gap-1.5 border-b-2 text-sm font-medium
-               {tab === key
-          ? 'border-accent text-ink'
-          : 'border-transparent text-faint hover:text-muted'}"
+        class="mx-1 grid size-7 shrink-0 place-items-center self-center rounded text-faint hover:bg-hover hover:text-muted"
+        onclick={onToggle}
+        title="Свернуть панель"
+        aria-label="Свернуть библиотеку"
       >
-        <Icon size={13} />{label}
+        <PanelLeftClose size={14} />
       </button>
-    {/each}
-    <button
-      class="mx-1 grid size-7 shrink-0 place-items-center self-center rounded text-faint hover:bg-hover hover:text-muted"
-      onclick={onToggle}
-      title="Свернуть панель"
-      aria-label="Свернуть библиотеку"
-    >
-      <PanelLeftClose size={14} />
-    </button>
-  </div>
+    </div>
 
-  {#if tab === 'songs'}
-    <div class="shrink-0 border-b border-stroke p-2">
-      <input
-        bind:value={songFilter}
-        type="text"
-        placeholder="Название, номер или строчка…"
-        class="h-7 w-full rounded border border-stroke-2 bg-bg px-2.5 text-sm text-ink
-               placeholder:text-faint focus:border-accent focus:outline-none"
-      />
-    </div>
-    <div class="min-h-0 flex-1 overflow-y-auto py-1">
-      {#each visibleSongs as song (song.id)}
-        <button class={row} onclick={() => openSong(song)}>
-          <span class="w-8 shrink-0 text-right font-mono text-xs text-faint tabular-nums">
-            {song.songNumber ?? '—'}
-          </span>
-          <span class="truncate text-base">{song.title}</span>
-        </button>
-      {:else}
-        <div class="px-3 py-4 text-xs text-faint">Ничего не найдено</div>
-      {/each}
-    </div>
-    <div class="flex h-8 shrink-0 items-center border-t border-stroke px-3 text-xs text-faint">
-      {data.songs.length} песен{songFilter.trim() ? ` · показано ${visibleSongs.length}` : data.songs.length > 100 ? ' · первые 100' : ''}
-    </div>
-  {:else if tab === 'history'}
-    <div class="min-h-0 flex-1 overflow-y-auto py-1">
-      {#each history.items as entry (entry.at)}
-        <button class={row} onclick={() => reopenHistory(entry)}>
-          <span class="w-9 shrink-0 text-right font-mono text-xs text-faint tabular-nums">{formatClock(entry.at)}</span>
-          <span class="min-w-0">
-            <span class="block truncate text-base">{entry.reference}</span>
-          </span>
-        </button>
-      {:else}
-        <div class="px-3 py-4 text-xs text-faint">
-          Здесь появится всё, что уходило в эфир — для быстрого повтора
-        </div>
-      {/each}
-    </div>
-    <div class="flex h-8 shrink-0 items-center justify-between border-t border-stroke px-3 text-xs text-faint">
-      {countLabel(history.items.length, ['показ', 'показа', 'показов'])}
-      {#if history.items.length}
-        <button class="hover:text-muted" onclick={() => history.clear()}>Очистить</button>
-      {/if}
-    </div>
-  {:else if selectedBookInfo}
-    <button
-      class="flex h-8 shrink-0 items-center gap-1.5 border-b border-stroke px-3 text-sm font-medium text-accent hover:bg-hover"
-      onclick={() => (selectedBook = null)}
-    >
-      <ChevronLeft size={13} />{selectedBookInfo.title}
-    </button>
-    <div class="min-h-0 flex-1 overflow-y-auto p-2">
-      <div class="grid grid-cols-6 gap-1">
-        {#each Array.from({ length: selectedBookInfo.chapters }, (_, n) => n + 1) as n (n)}
-          <button
-            class="grid h-8 place-items-center rounded border border-stroke-2 font-mono text-sm text-muted tabular-nums
-                   hover:border-accent hover:text-ink"
-            onclick={() => openChapter(selectedBookInfo.code, n)}
-          >
-            {n}
-          </button>
-        {/each}
-      </div>
-    </div>
-  {:else}
-    <div class="min-h-0 flex-1 overflow-y-auto py-1">
-      {#each books as book (book.code)}
-        <button class={row} onclick={() => (selectedBook = book.code)}>
-          <span class="truncate text-base">{book.title}</span>
-          <span class="ml-auto shrink-0 font-mono text-xs text-faint tabular-nums">{book.chapters}</span>
-        </button>
-      {/each}
-    </div>
-    <div class="flex h-8 shrink-0 items-center border-t border-stroke px-3 text-xs text-faint">
-      {books.length} книг · {data.translation}{data.demo ? ' · демо-данные' : ''}
-    </div>
-  {/if}
+    {#if tab === 'songs'}
+      <LibrarySongs bind:filter={songFilter} />
+    {:else if tab === 'history'}
+      <LibraryHistory />
+    {:else}
+      <LibraryBible bind:selected={selectedBook} />
+    {/if}
   {/if}
 </aside>
