@@ -4,7 +4,13 @@
   import { projSettings } from '../proj-settings.svelte'
   import { autofitScale } from '../autofit'
   import MotionBackground from './MotionBackground.svelte'
-  import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
+  import {
+    CHROMA_BACKGROUND,
+    FONT_SIZE_FACTOR,
+    LINE_OPACITY,
+    lineStates,
+    lowerThirdText,
+  } from '../projection'
   import { serviceScreen } from '../service-screen.svelte'
   import { mediaLibrary } from '../media-library.svelte'
 
@@ -24,6 +30,12 @@
     quality: 0.5 as const,
     fps: 30 as const,
   })
+  // Вывод «нижняя треть» — карточки показывают то же, что уходит в трансляцию
+  const lowerThird = $derived(projSettings.layout === 'lower-third')
+  const cardStyle = $derived(
+    `background: ${lowerThird && !blackout ? CHROMA_BACKGROUND[projSettings.chroma] : '#000'}`,
+  )
+  const serviceOnAir = $derived(isLive && serviceScreen.mode !== 'off')
   const ownMedia = $derived.by(() => {
     const ref = mediaLibrary.refs.background
     const url = mediaLibrary.previews.background
@@ -99,9 +111,9 @@
   <div
     class="projection relative grid aspect-video place-items-center overflow-hidden rounded-md border p-[5%] text-center
            {isLive && slide ? 'border-live/60' : 'border-stroke-2'}"
-    style="background: #000"
+    style={cardStyle}
   >
-    {#if !blackout}
+    {#if !blackout && !lowerThird}
       <MotionBackground settings={cardBackground} media={ownMedia} />
     {/if}
     {#if editing && !isLive}
@@ -116,7 +128,23 @@
           }
         }}
       ></textarea>
-    {:else if isLive && !blackout && serviceScreen.mode !== 'off'}
+    {:else if lowerThird && !blackout && (serviceOnAir || slide)}
+      <!-- Плашка внизу, как на выходе для OBS -->
+      <div class="absolute inset-x-[5%] bottom-[6%] flex">
+        <div class="max-w-full border-l-2 border-amber bg-[#080a0e]/85 px-2 py-1.5 text-left">
+          {#if serviceOnAir}
+            <div class="text-2xs font-medium text-white">
+              {serviceScreen.mode === 'countdown' ? serviceScreen.title : serviceScreen.churchName}
+            </div>
+          {:else if slide}
+            {#if projSettings.showReference}
+              <div class="text-2xs font-semibold tracking-wide text-amber uppercase">{slide.reference}</div>
+            {/if}
+            <div class="text-xs leading-snug font-medium text-white">{lowerThirdText(slide.text, line)}</div>
+          {/if}
+        </div>
+      </div>
+    {:else if serviceOnAir && !blackout}
       <!-- Заставка перекрывает слайд — карточка эфира не должна врать -->
       <div class="relative text-sm text-white/80">
         {serviceScreen.mode === 'countdown' ? 'Отсчёт до начала' : serviceScreen.churchName || 'Экран ожидания'}

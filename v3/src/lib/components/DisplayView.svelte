@@ -7,6 +7,7 @@
     FONT_SIZE_FACTOR,
     LINE_OPACITY,
     lineStates,
+    lowerThirdText,
     normalizeProjectionSettings,
     type ProjectionContent,
   } from '../projection'
@@ -73,12 +74,6 @@
     document.body.style.background = value
   })
 
-  /** Текст плашки: строки в одну; с подсветкой — только текущая строка песни */
-  function lowerThirdText(text: string, line: number | undefined): string {
-    const lines = text.split('\n').filter((l) => l.trim())
-    if (line !== undefined && lines[line]) return lines[line]
-    return lines.join(' ')
-  }
 
   // Свои файлы оператора: в настройках едут только версии, сам файл экран
   // просит у пульта отдельно. Ответ приходит data-URL'ом — превращаем в
