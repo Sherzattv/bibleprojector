@@ -15,6 +15,9 @@ export const PANEL_MAX = 520
 /** Ниже этого центр перестаёт вмещать док в одну строку */
 export const STAGE_MIN = 620
 
+/** Свёрнутая панель — колонка иконок */
+export const PANEL_RAIL = 44
+
 export const DEFAULT_LIBRARY_WIDTH = 284
 export const DEFAULT_SETLIST_WIDTH = 264
 

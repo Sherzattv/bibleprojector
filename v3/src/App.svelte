@@ -1,89 +1,46 @@
 <script lang="ts">
-  import { untrack } from 'svelte'
-  import { MonitorPlay, LoaderCircle, PanelRight, RotateCw, Library as LibraryIcon } from '@lucide/svelte'
+  import { MonitorPlay, PanelRight, Library as LibraryIcon } from '@lucide/svelte'
   import Omnibox from './lib/components/header/Omnibox.svelte'
-  import Setlist from './lib/components/workspace/Setlist.svelte'
-  import Deck from './lib/components/workspace/Deck.svelte'
-  import SlideGrid from './lib/components/workspace/SlideGrid.svelte'
-  import Dock from './lib/components/workspace/Dock.svelte'
-  import Library from './lib/components/workspace/Library.svelte'
   import ProjectorControls from './lib/components/header/ProjectorControls.svelte'
   import BackgroundPanel from './lib/components/header/BackgroundPanel.svelte'
   import ProjectionSettingsPanel from './lib/components/header/ProjectionSettingsPanel.svelte'
   import UpdateButton from './lib/components/header/UpdateButton.svelte'
   import HeaderClock from './lib/components/header/HeaderClock.svelte'
+  import Library from './lib/components/workspace/Library.svelte'
+  import Setlist from './lib/components/workspace/Setlist.svelte'
+  import Deck from './lib/components/workspace/Deck.svelte'
+  import SlideGrid from './lib/components/workspace/SlideGrid.svelte'
+  import Dock from './lib/components/workspace/Dock.svelte'
   import PanelResizer from './lib/components/workspace/PanelResizer.svelte'
-  import { layout } from './lib/ui/layout.svelte'
-  import { fitPanels } from './lib/ui/panel-size'
-  import { show } from './lib/show/show.svelte'
+  import StartupScreen from './lib/components/workspace/StartupScreen.svelte'
+  import NoticeToast from './lib/components/workspace/NoticeToast.svelte'
   import { data } from './lib/data/db.svelte'
-  import { setlist } from './lib/show/setlist.svelte'
-  import { ui } from './lib/ui/notices.svelte'
-  import { commands } from './lib/show/commands.svelte'
-  import { projSettings } from './lib/projection/settings.svelte'
-  import { serviceScreen } from './lib/projection/service-screen.svelte'
-  import { mediaLibrary } from './lib/media/library.svelte'
-  import { buildContent } from './lib/projection/content'
+  import { startData } from './lib/data/startup.svelte'
   import { getProjectorLink } from './lib/projector/service.svelte'
-  import { pushSongs, pushBible } from './lib/search/service.svelte'
+  import { syncProjector } from './lib/projector/sync.svelte'
+  import { show } from './lib/show/show.svelte'
+  import { commands } from './lib/show/commands.svelte'
+  import { layout } from './lib/ui/layout.svelte'
+  import { PANEL_RAIL } from './lib/ui/panel-size'
+  import { fitPanelsToWindow } from './lib/ui/fit-panels'
   import { resolveHotkey } from './lib/ui/hotkeys'
 
-  let omnibox = $state<Omnibox>()
-  let mobilePanel = $state<'setlist' | 'library' | null>(null)
-  let compactLayout = $state(false)
-  let retrying = $state(false)
-  let workspace = $state<HTMLDivElement>()
+  /**
+   * Пульт оператора: шапка, библиотека, превью и эфир, порядок служения.
+   * Данные, связь с экраном и логика эфира живут в lib — здесь раскладка.
+   */
+  startData()
+  syncProjector(getProjectorLink())
 
-  /** Ширина свёрнутой панели — колонка иконок */
-  const PANEL_RAIL = 44
+  let omnibox = $state<Omnibox>()
+  let workspace = $state<HTMLDivElement>()
 
   const setlistColumn = $derived(layout.setlistOpen ? layout.setlistWidth : PANEL_RAIL)
   const libraryColumn = $derived(layout.libraryOpen ? layout.libraryWidth : PANEL_RAIL)
 
-  const projector = getProjectorLink()
-
-  // Свои файлы оператора: подняли из IndexedDB — экран спросит их сам
-  $effect(() => {
-    void mediaLibrary.init()
-  })
-  projector.onMediaRequest = (slot) => {
-    mediaLibrary
-      .payload(slot)
-      .then((p) => {
-        if (p) projector.sendMedia(p)
-      })
-      .catch(() => ui.notify('Не удалось прочитать свой файл — загрузите его заново.'))
-  }
-
-  // Ширины запомнились на внешнем мониторе, а пульт открыли на ноутбуке —
-  // и панели съели центр. Подрезаем сохранённое по реальной ширине окна:
-  // при старте и при каждом изменении размера. untrack — чтобы правка ширины
-  // не перезапускала сам эффект.
-  $effect(() => {
-    const el = workspace
-    if (!el || compactLayout) return
-    const fit = () => {
-      const total = el.getBoundingClientRect().width
-      if (!total) return
-      untrack(() => {
-        // Ужимаем только развёрнутые панели; свёрнутые занимают колонку иконок
-        const open = (['library', 'setlist'] as const).filter((p) =>
-          p === 'library' ? layout.libraryOpen : layout.setlistOpen,
-        )
-        const reserved = (2 - open.length) * PANEL_RAIL
-        const fitted = fitPanels(
-          open.map((p) => layout.widthOf(p)),
-          { total, reserved },
-        )
-        open.forEach((p, i) => {
-          if (fitted[i] !== layout.widthOf(p)) layout.setWidth(p, fitted[i])
-        })
-      })
-    }
-    fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
-  })
+  // Узкое окно — неподдерживаемый fallback: боковые панели выезжают поверх центра
+  let mobilePanel = $state<'setlist' | 'library' | null>(null)
+  let compactLayout = $state(false)
 
   $effect(() => {
     const media = window.matchMedia('(max-width: 1023px)')
@@ -96,65 +53,19 @@
     return () => media.removeEventListener('change', syncLayout)
   })
 
-  // Всё, что делается после успешной загрузки данных —
-  // общее для первого старта и для повтора по кнопке
-  function afterDataReady() {
-    if (data.status !== 'ready') return
-    // Индексация — в Web Worker, главный поток не блокируется
-    pushSongs(data.songs)
-    // Стартовое наполнение: первый элемент плейлиста, который удаётся открыть
-    for (let i = 0; i < setlist.items.length && setlist.currentIdx < 0; i++) {
-      setlist.open(i)
-    }
-    ui.clearNotice()
+  function toggleMobilePanel(panel: 'setlist' | 'library') {
+    mobilePanel = mobilePanel === panel ? null : panel
   }
 
-  $effect(() => {
-    data.init().then(afterDataReady)
-  })
-
-  // Провал стартовой загрузки — не тупик: обновление страницы часто не помогает,
-  // поэтому даём повтор прямо в экране ошибки
-  async function retryLoad() {
-    if (retrying) return
-    retrying = true
-    try {
-      await data.retryInit()
-      afterDataReady()
-    } finally {
-      retrying = false
-    }
+  function toggleLibrary() {
+    if (compactLayout) toggleMobilePanel('library')
+    else layout.toggleLibrary()
   }
 
-  // Второй перевод: берём из настроек при старте и пересобираем тексты главы,
-  // когда он (или основной) догрузился в фоне
-  $effect(() => {
-    void data.bibles
-    untrack(() => {
-      show.secondaryCode = projSettings.secondaryTranslation
-      show.refreshSecondary()
-    })
-  })
-
-  // Отдаём воркеру перевод, как только он загружен/выбран
-  $effect(() => {
-    pushBible(data.translation, data.bibles[data.translation] ?? null)
-  })
-
-  // Любое изменение эфира или настроек мгновенно уезжает на экран проектора
-  $effect(() => {
-    projector.sendState(
-      buildContent({
-        blackout: show.blackout,
-        kind: show.kind,
-        liveSlide: show.liveSlide,
-        line: projSettings.lineHighlight ? show.liveLine : undefined,
-        service: serviceScreen.content(),
-      }),
-      // $state.snapshot: вложенные ссылки — прокси, BroadcastChannel их не клонирует
-      { ...projSettings.snapshot(), media: $state.snapshot(mediaLibrary.refs) },
-    )
-  })
+  function toggleSetlist() {
+    if (compactLayout) toggleMobilePanel('setlist')
+    else layout.toggleSetlist()
+  }
 
   function onKeydown(e: KeyboardEvent) {
     const action = resolveHotkey({
@@ -173,29 +84,6 @@
     else if (action === 'blackout') commands.toggleBlackout()
     else if (action === 'clear') commands.clearLive()
   }
-
-  // Уведомления о тихих отказах: показываем и гасим через 4 секунды
-  $effect(() => {
-    if (!ui.lastNotice) return
-    const id = setTimeout(() => ui.clearNotice(), 4000)
-    return () => clearTimeout(id)
-  })
-
-  function toggleLibrary() {
-    if (compactLayout) {
-      mobilePanel = mobilePanel === 'library' ? null : 'library'
-    } else {
-      layout.toggleLibrary()
-    }
-  }
-
-  function toggleSetlist() {
-    if (compactLayout) {
-      mobilePanel = mobilePanel === 'setlist' ? null : 'setlist'
-    } else {
-      layout.toggleSetlist()
-    }
-  }
 </script>
 
 <svelte:window onkeydown={onKeydown} />
@@ -205,7 +93,7 @@
   <header class="app-header z-30 flex h-12 items-center gap-3 border-b border-stroke bg-panel px-3">
     <button
       class="mobile-panel-toggle grid size-7 shrink-0 place-items-center rounded border border-stroke-2 text-muted"
-      onclick={() => (mobilePanel = mobilePanel === 'library' ? null : 'library')}
+      onclick={() => toggleMobilePanel('library')}
       aria-label={mobilePanel === 'library' ? 'Закрыть библиотеку' : 'Открыть библиотеку'}
       aria-expanded={mobilePanel === 'library'}
     ><LibraryIcon size={14} /></button>
@@ -240,47 +128,21 @@
 
     <button
       class="mobile-panel-toggle grid size-7 shrink-0 place-items-center rounded border border-stroke-2 text-muted"
-      onclick={() => (mobilePanel = mobilePanel === 'setlist' ? null : 'setlist')}
+      onclick={() => toggleMobilePanel('setlist')}
       aria-label={mobilePanel === 'setlist' ? 'Закрыть порядок служения' : 'Открыть порядок служения'}
       aria-expanded={mobilePanel === 'setlist'}
     ><PanelRight size={14} /></button>
   </header>
 
-  {#if data.status === 'loading'}
-    <div class="grid place-items-center">
-      <div class="flex flex-col items-center gap-1.5">
-        <div class="flex items-center gap-2.5 text-base text-muted">
-          <LoaderCircle size={18} class="animate-spin text-accent" />
-          Загрузка переводов и песен…
-        </div>
-        <!-- Прогресса в байтах нет, но объём стоит назвать: первый запуск долгий -->
-        <div class="text-xs text-faint">
-          Первый запуск качает около 5 МБ, дальше данные берутся из кэша.
-        </div>
-      </div>
-    </div>
-  {:else if data.status === 'error'}
-    <div class="grid place-items-center">
-      <div class="flex flex-col items-center gap-3">
-        <div class="text-base text-live">Не удалось загрузить данные.</div>
-        <button
-          onclick={retryLoad}
-          disabled={retrying}
-          class="flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm
-                 font-medium text-muted hover:bg-hover hover:text-ink disabled:pointer-events-none disabled:opacity-40"
-        >
-          <RotateCw size={13} class={retrying ? 'animate-spin' : ''} />
-          {retrying ? 'Повторяем…' : 'Повторить'}
-        </button>
-        <div class="text-xs text-faint">Проверьте соединение — данные подгружаются из сети.</div>
-      </div>
-    </div>
+  {#if data.status !== 'ready'}
+    <StartupScreen />
   {:else}
     <!-- Три зоны: библиотека — источник, центр — эфир, план — справа.
          Порядок «источник → сборка → вывод» читается слева направо, а
          разделители между колонками тянутся мышью. -->
     <div
       bind:this={workspace}
+      use:fitPanelsToWindow={!compactLayout}
       class="workspace-main grid min-h-0"
       style="--library-column: {libraryColumn}px; --setlist-column: {setlistColumn}px"
     >
@@ -346,13 +208,5 @@
     </div>
   {/if}
 
-  {#if ui.lastNotice}
-    <div
-      role="status"
-      aria-live="polite"
-      class="fixed bottom-14 left-1/2 z-50 -translate-x-1/2 rounded-md border border-live/50 bg-panel-2 px-4 py-2 text-sm text-ink shadow-xl shadow-black/50"
-    >
-      {ui.lastNotice}
-    </div>
-  {/if}
+  <NoticeToast />
 </div>
