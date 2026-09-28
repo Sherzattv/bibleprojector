@@ -3,13 +3,7 @@
  * тестируется в node (tests/search-backend.test.ts).
  * Воркер (search.worker.ts) — тонкая обёртка onmessage → handle.
  */
-import {
-  createSongSearch,
-  createVerseSearch,
-  makeTitleGetter,
-  type SongSearch,
-  type VerseHit,
-} from './search'
+import { createSongSearch, createVerseSearch, type SongSearch, type VerseHit } from './search'
 import type { BibleDb, SongRow } from './db.svelte'
 
 export type BackendRequest =
@@ -44,7 +38,7 @@ export function createSearchBackend(): SearchBackend {
           return { seq: req.seq, type: 'ready', what: 'songs' }
 
         case 'set-bible':
-          verseSearch.build(req.translation, req.db, makeTitleGetter(req.translation))
+          verseSearch.build(req.translation, req.db)
           return { seq: req.seq, type: 'ready', what: 'bible', translation: req.translation }
 
         case 'search':

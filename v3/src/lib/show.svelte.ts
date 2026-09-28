@@ -3,12 +3,14 @@
  * слайды и Preview/Live. Проекционный DTO строится отдельно и передаётся
  * окну проектора через ProjectorLink.
  */
-import { splitSongSections } from './legacy/songs.js'
-import { getBookId, getBookTitle } from './legacy/canonical.js'
+import { bookTitleIn } from './bible/books'
+import { findChapter } from './bible/chapters'
 import { data } from './db.svelte'
 import { edits } from './edits.svelte'
 import type { SongRow } from './db.svelte'
 import { singableLines } from './projection'
+import { songBaseReference, splitSongSections } from './song-sections'
+import { stripMarkup } from './text'
 import type { PaletteId } from './backgrounds/catalog'
 
 export type ShowSource =
@@ -24,11 +26,6 @@ export interface ShowSlide {
   verse?: number
   /** Тот же стих во втором переводе — только для kind='bible' */
   secondary?: { text: string; reference: string }
-}
-
-/** Язык названий книг для перевода */
-function langOf(translation: string): 'kz' | 'ky' | 'ru' {
-  return translation === 'KTB' ? 'kz' : translation === 'KYB' ? 'ky' : 'ru'
 }
 
 interface VerseContext {
@@ -69,20 +66,16 @@ class ShowState {
 
   loadSong(song: SongRow) {
     this.itemBackground = null
-    const sections = splitSongSections(song.text) as Array<{
-      label: string
-      rawText: string
-    }>
-    const base = song.songNumber ? `${song.title} · № ${song.songNumber}` : song.title
+    const base = songBaseReference(song)
     this.kind = 'song'
     this.verseCtx = null
     this.source = { kind: 'song', id: song.id }
     this.baseReference = base
     this.title = song.title
     this.subtitle = song.songNumber ? `№ ${song.songNumber}` : ''
-    this.slides = sections.map((s, i) => ({
+    this.slides = splitSongSections(song.text).map((s, i) => ({
       label: s.label || `Строфа ${i + 1}`,
-      text: s.rawText.replace(/^\[[^\]]+\]\n?/, ''),
+      text: s.text,
       reference: s.label ? `${base} · ${s.label}` : base,
     }))
     this.previewIdx = 0
@@ -94,12 +87,10 @@ class ShowState {
     const db = data.db
     if (!db) return false
     const translation = data.translation
-    const bookId = getBookId(canonicalCode, translation)
-    const book = db.Books.find((b) => b.BookId === bookId)
-    const chap = book?.Chapters.find((c) => c.ChapterId === chapter)
+    const chap = findChapter(db, canonicalCode, translation, chapter)
     if (!chap) return false
 
-    const title = getBookTitle(canonicalCode, langOf(translation)) as string
+    const title = bookTitleIn(canonicalCode, translation)
 
     this.itemBackground = null
     this.kind = 'bible'
@@ -111,9 +102,7 @@ class ShowState {
     this.slides = chap.Verses.map((v) => ({
       label: `Стих ${v.VerseId}`,
       // Сохранённая оператором правка имеет приоритет над оригиналом
-      text:
-        edits.get(translation, canonicalCode, chapter, v.VerseId) ??
-        v.Text.replace(/<[^>]*>/g, ''),
+      text: edits.get(translation, canonicalCode, chapter, v.VerseId) ?? stripMarkup(v.Text),
       reference: `${title} ${chapter}:${v.VerseId}`,
       verse: v.VerseId,
       secondary: this.secondaryFor(canonicalCode, chapter, v.VerseId),
@@ -138,15 +127,13 @@ class ShowState {
     if (!code || code === data.translation) return undefined
     const db = data.bibles[code]
     if (!db) return undefined
-    const bookId = getBookId(canonicalCode, code)
-    const found = db.Books.find((b) => b.BookId === bookId)
-      ?.Chapters.find((c) => c.ChapterId === chapter)
-      ?.Verses.find((v) => v.VerseId === verse)
+    const found = findChapter(db, canonicalCode, code, chapter)?.Verses.find(
+      (v) => v.VerseId === verse,
+    )
     if (!found) return undefined
-    const title = getBookTitle(canonicalCode, langOf(code)) as string
     return {
-      text: edits.get(code, canonicalCode, chapter, verse) ?? found.Text.replace(/<[^>]*>/g, ''),
-      reference: `${title} ${chapter}:${verse}`,
+      text: edits.get(code, canonicalCode, chapter, verse) ?? stripMarkup(found.Text),
+      reference: `${bookTitleIn(canonicalCode, code)} ${chapter}:${verse}`,
     }
   }
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 // @ts-expect-error Node ESM helper written in JavaScript without declarations.
-import { parseGlobalJs, sanitizeBible, validateBible } from '../scripts/convert-core.mjs'
+import { DEMO_BOOK_IDS, parseGlobalJs, sanitizeBible, validateBible } from '../scripts/convert-core.mjs'
+import { getBookId } from '../src/lib/bible/books'
 
 // ── Помощники для мини-баз ─────────────────────────────
 
@@ -142,5 +143,15 @@ describe('validateBible — проверка структуры перевода
     const db = make66()
     db.Books[3].Chapters[0].Verses = []
     expect(validateBible(db).length).toBeGreaterThan(0)
+  })
+})
+
+describe('DEMO_BOOK_IDS — демо-срез', () => {
+  it('BookId совпадают с картой книг в каждом переводе', () => {
+    for (const translation of ['RST', 'NRT', 'KTB', 'KYB']) {
+      for (const [code, id] of Object.entries(DEMO_BOOK_IDS as Record<string, number>)) {
+        expect(getBookId(code, translation)).toBe(id)
+      }
+    }
   })
 })

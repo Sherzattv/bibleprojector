@@ -116,3 +116,11 @@ export function validateBible(db) {
   }
   return problems
 }
+
+/**
+ * Демо-срез: Иоанна (JHN) и Псалтирь (PSA). Их BookId одинаковы во всех
+ * четырёх переводах — KTB переставляет только послания. Скрипт живёт без
+ * сборки и не импортирует TypeScript, поэтому номера записаны здесь, а их
+ * согласованность с lib/bible/books.ts проверяет tests/convert.test.ts.
+ */
+export const DEMO_BOOK_IDS = { JHN: 43, PSA: 19 }

@@ -8,16 +8,18 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { parseGlobalJs, sanitizeBible, validateBible, buildManifest } from './convert-core.mjs'
+import {
+  parseGlobalJs,
+  sanitizeBible,
+  validateBible,
+  buildManifest,
+  DEMO_BOOK_IDS,
+} from './convert-core.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const dataDir = join(here, '..', 'data', 'source')
 const outDir = join(here, '..', 'public', 'data')
 mkdirSync(outDir, { recursive: true })
-
-const { TRANSLATION_MAPS } = await import(
-  join(here, '..', 'src', 'lib', 'legacy', 'canonical.js')
-)
 
 const translations = {
   RST: 'bible_data.js',
@@ -70,10 +72,9 @@ writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest))
 console.log(`Манифест: версия ${manifest.version}`)
 
 // Демо-срез: Иоанна + Псалтирь в каждом переводе, первые 300 песен
-const DEMO_BOOKS = ['JHN', 'PSA']
 const demo = { translations: {}, songs: songs.slice(0, 300) }
+const ids = Object.values(DEMO_BOOK_IDS)
 for (const code of Object.keys(translations)) {
-  const ids = DEMO_BOOKS.map((b) => TRANSLATION_MAPS[code]?.[b]).filter(Boolean)
   demo.translations[code] = {
     Translation: code,
     Books: full[code].Books.filter((b) => ids.includes(b.BookId)),

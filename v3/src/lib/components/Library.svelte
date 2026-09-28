@@ -10,7 +10,10 @@
   import { data } from '../db.svelte'
   import { commands } from '../commands.svelte'
   import { history, type HistoryEntry } from '../history.svelte'
-  import { BOOK_INFO, getBookId } from '../legacy/canonical.js'
+  import { BOOKS, bookTitleIn } from '../bible/books'
+  import { findBook } from '../bible/chapters'
+  import { countLabel, formatClock } from '../format'
+  import { foldText } from '../text'
   import type { SongRow } from '../db.svelte'
 
   interface Props {
@@ -39,12 +42,11 @@
   const row = 'flex w-full items-center gap-2.5 px-3 py-1.5 text-left hover:bg-hover'
 
   // Фильтр списка — дешёвая подстрока (полный fuzzy-поиск живёт в омнибоксе)
-  const normalize = (s: string) => s.toLowerCase().replace(/ё/g, 'е')
   const visibleSongs = $derived.by((): SongRow[] => {
-    const q = normalize(songFilter.trim())
+    const q = foldText(songFilter.trim())
     if (!q) return data.songs.slice(0, 100)
     return data.songs
-      .filter((s) => normalize(s.title).includes(q) || s.songNumber === q)
+      .filter((s) => foldText(s.title).includes(q) || s.songNumber === q)
       .slice(0, 50)
   })
 
@@ -52,15 +54,13 @@
   const books = $derived.by(() => {
     const db = data.db
     if (!db) return []
-    const lang = data.translation === 'KTB' ? 'kz' : data.translation === 'KYB' ? 'ky' : 'ru'
-    return Object.entries(BOOK_INFO)
-      .map(([code, info]) => {
-        const bookId = getBookId(code, data.translation)
-        const book = db.Books.find((b) => b.BookId === bookId)
-        if (!book) return null
-        return { code, title: info[lang] || info.ru, chapters: book.Chapters.length }
-      })
-      .filter((b): b is NonNullable<typeof b> => !!b)
+    const translation = data.translation
+    return BOOKS.flatMap(({ code }) => {
+      const book = findBook(db, code, translation)
+      return book
+        ? [{ code, title: bookTitleIn(code, translation), chapters: book.Chapters.length }]
+        : []
+    })
   })
 
   const selectedBookInfo = $derived(books.find((b) => b.code === selectedBook) ?? null)
@@ -76,23 +76,6 @@
     if (s.kind === 'song') commands.openSong(s.id)
     else if (s.kind === 'bible') commands.openRef(s.code, s.chapter, s.verse)
     else commands.openNote(s.title, s.text)
-  }
-  function timeOf(at: number): string {
-    const d = new Date(at)
-    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  }
-  function historyCountLabel(count: number) {
-    const mod100 = count % 100
-    const mod10 = count % 10
-    const noun =
-      mod100 >= 11 && mod100 <= 14
-        ? 'показов'
-        : mod10 === 1
-          ? 'показ'
-          : mod10 >= 2 && mod10 <= 4
-            ? 'показа'
-            : 'показов'
-    return `${count} ${noun}`
   }
 </script>
 
@@ -174,7 +157,7 @@
     <div class="min-h-0 flex-1 overflow-y-auto py-1">
       {#each history.items as entry (entry.at)}
         <button class={row} onclick={() => reopenHistory(entry)}>
-          <span class="w-9 shrink-0 text-right font-mono text-xs text-faint tabular-nums">{timeOf(entry.at)}</span>
+          <span class="w-9 shrink-0 text-right font-mono text-xs text-faint tabular-nums">{formatClock(entry.at)}</span>
           <span class="min-w-0">
             <span class="block truncate text-base">{entry.reference}</span>
           </span>
@@ -186,7 +169,7 @@
       {/each}
     </div>
     <div class="flex h-8 shrink-0 items-center justify-between border-t border-stroke px-3 text-xs text-faint">
-      {historyCountLabel(history.items.length)}
+      {countLabel(history.items.length, ['показ', 'показа', 'показов'])}
       {#if history.items.length}
         <button class="hover:text-muted" onclick={() => history.clear()}>Очистить</button>
       {/if}

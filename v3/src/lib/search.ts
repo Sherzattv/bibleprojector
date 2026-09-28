@@ -1,74 +1,30 @@
 /**
- * Умный поиск: ссылки на стихи (legacy-парсер по каноническим кодам),
- * полнотекстовый поиск по Библии и песням на MiniSearch
- * (опечатки, префиксы, ранжирование).
+ * Полнотекстовый поиск по Библии и песням на MiniSearch: опечатки, префиксы,
+ * ранжирование. Точные ссылки разбирает bible/reference — до fuzzy-поиска.
+ * Индексы живут в Web Worker (search-backend.ts).
  */
 import MiniSearch from 'minisearch'
-import { parseQuery, fetchVerse } from './legacy/search.js'
-import { TRANSLATION_MAPS, getBookTitle } from './legacy/canonical.js'
+import { bookTitleIn, codeForBookId } from './bible/books'
+import { foldText, stripMarkup } from './text'
 import type { BibleDb, SongRow } from './db.svelte'
-
-/** Канонический код по BookId перевода */
-export function codeForBookId(translation: string, bookId: number): string | null {
-  const map = TRANSLATION_MAPS[translation] as Record<string, number> | undefined
-  if (!map) return null
-  for (const [code, id] of Object.entries(map)) if (id === bookId) return code
-  return null
-}
-
-/** Название книги по BookId для подписи результатов */
-export function makeTitleGetter(translation: string) {
-  const lang = translation === 'KTB' ? 'kz' : translation === 'KYB' ? 'ky' : 'ru'
-  return (bookId: number) => {
-    const code = codeForBookId(translation, bookId)
-    return code ? (getBookTitle(code, lang) as string) : `Книга ${bookId}`
-  }
-}
-
-export interface ParsedRef {
-  canonicalCode: string
-  bookName: string
-  chapter: string
-  verse: string
-}
 
 export interface VerseHit {
   id: string
   ref: string
   text: string
+  /** Канонический код книги; пусто — BookId неизвестен карте перевода */
   canonicalCode: string
   bookId: number
   chapter: number
   verse: number
 }
 
-export { parseQuery, fetchVerse }
-
-/**
- * Что делает Enter в омнибоксе. В эфир по Ctrl/Cmd+Enter уходит ТОЛЬКО
- * точная ссылка — fuzzy-результаты (опечатки!) никогда не идут в эфир сразу.
- */
-export function pickEnterAction(input: {
-  parsedRef: unknown | null
-  verseHits: unknown[]
-  songHits: unknown[]
-  withModifier: boolean
-}): { type: 'ref'; live: boolean } | { type: 'verse' } | { type: 'song' } | null {
-  if (input.parsedRef) return { type: 'ref', live: input.withModifier }
-  if (input.verseHits.length) return { type: 'verse' }
-  if (input.songHits.length) return { type: 'song' }
-  return null
-}
-
-const stripTags = (t: string) => t.replace(/<[^>]*>/g, '')
-const normalize = (t: string) => t.toLowerCase().replace(/ё/g, 'е')
-
 const miniOptions = {
-  processTerm: (term: string) => normalize(term),
+  processTerm: foldText,
   searchOptions: {
     prefix: true,
     fuzzy: 0.2,
-    processTerm: (term: string) => normalize(term),
+    processTerm: foldText,
   },
 }
 
@@ -108,21 +64,10 @@ export function createSongSearch(songs: SongRow[]): SongSearch {
   }
 }
 
-// Модульный синглтон — для обратной совместимости со старым API
-let defaultSongSearch: SongSearch | null = null
-
-export function buildSongIndex(songs: SongRow[]) {
-  defaultSongSearch = createSongSearch(songs)
-}
-
-export function searchSongs(query: string, _songs: SongRow[], limit = 8): SongRow[] {
-  return defaultSongSearch ? defaultSongSearch.search(query, limit) : []
-}
-
 // ── Библия ─────────────────────────────────────────────
 
 export interface VerseSearch {
-  build(translation: string, db: BibleDb, getTitle: (bookId: number) => string): void
+  build(translation: string, db: BibleDb): void
   has(translation: string): boolean
   search(query: string, translation: string, limit?: number): VerseHit[]
 }
@@ -133,7 +78,7 @@ export function createVerseSearch(): VerseSearch {
   const docsByTranslation = new Map<string, Map<string, VerseHit>>()
 
   return {
-    build(translation, db, getTitle) {
+    build(translation, db) {
       if (indexes.has(translation)) return
       const index = new MiniSearch<VerseHit>({
         fields: ['text'],
@@ -142,7 +87,8 @@ export function createVerseSearch(): VerseSearch {
       const docs = new Map<string, VerseHit>()
       const all: VerseHit[] = []
       for (const book of db.Books) {
-        const title = getTitle(book.BookId)
+        const code = codeForBookId(translation, book.BookId)
+        const title = code ? bookTitleIn(code, translation) : `Книга ${book.BookId}`
         for (const chapter of book.Chapters) {
           for (const verse of chapter.Verses) {
             const id = `${book.BookId}:${chapter.ChapterId}:${verse.VerseId}`
@@ -151,8 +97,8 @@ export function createVerseSearch(): VerseSearch {
             const doc: VerseHit = {
               id,
               ref: `${title} ${chapter.ChapterId}:${verse.VerseId}`,
-              text: stripTags(verse.Text),
-              canonicalCode: '',
+              text: stripMarkup(verse.Text),
+              canonicalCode: code ?? '',
               bookId: book.BookId,
               chapter: chapter.ChapterId,
               verse: verse.VerseId,
@@ -183,23 +129,4 @@ export function createVerseSearch(): VerseSearch {
         .filter((d): d is VerseHit => !!d)
     },
   }
-}
-
-// Модульный синглтон — для обратной совместимости со старым API
-const defaultVerseSearch = createVerseSearch()
-
-export function buildVerseIndex(
-  translation: string,
-  db: BibleDb,
-  getTitle: (bookId: number) => string,
-) {
-  defaultVerseSearch.build(translation, db, getTitle)
-}
-
-export function hasVerseIndex(translation: string) {
-  return defaultVerseSearch.has(translation)
-}
-
-export function searchVerses(query: string, translation: string, limit = 8): VerseHit[] {
-  return defaultVerseSearch.search(query, translation, limit)
 }

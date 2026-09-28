@@ -2,7 +2,8 @@
   import { Search, BookOpen, Music, CornerDownLeft, LoaderCircle } from '@lucide/svelte'
   import { data } from '../db.svelte'
   import { commands } from '../commands.svelte'
-  import { parseQuery, codeForBookId, type VerseHit } from '../search'
+  import { resolveReference, type ResolvedReference } from '../bible/reference'
+  import type { VerseHit } from '../search'
   import {
     buildOptions,
     createDeferredClose,
@@ -12,7 +13,6 @@
   } from '../omni-list'
   import { getSearchClient } from '../search-service.svelte'
   import { ui } from '../ui.svelte'
-  import { getBookTitle } from '../legacy/canonical.js'
   import type { SongRow } from '../db.svelte'
 
   let query = $state('')
@@ -23,30 +23,7 @@
   const client = getSearchClient()
   const deferredClose = createDeferredClose(() => (open = false))
 
-  interface RefResult {
-    canonicalCode: string
-    chapter: number
-    verse: number
-    label: string
-  }
-
-  const parsedRef = $derived.by((): RefResult | null => {
-    const parsed = parseQuery(query) as {
-      canonicalCode: string
-      chapter: string
-      verse: string
-    } | null
-    if (!parsed) return null
-    const lang = data.translation === 'KTB' ? 'kz' : data.translation === 'KYB' ? 'ky' : 'ru'
-    const title = getBookTitle(parsed.canonicalCode, lang) as string
-    const verse = parseInt(parsed.verse.split(/[-,]/)[0]) || 1
-    return {
-      canonicalCode: parsed.canonicalCode,
-      chapter: parseInt(parsed.chapter),
-      verse,
-      label: `${title} ${parsed.chapter}:${parsed.verse}`,
-    }
-  })
+  const parsedRef = $derived(resolveReference(query, data.translation))
 
   // Поиск уходит в Web Worker (debounce внутри клиента);
   // распознанная ссылка — не повод искать полнотекстом
@@ -85,7 +62,7 @@
     client.search('', data.translation)
   }
 
-  function openRef(ref: RefResult, live = false) {
+  function openRef(ref: ResolvedReference, live = false) {
     if (commands.openRef(ref.canonicalCode, ref.chapter, ref.verse)) {
       if (live) commands.go()
       close()
@@ -93,12 +70,11 @@
   }
 
   function openVerseHit(hit: VerseHit) {
-    const code = codeForBookId(data.translation, hit.bookId)
-    if (code && commands.openRef(code, hit.chapter, hit.verse)) {
-      close()
-    } else if (!code) {
+    if (!hit.canonicalCode) {
       ui.notify(`«${hit.ref}» не удалось открыть`)
+      return
     }
+    if (commands.openRef(hit.canonicalCode, hit.chapter, hit.verse)) close()
   }
 
   function openSong(song: SongRow) {

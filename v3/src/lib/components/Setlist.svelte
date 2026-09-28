@@ -18,6 +18,7 @@
   import { ui } from '../ui.svelte'
   import { projSettings } from '../proj-settings.svelte'
   import { findPalette, findPreset } from '../backgrounds/catalog'
+  import { countLabel } from '../format'
 
   /** Привязать к пункту текущий фон экрана или снять привязку */
   function toggleItemBackground(i: number) {
@@ -44,20 +45,6 @@
   let noteOpen = $state(false)
   let noteTitle = $state('')
   let noteText = $state('')
-
-  function itemCountLabel(count: number) {
-    const mod100 = count % 100
-    const mod10 = count % 10
-    const noun =
-      mod100 >= 11 && mod100 <= 14
-        ? 'элементов'
-        : mod10 === 1
-          ? 'элемент'
-          : mod10 >= 2 && mod10 <= 4
-            ? 'элемента'
-            : 'элементов'
-    return `${count} ${noun}`
-  }
 
   function downloadSetlist() {
     const blob = new Blob([setlist.exportJson()], { type: 'application/json' })
@@ -199,7 +186,7 @@
     </div>
 
     <div class="flex h-9 shrink-0 items-center gap-0.5 border-t border-stroke px-2 text-xs text-faint">
-      <span class="mr-auto pl-1">{itemCountLabel(setlist.items.length)}</span>
+      <span class="mr-auto pl-1">{countLabel(setlist.items.length, ['элемент', 'элемента', 'элементов'])}</span>
       <button
         class="grid size-7 place-items-center rounded hover:bg-hover hover:text-muted"
         onclick={() => (noteOpen = true)}
