@@ -1,6 +1,6 @@
 /**
  * Настройки живого фона: что едет на экран проектора и что хранится.
- * Чистые функции — покрыты tests/backgrounds.test.ts.
+ * Чистые функции — покрыты tests/backgrounds/backgrounds.test.ts.
  */
 import { BACKGROUNDS, PALETTES, findPreset, type PaletteId } from './catalog'
 

@@ -1,7 +1,6 @@
 /** Мини-базы для тестов: Иоанна 3 (2 стиха) + Псалтирь 41 в RST и NRT */
-// @ts-expect-error legacy JS module without types
-import { getBookId } from '../src/lib/legacy/canonical.js'
-import type { BibleDb, SongRow } from '../src/lib/db.svelte'
+import { getBookId } from '../src/lib/bible/books'
+import type { BibleDb, SongRow } from '../src/lib/data/db.svelte'
 
 function makeDb(translation: string, texts: Record<string, string[]>): BibleDb {
   return {

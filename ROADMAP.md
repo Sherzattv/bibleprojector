@@ -1,6 +1,6 @@
 # Roadmap Bible Projector v3
 
-Актуально для **3.1.0** на 12 августа 2026 года.
+Актуально для **3.3.1** на 28 сентября 2026 года.
 
 v3 — единственная кодовая база приложения. Runtime и UI v2 удалены;
 отдельного продуктового roadmap у них нет.
@@ -95,8 +95,8 @@ autofit, контраст, автопрокрутка). Работа продо�
 
 ### Снижение legacy-зависимости
 
-- [ ] Перенести `canonical`, `parseQuery` и `splitSongSections` в TypeScript.
-- [ ] Удалить дублирующий неиспользуемый legacy-код.
+- [x] Перенести `canonical`, `parseQuery` и `splitSongSections` в TypeScript.
+- [x] Удалить дублирующий неиспользуемый legacy-код.
 - [x] Исключить runtime v2 из production и CI.
 - [x] Перенести исходные базы в `v3/data/source/`.
 - [x] Удалить остатки runtime и UI v2 из `app/`.

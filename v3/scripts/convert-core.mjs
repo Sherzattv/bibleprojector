@@ -1,7 +1,7 @@
 /**
  * Ядро конвертера данных: извлечение, чистка, валидация и манифест версий.
- * Используется scripts/convert-data.mjs; покрыто tests/convert.test.ts
- * и tests/manifest.test.ts.
+ * Используется scripts/convert-data.mjs; покрыто tests/scripts/convert.test.ts
+ * и tests/scripts/manifest.test.ts.
  */
 import { createHash } from 'node:crypto'
 
@@ -116,3 +116,11 @@ export function validateBible(db) {
   }
   return problems
 }
+
+/**
+ * Демо-срез: Иоанна (JHN) и Псалтирь (PSA). Их BookId одинаковы во всех
+ * четырёх переводах — KTB переставляет только послания. Скрипт живёт без
+ * сборки и не импортирует TypeScript, поэтому номера записаны здесь, а их
+ * согласованность с lib/bible/books.ts проверяет tests/scripts/convert.test.ts.
+ */
+export const DEMO_BOOK_IDS = { JHN: 43, PSA: 19 }
