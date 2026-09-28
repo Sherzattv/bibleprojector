@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { rstShiftDb, nrtShiftDb, nrtShiftHighDb, songs } from './fixtures'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { rstShiftDb, nrtShiftDb, nrtShiftHighDb, songs } from '../fixtures'
 
 // Псалом 41: в RST стихи [1,2,3], в NRT — [1,3,4] (см. fixtures)
 beforeEach(() => {

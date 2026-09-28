@@ -1,14 +1,14 @@
 <script lang="ts">
   import { Timer, Play, Pause, RotateCcw, Upload, X } from '@lucide/svelte'
-  import { mediaLibrary } from '../media-library.svelte'
-  import { ui } from '../ui.svelte'
-  import { dismissable } from '../dismiss'
+  import { mediaLibrary } from '../../media/library.svelte'
+  import { ui } from '../../ui/notices.svelte'
+  import { dismissable } from '../../ui/dismiss'
   import {
     COUNTDOWN_MINUTES,
     formatCountdown,
     serviceScreen,
     type ServiceMode,
-  } from '../service-screen.svelte'
+  } from '../../projection/service-screen.svelte'
 
   interface Props {
     /** Классы кнопки дока — панель выглядит как соседи */

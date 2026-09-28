@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { commands } from '../src/lib/commands.svelte'
-import { history } from '../src/lib/history.svelte'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { ui } from '../src/lib/ui.svelte'
-import { projSettings } from '../src/lib/proj-settings.svelte'
-import { serviceScreen } from '../src/lib/service-screen.svelte'
-import { rstDb, nrtDb, rstShiftDb, nrtShiftDb, songs } from './fixtures'
+import { commands } from '../../src/lib/show/commands.svelte'
+import { history } from '../../src/lib/show/history.svelte'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { ui } from '../../src/lib/ui/notices.svelte'
+import { projSettings } from '../../src/lib/projection/settings.svelte'
+import { serviceScreen } from '../../src/lib/projection/service-screen.svelte'
+import { rstDb, nrtDb, rstShiftDb, nrtShiftDb, songs } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb, NRT: nrtDb }

@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { BackgroundRenderer } from '../backgrounds/renderer'
-  import { findPreset } from '../backgrounds/catalog'
-  import { contrastOnBackground } from '../backgrounds/contrast'
-  import { isAnimated, type BackgroundSettings } from '../backgrounds/settings'
+  import { BackgroundRenderer } from '../../backgrounds/renderer'
+  import { findPreset } from '../../backgrounds/catalog'
+  import { contrastOnBackground } from '../../backgrounds/contrast'
+  import { isAnimated, type BackgroundSettings } from '../../backgrounds/settings'
 
   interface Props {
     settings: BackgroundSettings

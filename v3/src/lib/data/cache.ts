@@ -2,7 +2,7 @@
  * Офлайн-доставка данных: манифест — network-first, файлы — cache-first
  * по контент-хэшу, stale-фоллбек при сбое сети.
  * Хранилище и сеть абстрагированы (в рантайме — Cache Storage и fetch,
- * в тестах — фейки). Покрыто tests/data-cache.test.ts.
+ * в тестах — фейки). Покрыто tests/data/cache.test.ts.
  */
 
 export interface KVStore {

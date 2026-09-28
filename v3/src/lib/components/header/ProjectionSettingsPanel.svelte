@@ -1,10 +1,10 @@
 <script lang="ts">
   import { Settings2 } from '@lucide/svelte'
-  import { data, TRANSLATIONS } from '../db.svelte'
-  import { commands } from '../commands.svelte'
-  import { projSettings } from '../proj-settings.svelte'
-  import { dismissable } from '../dismiss'
-  import { TRANSITION_MS_MAX, TRANSITION_MS_MIN, type TransitionKind } from '../projection'
+  import { data, TRANSLATIONS } from '../../data/db.svelte'
+  import { commands } from '../../show/commands.svelte'
+  import { projSettings } from '../../projection/settings.svelte'
+  import { dismissable } from '../../ui/dismiss'
+  import { TRANSITION_MS_MAX, TRANSITION_MS_MIN, type TransitionKind } from '../../projection/content'
 
   /**
    * Настройки проекции в шапке пульта: шрифт, переходы, второй перевод,

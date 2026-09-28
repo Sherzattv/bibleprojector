@@ -7,8 +7,8 @@ import {
   toScreenInfo,
   type ScreenDetailedLike,
   type ScreenInfo,
-} from '../src/lib/screens.svelte'
-import { createMemoryStore, type TextStore } from '../src/lib/storage'
+} from '../../src/lib/projector/screens.svelte'
+import { createMemoryStore, type TextStore } from '../../src/lib/utils/storage'
 
 /** Ноутбук оператора */
 const internal: ScreenDetailedLike = {

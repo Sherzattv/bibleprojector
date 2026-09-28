@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { slideIn, slideOut, type SlideTransitionParams } from '../transitions'
+  import { slideIn, slideOut, type SlideTransitionParams } from '../../projection/transitions'
 
   interface Props {
     name: string

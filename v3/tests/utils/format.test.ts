@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { countLabel, formatClock, pluralRu } from '../src/lib/format'
-import { foldText, stripMarkup } from '../src/lib/text'
+import { countLabel, formatClock, pluralRu } from '../../src/lib/utils/format'
 
 const SHOWS = ['показ', 'показа', 'показов'] as const
 
@@ -31,15 +30,5 @@ describe('formatClock', () => {
   it('часы и минуты с ведущими нулями', () => {
     expect(formatClock(new Date(2026, 0, 1, 9, 5))).toBe('09:05')
     expect(formatClock(new Date(2026, 0, 1, 23, 59).getTime())).toBe('23:59')
-  })
-})
-
-describe('text', () => {
-  it('stripMarkup убирает теги, оставляя текст', () => {
-    expect(stripMarkup('<J>Я есмь</J> путь')).toBe('Я есмь путь')
-  })
-
-  it('foldText сравнивает без регистра и «ё»', () => {
-    expect(foldText('Ёлка ЁЖ')).toBe('елка еж')
   })
 })

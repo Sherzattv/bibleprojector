@@ -14,11 +14,11 @@
     PanelRightOpen,
     Palette,
   } from '@lucide/svelte'
-  import { setlist } from '../setlist.svelte'
-  import { ui } from '../ui.svelte'
-  import { projSettings } from '../proj-settings.svelte'
-  import { findPalette, findPreset } from '../backgrounds/catalog'
-  import { countLabel } from '../format'
+  import { setlist } from '../../show/setlist.svelte'
+  import { ui } from '../../ui/notices.svelte'
+  import { projSettings } from '../../projection/settings.svelte'
+  import { findPalette, findPreset } from '../../backgrounds/catalog'
+  import { countLabel } from '../../utils/format'
 
   /** Привязать к пункту текущий фон экрана или снять привязку */
   function toggleItemBackground(i: number) {

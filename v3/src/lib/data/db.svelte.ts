@@ -31,7 +31,7 @@ export interface SongRow {
   copyright?: string
 }
 
-import { loadManifest, loadDataFile, type KVStore, type FetchText, type DataManifest } from './data-cache'
+import { loadManifest, loadDataFile, type KVStore, type FetchText, type DataManifest } from './cache'
 
 export type LoadStatus = 'loading' | 'ready' | 'error'
 
@@ -172,7 +172,7 @@ class DataStore {
   async init() {
     try {
       if (IS_DEMO) {
-        const demo = (await import('./demo-data.json')) as unknown as {
+        const demo = (await import('../demo-data.json')) as unknown as {
           default: { translations: Record<string, BibleDb>; songs: SongRow[] }
         }
         this.bibles = demo.default.translations

@@ -8,9 +8,9 @@ import {
   getBookId,
   getBookTitle,
   getCanonicalCode,
-} from '../src/lib/bible/books'
-import { findBook, findChapter } from '../src/lib/bible/chapters'
-import { rstDb } from './fixtures'
+} from '../../src/lib/bible/books'
+import { findBook, findChapter } from '../../src/lib/bible/chapters'
+import { rstDb } from '../fixtures'
 
 const TRANSLATIONS = ['RST', 'NRT', 'KTB', 'KYB']
 

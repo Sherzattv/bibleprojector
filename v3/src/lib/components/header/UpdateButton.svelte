@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowDownToLine } from '@lucide/svelte'
-  import { getProjectorLink } from '../projector-service.svelte'
+  import { getProjectorLink } from '../../projector/service.svelte'
 
   /** Сколько ждём второго нажатия, прежде чем снять вопрос «Точно?» */
   const CONFIRM_MS = 4000

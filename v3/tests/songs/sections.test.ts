@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { songBaseReference, splitSongSections } from '../src/lib/song-sections'
+import { songBaseReference, splitSongSections } from '../../src/lib/songs/sections'
 
 describe('splitSongSections — слайды песни', () => {
   it('метки [..] начинают секции, сама метка в текст не попадает', () => {

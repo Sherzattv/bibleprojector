@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { dismissable } from '../src/lib/dismiss'
+import { dismissable } from '../../src/lib/ui/dismiss'
 
 describe('dismissable: панель закрывается кликом мимо и Esc', () => {
   let wrap: HTMLDivElement

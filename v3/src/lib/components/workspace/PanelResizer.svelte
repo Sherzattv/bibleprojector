@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { layout, type PanelName } from '../layout.svelte'
+  import { layout, type PanelName } from '../../ui/layout.svelte'
   import {
     clampPanelWidth,
     keyboardDelta,
@@ -7,7 +7,7 @@
     PANEL_MAX,
     PANEL_MIN,
     type PanelEdge,
-  } from '../panel-size'
+  } from '../../ui/panel-size'
 
   interface Props {
     panel: PanelName

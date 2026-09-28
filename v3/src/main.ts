@@ -3,7 +3,7 @@ import { mount } from 'svelte'
 import { registerSW } from 'virtual:pwa-register'
 import './app.css'
 import App from './App.svelte'
-import DisplayView from './lib/components/DisplayView.svelte'
+import DisplayView from './lib/components/display/DisplayView.svelte'
 
 // #display — окно проектора: только приём и показ, без данных и пульта
 const isDisplay = window.location.hash === '#display'

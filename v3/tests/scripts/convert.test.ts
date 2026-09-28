@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 // @ts-expect-error Node ESM helper written in JavaScript without declarations.
-import { DEMO_BOOK_IDS, parseGlobalJs, sanitizeBible, validateBible } from '../scripts/convert-core.mjs'
-import { getBookId } from '../src/lib/bible/books'
+import { DEMO_BOOK_IDS, parseGlobalJs, sanitizeBible, validateBible } from '../../scripts/convert-core.mjs'
+import { getBookId } from '../../src/lib/bible/books'
 
 // ── Помощники для мини-баз ─────────────────────────────
 

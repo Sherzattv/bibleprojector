@@ -1,9 +1,9 @@
 <script lang="ts">
   import { ChevronDown, Check } from '@lucide/svelte'
-  import { data, TRANSLATIONS } from '../db.svelte'
-  import { commands } from '../commands.svelte'
-  import { nextIndex } from '../omni-list'
-  import { buildTranslationOptions, initialActive, statusNote } from '../translation-picker'
+  import { data, TRANSLATIONS } from '../../data/db.svelte'
+  import { commands } from '../../show/commands.svelte'
+  import { nextIndex } from '../../search/omni-list'
+  import { buildTranslationOptions, initialActive, statusNote } from '../../ui/translation-picker'
 
   let open = $state(false)
   let active = $state(-1)

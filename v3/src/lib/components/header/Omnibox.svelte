@@ -1,19 +1,19 @@
 <script lang="ts">
   import { Search, BookOpen, Music, CornerDownLeft, LoaderCircle } from '@lucide/svelte'
-  import { data } from '../db.svelte'
-  import { commands } from '../commands.svelte'
-  import { resolveReference, type ResolvedReference } from '../bible/reference'
-  import type { VerseHit } from '../search'
+  import { data } from '../../data/db.svelte'
+  import { commands } from '../../show/commands.svelte'
+  import { resolveReference, type ResolvedReference } from '../../bible/reference'
+  import type { VerseHit } from '../../search/engine'
   import {
     buildOptions,
     createDeferredClose,
     nextIndex,
     pickActionAt,
     type OmniOption,
-  } from '../omni-list'
-  import { getSearchClient } from '../search-service.svelte'
-  import { ui } from '../ui.svelte'
-  import type { SongRow } from '../db.svelte'
+  } from '../../search/omni-list'
+  import { getSearchClient } from '../../search/service.svelte'
+  import { ui } from '../../ui/notices.svelte'
+  import type { SongRow } from '../../data/db.svelte'
 
   let query = $state('')
   let open = $state(false)

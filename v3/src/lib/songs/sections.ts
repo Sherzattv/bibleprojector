@@ -1,8 +1,8 @@
 /**
  * Разбиение текста песни на слайды. Чистый модуль — покрыт
- * tests/song-sections.test.ts.
+ * tests/songs/sections.test.ts.
  */
-import type { SongRow } from './db.svelte'
+import type { SongRow } from '../data/db.svelte'
 
 export interface SongSection {
   /** Метка без скобок: «Куплет 1», «Припев»; пусто — у куска нет метки */

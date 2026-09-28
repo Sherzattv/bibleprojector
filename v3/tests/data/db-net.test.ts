@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { data, createFetchText } from '../src/lib/db.svelte'
-import { rstDb, nrtDb, songs } from './fixtures'
+import { data, createFetchText } from '../../src/lib/data/db.svelte'
+import { rstDb, nrtDb, songs } from '../fixtures'
 
 // Сетевой слой стора: content-type, таймаут и повтор стартовой загрузки.
-// Кэш-логика — в data-cache.test.ts.
+// Кэш-логика — в data/cache.test.ts.
 
 /** Ответ настоящего вида: с headers и text() */
 const res = (body: unknown, type = 'application/json') =>

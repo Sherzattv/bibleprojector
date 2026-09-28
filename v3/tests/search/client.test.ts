@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { SearchClient, type SearchTransport } from '../src/lib/search-client.svelte'
-import type { SongRow } from '../src/lib/db.svelte'
-import { rstDb, songs } from './fixtures'
+import { SearchClient, type SearchTransport } from '../../src/lib/search/client.svelte'
+import type { SongRow } from '../../src/lib/data/db.svelte'
+import { rstDb, songs } from '../fixtures'
 
-/** Минимальные типы сообщений — без импорта search-backend (его пишет другой агент) */
+/** Минимальные типы сообщений — без импорта search/backend: клиент не должен от него зависеть */
 interface SearchMsg {
   type: string
   seq: number

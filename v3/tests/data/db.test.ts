@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { data } from '../src/lib/db.svelte'
-import { rstDb, nrtDb, songs } from './fixtures'
+import { data } from '../../src/lib/data/db.svelte'
+import { rstDb, nrtDb, songs } from '../fixtures'
 
 // В тестах MODE='test', IS_DEMO=false — работает fetch-ветка init()
 

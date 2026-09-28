@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 // Модуль autofit ещё не реализован — тесты красные до реализации (TDD)
-import { autofitScale } from '../src/lib/autofit'
+import { autofitScale } from '../../src/lib/projection/autofit'
 
 /** Строка из n псевдослучайных, но детерминированных «слов» */
 const longLine = (n: number) => 'слово '.repeat(Math.ceil(n / 6)).slice(0, n)

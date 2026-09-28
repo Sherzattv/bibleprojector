@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 // Модуль ещё не существует — тест красный до реализации (TDD)
-import { isInteractiveTarget, resolveHotkey } from '../src/lib/hotkeys'
+import { isInteractiveTarget, resolveHotkey } from '../../src/lib/ui/hotkeys'
 
 /** Элемент нужного тега через настоящий DOM (jsdom) */
 function el(tag: string): Element {

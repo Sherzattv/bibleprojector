@@ -2,7 +2,7 @@
  * Правки текста стихов: оператор может поправить текст перед показом,
  * правка сохраняется по ключу перевод/книга/глава/стих.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
 
 // Реэкспорт ради существующих импортов `TextStore` из этого модуля
 export type { TextStore }

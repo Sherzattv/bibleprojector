@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { commands } from '../src/lib/commands.svelte'
-import { projSettings } from '../src/lib/proj-settings.svelte'
-import { buildContent, normalizeProjectionSettings } from '../src/lib/projection'
-import { rstDb, nrtDb, rstShiftDb, nrtShiftDb } from './fixtures'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { commands } from '../../src/lib/show/commands.svelte'
+import { projSettings } from '../../src/lib/projection/settings.svelte'
+import { buildContent, normalizeProjectionSettings } from '../../src/lib/projection/content'
+import { rstDb, nrtDb, rstShiftDb, nrtShiftDb } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb, NRT: nrtDb }

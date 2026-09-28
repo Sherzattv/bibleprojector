@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { data } from '../src/lib/db.svelte'
-import { rstDb, songs, songsDuo214 } from './fixtures'
+import { data } from '../../src/lib/data/db.svelte'
+import { rstDb, songs, songsDuo214 } from '../fixtures'
 
 // bibles/songs становятся «сырыми» ($state.raw): большие объекты не должны
 // заворачиваться в глубокий $state-прокси — их идентичность сохраняется,

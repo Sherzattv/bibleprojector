@@ -7,9 +7,9 @@
     closeDisplayWindow,
     requestDisplayFullscreen,
     screens,
-  } from '../projector-service.svelte'
-  import { screenTitle, type ScreenInfo } from '../screens.svelte'
-  import { dismissable } from '../dismiss'
+  } from '../../projector/service.svelte'
+  import { screenTitle, type ScreenInfo } from '../../projector/screens.svelte'
+  import { dismissable } from '../../ui/dismiss'
 
   const projector = getProjectorLink()
 

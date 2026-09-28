@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseQuery, resolveReference } from '../src/lib/bible/reference'
+import { parseQuery, resolveReference } from '../../src/lib/bible/reference'
 
 describe('parseQuery — ссылки на стихи', () => {
   it('понимает «ин 3 16»', () => {

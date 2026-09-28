@@ -3,7 +3,7 @@ import {
   buildTranslationOptions,
   initialActive,
   statusNote,
-} from '../src/lib/translation-picker'
+} from '../../src/lib/ui/translation-picker'
 
 const TRANSLATIONS: Array<[string, string]> = [
   ['RST', 'Синодальный'],

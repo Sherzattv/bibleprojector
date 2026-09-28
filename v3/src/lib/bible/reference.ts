@@ -1,6 +1,6 @@
 /**
  * Ссылки на стихи, которые вводит оператор: «ин 3 16», «мф 5:3-10»,
- * «1 кор 13 4», «жар 1:1». Чистый модуль — покрыт tests/reference.test.ts.
+ * «1 кор 13 4», «жар 1:1». Чистый модуль — покрыт tests/bible/reference.test.ts.
  */
 import { bookTitleIn, getCanonicalCode } from './books'
 

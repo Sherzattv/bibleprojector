@@ -2,7 +2,7 @@
  * Поисковый Web Worker: тонкая обёртка над чистым бэкендом.
  * Вся индексация и поиск — вне главного потока.
  */
-import { createSearchBackend, type BackendRequest } from './search-backend'
+import { createSearchBackend, type BackendRequest } from './backend'
 
 const backend = createSearchBackend()
 

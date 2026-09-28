@@ -2,9 +2,9 @@
  * Единственный экземпляр SearchClient поверх Web Worker.
  * Компоненты берут клиента отсюда; данные проталкиваются по мере загрузки.
  */
-import SearchWorker from './search.worker?worker&inline'
-import { SearchClient, type SearchTransport } from './search-client.svelte'
-import type { BibleDb, SongRow } from './db.svelte'
+import SearchWorker from './worker?worker&inline'
+import { SearchClient, type SearchTransport } from './client.svelte'
+import type { BibleDb, SongRow } from '../data/db.svelte'
 
 let client: SearchClient | null = null
 const pushedBibles = new Set<string>()

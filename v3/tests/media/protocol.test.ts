@@ -5,7 +5,7 @@ import {
   mediaKind,
   normalizeMediaRefs,
   validateMedia,
-} from '../src/lib/media'
+} from '../../src/lib/media/protocol'
 
 const MB = 1024 * 1024
 

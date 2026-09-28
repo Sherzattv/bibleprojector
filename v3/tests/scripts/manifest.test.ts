@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 // @ts-expect-error Node ESM helper written in JavaScript without declarations.
-import { hashContent, buildManifest } from '../scripts/convert-core.mjs'
+import { hashContent, buildManifest } from '../../scripts/convert-core.mjs'
 
 // ── hashContent ────────────────────────────────────────
 

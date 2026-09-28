@@ -9,7 +9,7 @@ export interface Channel {
   onmessage: ((msg: unknown) => void) | null
 }
 
-import { MEDIA_SLOTS, isMediaPayload, type MediaPayload, type MediaSlot } from './media'
+import { MEDIA_SLOTS, isMediaPayload, type MediaPayload, type MediaSlot } from '../media/protocol'
 
 /** Команды пульта окну проектора */
 export type DisplayCommand = 'fullscreen' | 'close' | 'reload'

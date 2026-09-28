@@ -1,10 +1,10 @@
 /**
  * Ядро поискового Web Worker — чистый модуль без Worker API,
- * тестируется в node (tests/search-backend.test.ts).
- * Воркер (search.worker.ts) — тонкая обёртка onmessage → handle.
+ * тестируется в node (tests/search/backend.test.ts).
+ * Воркер (worker.ts) — тонкая обёртка onmessage → handle.
  */
-import { createSongSearch, createVerseSearch, type SongSearch, type VerseHit } from './search'
-import type { BibleDb, SongRow } from './db.svelte'
+import { createSongSearch, createVerseSearch, type SongSearch, type VerseHit } from './engine'
+import type { BibleDb, SongRow } from '../data/db.svelte'
 
 export type BackendRequest =
   | { seq: number; type: 'set-songs'; songs: SongRow[] }

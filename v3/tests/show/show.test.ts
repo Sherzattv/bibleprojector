@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { rstDb, nrtDb, songs } from './fixtures'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { rstDb, nrtDb, songs } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb, NRT: nrtDb }

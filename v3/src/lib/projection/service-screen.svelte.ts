@@ -10,8 +10,8 @@
  * Тексты и длительность хранятся, сам режим — нет: после перезапуска
  * служебный экран выключен.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
-import type { ServiceContent } from './projection'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import type { ServiceContent } from './content'
 
 const KEY = 'bp3-service-screen'
 

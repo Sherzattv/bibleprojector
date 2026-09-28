@@ -7,7 +7,7 @@
  * дублируется в localStorage: следующее открытие ставит окно на нужный
  * монитор сразу, не дожидаясь ни разрешения, ни асинхронного ответа API.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
 
 const KEY = 'bp3-display-screen'
 

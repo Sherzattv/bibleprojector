@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { countdownLeft, formatCountdown } from '../service-screen.svelte'
+  import { countdownLeft, formatCountdown } from '../../projection/service-screen.svelte'
 
   interface Props {
     endsAt: number | null

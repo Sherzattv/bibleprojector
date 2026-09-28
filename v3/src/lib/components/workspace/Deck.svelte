@@ -1,19 +1,19 @@
 <script lang="ts">
   import { Pencil, Check, X } from '@lucide/svelte'
-  import { show, type ShowSlide } from '../show.svelte'
-  import { projSettings } from '../proj-settings.svelte'
-  import { autofitScale } from '../autofit'
-  import MotionBackground from './MotionBackground.svelte'
-  import ParallelVerse from './ParallelVerse.svelte'
+  import { show, type ShowSlide } from '../../show/show.svelte'
+  import { projSettings } from '../../projection/settings.svelte'
+  import { autofitScale } from '../../projection/autofit'
+  import MotionBackground from '../projection/MotionBackground.svelte'
+  import ParallelVerse from '../projection/ParallelVerse.svelte'
   import {
     CHROMA_BACKGROUND,
     FONT_SIZE_FACTOR,
     LINE_OPACITY,
     lineStates,
     lowerThirdText,
-  } from '../projection'
-  import { serviceScreen } from '../service-screen.svelte'
-  import { mediaLibrary } from '../media-library.svelte'
+  } from '../../projection/content'
+  import { serviceScreen } from '../../projection/service-screen.svelte'
+  import { mediaLibrary } from '../../media/library.svelte'
 
   interface Props {
     mode: 'preview' | 'live'

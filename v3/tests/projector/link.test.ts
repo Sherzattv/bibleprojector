@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { ProjectorLink, DisplayReceiver, type Channel } from '../src/lib/projector-link.svelte'
+import { ProjectorLink, DisplayReceiver, type Channel } from '../../src/lib/projector/link.svelte'
 
 interface Msg {
   type: string

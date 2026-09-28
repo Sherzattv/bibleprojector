@@ -1,8 +1,8 @@
 <script lang="ts">
   import { ChevronLeft, ChevronRight, Play, SquareSlash, X, RotateCw } from '@lucide/svelte'
-  import { show } from '../show.svelte'
-  import { data, TRANSLATIONS } from '../db.svelte'
-  import { commands } from '../commands.svelte'
+  import { show } from '../../show/show.svelte'
+  import { data, TRANSLATIONS } from '../../data/db.svelte'
+  import { commands } from '../../show/commands.svelte'
   import TranslationPicker from './TranslationPicker.svelte'
   import ServiceScreenPanel from './ServiceScreenPanel.svelte'
 

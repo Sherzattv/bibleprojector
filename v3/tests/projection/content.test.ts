@@ -6,7 +6,7 @@ import {
   lineStates,
   lowerThirdText,
   singableLines,
-} from '../src/lib/projection'
+} from '../../src/lib/projection/content'
 
 const slide = { text: 'Ибо так возлюбил Бог мир', reference: 'От Иоанна 3:16' }
 

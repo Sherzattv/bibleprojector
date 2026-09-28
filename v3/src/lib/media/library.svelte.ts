@@ -2,7 +2,7 @@
  * Свои файлы оператора в IndexedDB пульта: фон (фото/видео) и логотип.
  *
  * refs — лёгкие ссылки (версия и вид) для настроек проекции; сам файл экран
- * запрашивает отдельно (см. media.ts). localStorage для файлов не годится:
+ * запрашивает отдельно (см. protocol.ts). localStorage для файлов не годится:
  * лимит в несколько мегабайт и строки вместо Blob.
  */
 import {
@@ -12,7 +12,7 @@ import {
   type MediaPayload,
   type MediaRefs,
   type MediaSlot,
-} from './media'
+} from './protocol'
 
 const DB_NAME = 'bp3-media'
 const STORE = 'files'

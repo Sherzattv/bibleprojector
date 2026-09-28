@@ -1,12 +1,12 @@
 /**
  * Полнотекстовый поиск по Библии и песням на MiniSearch: опечатки, префиксы,
  * ранжирование. Точные ссылки разбирает bible/reference — до fuzzy-поиска.
- * Индексы живут в Web Worker (search-backend.ts).
+ * Индексы живут в Web Worker (backend.ts).
  */
 import MiniSearch from 'minisearch'
-import { bookTitleIn, codeForBookId } from './bible/books'
-import { foldText, stripMarkup } from './text'
-import type { BibleDb, SongRow } from './db.svelte'
+import { bookTitleIn, codeForBookId } from '../bible/books'
+import { foldText, stripMarkup } from '../utils/text'
+import type { BibleDb, SongRow } from '../data/db.svelte'
 
 export interface VerseHit {
   id: string

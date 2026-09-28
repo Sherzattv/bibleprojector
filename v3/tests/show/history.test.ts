@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { HistoryStore, history } from '../src/lib/history.svelte'
-import type { HistoryEntry } from '../src/lib/history.svelte'
-import { createMemoryStore } from '../src/lib/storage'
+import { HistoryStore, history } from '../../src/lib/show/history.svelte'
+import type { HistoryEntry } from '../../src/lib/show/history.svelte'
+import { createMemoryStore } from '../../src/lib/utils/storage'
 
 const bible = (verse: number): Omit<HistoryEntry, 'at'> => ({
   title: 'От Иоанна 3',

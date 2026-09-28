@@ -3,15 +3,15 @@
  * слайды и Preview/Live. Проекционный DTO строится отдельно и передаётся
  * окну проектора через ProjectorLink.
  */
-import { bookTitleIn } from './bible/books'
-import { findChapter } from './bible/chapters'
-import { data } from './db.svelte'
+import { bookTitleIn } from '../bible/books'
+import { findChapter } from '../bible/chapters'
+import { data } from '../data/db.svelte'
 import { edits } from './edits.svelte'
-import type { SongRow } from './db.svelte'
-import { singableLines } from './projection'
-import { songBaseReference, splitSongSections } from './song-sections'
-import { stripMarkup } from './text'
-import type { PaletteId } from './backgrounds/catalog'
+import type { SongRow } from '../data/db.svelte'
+import { singableLines } from '../projection/content'
+import { songBaseReference, splitSongSections } from '../songs/sections'
+import { stripMarkup } from '../utils/text'
+import type { PaletteId } from '../backgrounds/catalog'
 
 export type ShowSource =
   | { kind: 'song'; id: number }

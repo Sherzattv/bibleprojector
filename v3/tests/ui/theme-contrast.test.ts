@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 // Аудит: --color-faint (#5c6370) даёт ~3.1:1 на panel/bg — ниже AA 4.5:1
 // для мелкого текста. Два ассерта про faint КРАСНЫЕ до исправления токена.
 
-const cssPath = fileURLToPath(new URL('../src/app.css', import.meta.url))
+const cssPath = fileURLToPath(new URL('../../src/app.css', import.meta.url))
 const css = readFileSync(cssPath, 'utf8')
 
 const themeBlock = css.match(/@theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? ''

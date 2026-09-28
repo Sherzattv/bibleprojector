@@ -6,15 +6,15 @@ import {
   findPalette,
   findPreset,
   sceneSource,
-} from '../src/lib/backgrounds/catalog'
-import { SCENES } from '../src/lib/backgrounds/shaders'
+} from '../../src/lib/backgrounds/catalog'
+import { SCENES } from '../../src/lib/backgrounds/shaders'
 import {
   DEFAULT_BACKGROUND,
   isAnimated,
   normalizeBackground,
-} from '../src/lib/backgrounds/settings'
-import { contrastLevel, contrastOnBackground } from '../src/lib/backgrounds/contrast'
-import { hexToRgb } from '../src/lib/backgrounds/renderer'
+} from '../../src/lib/backgrounds/settings'
+import { contrastLevel, contrastOnBackground } from '../../src/lib/backgrounds/contrast'
+import { hexToRgb } from '../../src/lib/backgrounds/renderer'
 
 function luminance(hex: string): number {
   const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4))

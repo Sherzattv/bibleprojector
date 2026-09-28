@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { ProjSettingsStore } from '../src/lib/proj-settings.svelte'
-import type { TextStore } from '../src/lib/edits.svelte'
+import { ProjSettingsStore } from '../../src/lib/projection/settings.svelte'
+import type { TextStore } from '../../src/lib/show/edits.svelte'
 
 /** Фейковое хранилище: Map-обёртка под интерфейс TextStore */
 function makeFakeStore(): TextStore {

@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { autofitScale } from '../autofit'
+  import { autofitScale } from '../../projection/autofit'
   import {
     FONT_SIZE_FACTOR,
     type FontFamily,
     type ParallelLayout,
     type SecondaryText,
-  } from '../projection'
-  import { lineIn, type SlideTransitionParams } from '../transitions'
+  } from '../../projection/content'
+  import { lineIn, type SlideTransitionParams } from '../../projection/transitions'
 
   /**
    * Стих в двух переводах: один под другим или рядом. Общий для экрана

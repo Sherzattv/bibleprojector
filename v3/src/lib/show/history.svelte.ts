@@ -1,5 +1,5 @@
 /** Персистентная история того, что реально уходило в эфир. */
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
 
 export type HistorySource =
   | { kind: 'song'; id: number }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { lineIn, slideIn, slideOut } from '../src/lib/transitions'
-import { TRANSITION_KINDS } from '../src/lib/projection'
+import { lineIn, slideIn, slideOut } from '../../src/lib/projection/transitions'
+import { TRANSITION_KINDS } from '../../src/lib/projection/content'
 
 const node = {} as Element
 

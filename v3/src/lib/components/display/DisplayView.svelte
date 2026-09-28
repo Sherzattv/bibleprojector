@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { DisplayReceiver } from '../projector-link.svelte'
-  import { bcChannel, FULLSCREEN_GRANT } from '../projector-service.svelte'
-  import { presentationReceiverChannel } from '../presentation'
-  import { autofitScale } from '../autofit'
+  import { DisplayReceiver } from '../../projector/link.svelte'
+  import { bcChannel, FULLSCREEN_GRANT } from '../../projector/service.svelte'
+  import { presentationReceiverChannel } from '../../projector/presentation'
+  import { autofitScale } from '../../projection/autofit'
   import {
     FONT_SIZE_FACTOR,
     LINE_OPACITY,
@@ -10,13 +10,13 @@
     lowerThirdText,
     normalizeProjectionSettings,
     type ProjectionContent,
-  } from '../projection'
-  import { lineIn, slideIn, slideOut } from '../transitions'
-  import MotionBackground from './MotionBackground.svelte'
+  } from '../../projection/content'
+  import { lineIn, slideIn, slideOut } from '../../projection/transitions'
+  import MotionBackground from '../projection/MotionBackground.svelte'
   import CountdownScreen from './CountdownScreen.svelte'
   import WelcomeScreen from './WelcomeScreen.svelte'
-  import ParallelVerse from './ParallelVerse.svelte'
-  import { MEDIA_SLOTS, type MediaSlot } from '../media'
+  import ParallelVerse from '../projection/ParallelVerse.svelte'
+  import { MEDIA_SLOTS, type MediaSlot } from '../../media/protocol'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
   // профиле: BroadcastChannel туда не добивает, сообщения ходят через

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { createSongSearch, createVerseSearch } from '../src/lib/search'
-import { getBookId } from '../src/lib/bible/books'
-import { rstDb, songs } from './fixtures'
+import { createSongSearch, createVerseSearch } from '../../src/lib/search/engine'
+import { getBookId } from '../../src/lib/bible/books'
+import { rstDb, songs } from '../fixtures'
 
 describe('createSongSearch — поиск песен', () => {
   const search = createSongSearch(songs)

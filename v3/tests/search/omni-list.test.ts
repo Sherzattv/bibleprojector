@@ -5,7 +5,7 @@ import {
   nextIndex,
   pickActionAt,
   type OmniOption,
-} from '../src/lib/omni-list'
+} from '../../src/lib/search/omni-list'
 
 describe('buildOptions — плоский список опций выпадашки', () => {
   it('порядок: ссылка, потом стихи, потом песни', () => {

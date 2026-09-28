@@ -1,13 +1,13 @@
 /**
  * Протокол проекции: что именно показывает экран.
- * Чистые функции — покрыты tests/projection.test.ts.
+ * Чистые функции — покрыты tests/projection/content.test.ts.
  */
 import {
   DEFAULT_BACKGROUND,
   normalizeBackground,
   type BackgroundSettings,
-} from './backgrounds/settings'
-import { NO_MEDIA, normalizeMediaRefs, type MediaRefs } from './media'
+} from '../backgrounds/settings'
+import { NO_MEDIA, normalizeMediaRefs, type MediaRefs } from '../media/protocol'
 
 /** Как один слайд сменяет другой на экране */
 export type TransitionKind = 'cut' | 'fade' | 'blur' | 'lines' | 'rise'

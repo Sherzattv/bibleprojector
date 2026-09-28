@@ -6,7 +6,7 @@ import {
   hashContent,
   type KVStore,
   type DataManifest,
-} from '../src/lib/data-cache'
+} from '../../src/lib/data/cache'
 
 /** Фейковое KV-хранилище: Map + журнал вызовов get/set/delete */
 class FakeKV implements KVStore {

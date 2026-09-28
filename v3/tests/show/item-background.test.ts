@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { setlist, SetlistState } from '../src/lib/setlist.svelte'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { commands } from '../src/lib/commands.svelte'
+import { setlist, SetlistState } from '../../src/lib/show/setlist.svelte'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { commands } from '../../src/lib/show/commands.svelte'
 import {
   projSettings,
   ProjSettingsStore,
   normalizeFavorites,
-} from '../src/lib/proj-settings.svelte'
-import { createMemoryStore } from '../src/lib/storage'
-import { rstDb, nrtDb, songs } from './fixtures'
+} from '../../src/lib/projection/settings.svelte'
+import { createMemoryStore } from '../../src/lib/utils/storage'
+import { rstDb, nrtDb, songs } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb, NRT: nrtDb }

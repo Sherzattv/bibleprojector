@@ -3,8 +3,8 @@
  * отбрасывание устаревших ответов. Транспорт абстрагирован —
  * в приложении это Web Worker, в тестах — фейк.
  */
-import type { SongRow } from './db.svelte'
-import type { VerseHit } from './search'
+import type { SongRow } from '../data/db.svelte'
+import type { VerseHit } from './engine'
 
 export interface SearchTransport {
   post(msg: unknown): void

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { LayoutStore } from '../src/lib/layout.svelte'
-import { createMemoryStore } from '../src/lib/storage'
-import { DEFAULT_LIBRARY_WIDTH, DEFAULT_SETLIST_WIDTH, PANEL_MAX, PANEL_MIN } from '../src/lib/panel-size'
+import { LayoutStore } from '../../src/lib/ui/layout.svelte'
+import { createMemoryStore } from '../../src/lib/utils/storage'
+import { DEFAULT_LIBRARY_WIDTH, DEFAULT_SETLIST_WIDTH, PANEL_MAX, PANEL_MIN } from '../../src/lib/ui/panel-size'
 
 describe('LayoutStore — раскладка переживает перезапуск', () => {
   it('чистое хранилище даёт исходные ширины и раскрытый план', () => {

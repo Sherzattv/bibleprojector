@@ -3,14 +3,14 @@
  * синглтон ProjectorLink, открытие окна на выбранном мониторе
  * (Window Management API) и управление им — fullscreen и закрытие.
  */
-import { ProjectorLink, type Channel } from './projector-link.svelte'
+import { ProjectorLink, type Channel } from './link.svelte'
 import {
   presentationSupported,
   startPresentation,
   type PresentationConnectionLike,
 } from './presentation'
 import { ScreensStore, matchScreen, type ScreenInfo } from './screens.svelte'
-import { ui } from './ui.svelte'
+import { ui } from '../ui/notices.svelte'
 
 export const PROJECTION_CHANNEL = 'bp3-projection'
 

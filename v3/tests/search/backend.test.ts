@@ -3,8 +3,8 @@ import {
   createSearchBackend,
   type BackendRequest,
   type BackendResponse,
-} from '../src/lib/search-backend'
-import { rstDb, songs } from './fixtures'
+} from '../../src/lib/search/backend'
+import { rstDb, songs } from '../fixtures'
 
 // Ядро поискового воркера: чистый модуль без Worker API,
 // протокол запрос → ответ с сохранением seq.

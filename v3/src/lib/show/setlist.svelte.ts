@@ -1,9 +1,9 @@
 /** Порядок служения: сохранение, импорт/экспорт и открытие элементов. */
 import { commands } from './commands.svelte'
-import { ui } from './ui.svelte'
+import { ui } from '../ui/notices.svelte'
 import { show } from './show.svelte'
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
-import { BACKGROUNDS, PALETTES, type PaletteId } from './backgrounds/catalog'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import { BACKGROUNDS, PALETTES, type PaletteId } from '../backgrounds/catalog'
 
 /** Фон, привязанный к пункту: включается первым GO этого пункта */
 export interface ItemBackground {

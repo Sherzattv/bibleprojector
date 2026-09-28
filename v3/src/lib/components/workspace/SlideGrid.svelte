@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { show } from '../show.svelte'
-  import { commands } from '../commands.svelte'
+  import { show } from '../../show/show.svelte'
+  import { commands } from '../../show/commands.svelte'
 
   function takeLive(i: number) {
     show.setPreview(i)

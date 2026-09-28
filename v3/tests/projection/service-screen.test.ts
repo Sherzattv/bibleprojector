@@ -4,8 +4,8 @@ import {
   countdownLeft,
   formatCountdown,
   parseAnnouncements,
-} from '../src/lib/service-screen.svelte'
-import { createMemoryStore, type TextStore } from '../src/lib/storage'
+} from '../../src/lib/projection/service-screen.svelte'
+import { createMemoryStore, type TextStore } from '../../src/lib/utils/storage'
 
 describe('formatCountdown', () => {
   it('минуты и секунды с ведущими нулями', () => {

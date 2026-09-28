@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { EditsStore, edits, type TextStore } from '../src/lib/edits.svelte'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { rstDb, nrtDb, songs } from './fixtures'
+import { EditsStore, edits, type TextStore } from '../../src/lib/show/edits.svelte'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { rstDb, nrtDb, songs } from '../fixtures'
 
 /** Фейковое хранилище: Map-обёртка под интерфейс TextStore */
 function makeFakeStore(): TextStore {

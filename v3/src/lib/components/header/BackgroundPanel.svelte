@@ -7,14 +7,14 @@
     findPalette,
     findPreset,
     type BackgroundPreset,
-  } from '../backgrounds/catalog'
-  import { contrastLevel } from '../backgrounds/contrast'
-  import { DIM_MAX, SPEED_MAX, isAnimated } from '../backgrounds/settings'
-  import { projSettings } from '../proj-settings.svelte'
-  import { getProjectorLink } from '../projector-service.svelte'
-  import { dismissable } from '../dismiss'
-  import { mediaLibrary } from '../media-library.svelte'
-  import { ui } from '../ui.svelte'
+  } from '../../backgrounds/catalog'
+  import { contrastLevel } from '../../backgrounds/contrast'
+  import { DIM_MAX, SPEED_MAX, isAnimated } from '../../backgrounds/settings'
+  import { projSettings } from '../../projection/settings.svelte'
+  import { getProjectorLink } from '../../projector/service.svelte'
+  import { dismissable } from '../../ui/dismiss'
+  import { mediaLibrary } from '../../media/library.svelte'
+  import { ui } from '../../ui/notices.svelte'
 
   const projector = getProjectorLink()
 

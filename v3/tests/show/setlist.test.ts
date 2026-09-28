@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { SetlistState, setlist } from '../src/lib/setlist.svelte'
-import { show } from '../src/lib/show.svelte'
-import { data } from '../src/lib/db.svelte'
-import { ui } from '../src/lib/ui.svelte'
-import { createMemoryStore } from '../src/lib/storage'
-import { rstDb, songs, songsDuo214 } from './fixtures'
+import { SetlistState, setlist } from '../../src/lib/show/setlist.svelte'
+import { show } from '../../src/lib/show/show.svelte'
+import { data } from '../../src/lib/data/db.svelte'
+import { ui } from '../../src/lib/ui/notices.svelte'
+import { createMemoryStore } from '../../src/lib/utils/storage'
+import { rstDb, songs, songsDuo214 } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb }

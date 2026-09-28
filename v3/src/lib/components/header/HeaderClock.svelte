@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Clock4 } from '@lucide/svelte'
-  import { formatClock } from '../format'
+  import { formatClock } from '../../utils/format'
 
   /** Минуты сменяются не чаще раза в 15 с — чаще перерисовывать незачем */
   const TICK_MS = 15_000

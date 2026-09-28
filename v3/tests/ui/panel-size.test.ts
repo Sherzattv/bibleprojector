@@ -7,7 +7,7 @@ import {
   PANEL_MAX,
   PANEL_MIN,
   STAGE_MIN,
-} from '../src/lib/panel-size'
+} from '../../src/lib/ui/panel-size'
 
 describe('clampPanelWidth — панель не должна съесть центр', () => {
   const wide = { total: 1920, taken: 276 }

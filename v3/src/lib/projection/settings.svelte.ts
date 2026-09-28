@@ -2,7 +2,7 @@
  * Настройки проекции: масштаб шрифта, показ ссылки, тень под текстом и
  * живой фон. Персистентны, устойчивы к мусору в хранилище.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
 import {
   DEFAULT_PROJECTION_SETTINGS,
   normalizeProjectionSettings,
@@ -12,10 +12,10 @@ import {
   type ParallelLayout,
   type ProjectionSettings,
   type TransitionKind,
-} from './projection'
-import { BACKGROUNDS, findPreset } from './backgrounds/catalog'
-import { normalizeBackground, type BackgroundSettings } from './backgrounds/settings'
-import { NO_MEDIA } from './media'
+} from './content'
+import { BACKGROUNDS, findPreset } from '../backgrounds/catalog'
+import { normalizeBackground, type BackgroundSettings } from '../backgrounds/settings'
+import { NO_MEDIA } from '../media/protocol'
 
 const KEY = 'bp3-proj-settings'
 /** Избранные фоны — только пульту, на экран не едут, поэтому отдельный ключ */

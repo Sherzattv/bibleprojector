@@ -1,7 +1,7 @@
 /**
  * Доступ к книгам и главам в файле перевода по каноническому коду.
  */
-import type { BibleDb, BookRow, ChapterRow } from '../db.svelte'
+import type { BibleDb, BookRow, ChapterRow } from '../data/db.svelte'
 import { getBookId } from './books'
 
 export function findBook(db: BibleDb, code: string, translation: string): BookRow | null {

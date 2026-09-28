@@ -1,6 +1,6 @@
 /**
  * Модель выбора перевода: что показать в списке и что можно выбрать.
- * Чистые функции — покрыты tests/translation-picker.test.ts.
+ * Чистые функции — покрыты tests/ui/translation-picker.test.ts.
  *
  * Зачем отдельный список вместо нативного <select>: в закрытом виде он
  * показывал «RST · Синодальный» и занимал 162px. Вместе со словом «Перевод»
@@ -8,7 +8,7 @@
  * служения достаётся 730px — селект уезжал за край. Теперь в доке только
  * код (~62px), а полные имена живут в раскрытом списке, где место есть.
  */
-import type { LoadStatus } from './db.svelte'
+import type { LoadStatus } from '../data/db.svelte'
 
 export interface TranslationOption {
   code: string

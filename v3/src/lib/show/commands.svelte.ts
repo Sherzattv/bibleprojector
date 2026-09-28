@@ -3,12 +3,12 @@
  * Все мутации шоу/данных идут отсюда: здесь пишется история,
  * отсюда же состояние уходит на экран проектора.
  */
-import { data } from './db.svelte'
+import { data } from '../data/db.svelte'
 import { show } from './show.svelte'
-import { ui } from './ui.svelte'
+import { ui } from '../ui/notices.svelte'
 import { history } from './history.svelte'
-import { projSettings } from './proj-settings.svelte'
-import { serviceScreen } from './service-screen.svelte'
+import { projSettings } from '../projection/settings.svelte'
+import { serviceScreen } from '../projection/service-screen.svelte'
 
 export const commands = {
   openSong(id: number): boolean {

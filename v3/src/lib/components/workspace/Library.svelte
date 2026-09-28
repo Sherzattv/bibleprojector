@@ -7,14 +7,14 @@
     PanelLeftClose,
     PanelLeftOpen,
   } from '@lucide/svelte'
-  import { data } from '../db.svelte'
-  import { commands } from '../commands.svelte'
-  import { history, type HistoryEntry } from '../history.svelte'
-  import { BOOKS, bookTitleIn } from '../bible/books'
-  import { findBook } from '../bible/chapters'
-  import { countLabel, formatClock } from '../format'
-  import { foldText } from '../text'
-  import type { SongRow } from '../db.svelte'
+  import { data } from '../../data/db.svelte'
+  import { commands } from '../../show/commands.svelte'
+  import { history, type HistoryEntry } from '../../show/history.svelte'
+  import { BOOKS, bookTitleIn } from '../../bible/books'
+  import { findBook } from '../../bible/chapters'
+  import { countLabel, formatClock } from '../../utils/format'
+  import { foldText } from '../../utils/text'
+  import type { SongRow } from '../../data/db.svelte'
 
   interface Props {
     open: boolean

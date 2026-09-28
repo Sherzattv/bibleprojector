@@ -1,13 +1,13 @@
 /**
  * Переходы между слайдами на экране проектора — svelte-transitions.
- * Чистые функции от параметров — покрыты tests/transitions.test.ts.
+ * Чистые функции от параметров — покрыты tests/projection/transitions.test.ts.
  *
  * Уходящий слайд всегда короче входящего: смена читается как «одно
  * растворилось, другое проявилось», а не как два текста поверх друг друга.
  */
 import { cubicOut } from 'svelte/easing'
 import type { TransitionConfig } from 'svelte/transition'
-import type { TransitionKind } from './projection'
+import type { TransitionKind } from './content'
 
 export interface SlideTransitionParams {
   kind: TransitionKind

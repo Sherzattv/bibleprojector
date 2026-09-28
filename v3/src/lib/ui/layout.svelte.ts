@@ -2,7 +2,7 @@
  * Раскладка рабочей области: ширины боковых панелей и какие из них свёрнуты.
  * Персистентна — оператор настраивает пульт один раз, а не каждое служение.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
 import {
   clampPanelWidth,
   DEFAULT_LIBRARY_WIDTH,

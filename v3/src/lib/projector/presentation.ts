@@ -10,7 +10,7 @@
  * Типы объявлены свои: Presentation API в lib.dom описан не целиком.
  */
 
-import type { Channel } from './projector-link.svelte'
+import type { Channel } from './link.svelte'
 
 export interface PresentationConnectionLike {
   state: 'connecting' | 'connected' | 'closed' | 'terminated'

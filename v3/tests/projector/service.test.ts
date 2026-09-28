@@ -7,9 +7,9 @@ import {
   openDisplayWindow,
   openProjection,
   screens,
-} from '../src/lib/projector-service.svelte'
-import { toScreenInfo, type ScreenDetailedLike } from '../src/lib/screens.svelte'
-import { ui } from '../src/lib/ui.svelte'
+} from '../../src/lib/projector/service.svelte'
+import { toScreenInfo, type ScreenDetailedLike } from '../../src/lib/projector/screens.svelte'
+import { ui } from '../../src/lib/ui/notices.svelte'
 
 /** Ноутбук оператора и проектор в зале */
 const internal: ScreenDetailedLike = {
