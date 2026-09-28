@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import tailwindcss from '@tailwindcss/vite'
 import { viteSingleFile } from 'vite-plugin-singlefile'
@@ -33,6 +33,24 @@ function buildCommit(): string {
   }
 }
 
+/**
+ * В демо-сборке Service Worker'а нет, а main.ts регистрирует его через
+ * виртуальный модуль vite-plugin-pwa. Без плагина модуль не резолвится и
+ * сборка падает — подставляем регистрацию, которая ничего не делает.
+ */
+function pwaRegisterStub(): Plugin {
+  const id = 'virtual:pwa-register'
+  const resolved = '\0pwa-register-stub'
+  return {
+    name: 'bp3-pwa-register-stub',
+    resolveId: (source) => (source === id ? resolved : null),
+    load: (source) =>
+      source === resolved
+        ? 'export function registerSW() { return () => Promise.resolve() }'
+        : null,
+  }
+}
+
 // Два режима сборки:
 //  - обычный (прод): чанки + Service Worker (precache оболочки; данные
 //    кэширует data-cache поверх Cache Storage) → полноценный офлайн
@@ -46,7 +64,7 @@ export default defineConfig(({ mode }) => ({
     svelte(),
     tailwindcss(),
     ...(mode === 'demo'
-      ? [viteSingleFile()]
+      ? [viteSingleFile(), pwaRegisterStub()]
       : [
           VitePWA({
             // 'prompt', а не 'autoUpdate': autoUpdate принудительно включает
