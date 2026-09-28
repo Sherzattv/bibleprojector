@@ -3,11 +3,34 @@ import { commands } from './commands.svelte'
 import { ui } from './ui.svelte'
 import { show } from './show.svelte'
 import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
+import { BACKGROUNDS, PALETTES, type PaletteId } from './backgrounds/catalog'
 
-export type SetlistEntry =
+/** Фон, привязанный к пункту: включается первым GO этого пункта */
+export interface ItemBackground {
+  preset: string
+  palette: PaletteId
+}
+
+export type SetlistEntry = (
   | { kind: 'song'; id: number; title: string }
   | { kind: 'bible'; code: string; chapter: number; verse: number; title: string }
   | { kind: 'note'; title: string; text: string }
+) & { background?: ItemBackground }
+
+function normalizeItemBackground(value: unknown): ItemBackground | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Record<string, unknown>
+  const preset = BACKGROUNDS.find((b) => b.id === raw.preset)
+  const palette = PALETTES.find((p) => p.id === raw.palette)
+  return preset && palette ? { preset: preset.id, palette: palette.id } : undefined
+}
+
+/** Прикрепить фон к уже разобранному пункту, если он валиден */
+function withBackground(entry: SetlistEntry | null, raw: unknown): SetlistEntry | null {
+  if (!entry || !raw || typeof raw !== 'object') return entry
+  const background = normalizeItemBackground((raw as Record<string, unknown>).background)
+  return background ? { ...entry, background } : entry
+}
 
 const STORAGE_KEY = 'bp3-setlist-v1'
 const LEGACY_STORAGE_KEY = 'bible_setlist'
@@ -24,6 +47,10 @@ function asInteger(value: unknown): number | null {
 }
 
 function normalizeEntry(value: unknown): SetlistEntry | null {
+  return withBackground(normalizeBaseEntry(value), value)
+}
+
+function normalizeBaseEntry(value: unknown): SetlistEntry | null {
   if (!value || typeof value !== 'object') return null
   const raw = value as Record<string, unknown>
   const kind = raw.kind
@@ -139,7 +166,25 @@ export class SetlistState {
       commands.openNote(item.title, item.text)
     }
     this.currentIdx = i
+    // Свой фон пункта включится первым GO — не раньше: превью не должно
+    // менять то, что сейчас видит зал
+    show.itemBackground = item.background ? { ...item.background } : null
     ui.clearNotice()
+  }
+
+  /** Привязать фон к пункту или снять привязку (null) */
+  setBackground(i: number, background: ItemBackground | null): boolean {
+    const item = this.items[i]
+    if (!item) return false
+    const normalized = background ? normalizeItemBackground(background) : undefined
+    if (background && !normalized) return false
+    const next = { ...item }
+    if (normalized) next.background = normalized
+    else delete next.background
+    this.items = this.items.map((it, index) => (index === i ? next : it))
+    if (this.currentIdx === i) show.itemBackground = normalized ? { ...normalized } : null
+    this.persist()
+    return true
   }
 
   add(entry: SetlistEntry): boolean {

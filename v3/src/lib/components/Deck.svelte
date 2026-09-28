@@ -4,6 +4,7 @@
   import { projSettings } from '../proj-settings.svelte'
   import { autofitScale } from '../autofit'
   import MotionBackground from './MotionBackground.svelte'
+  import ParallelVerse from './ParallelVerse.svelte'
   import {
     CHROMA_BACKGROUND,
     FONT_SIZE_FACTOR,
@@ -141,6 +142,11 @@
               <div class="text-2xs font-semibold tracking-wide text-amber uppercase">{slide.reference}</div>
             {/if}
             <div class="text-xs leading-snug font-medium text-white">{lowerThirdText(slide.text, line)}</div>
+            {#if slide.secondary}
+              <div class="text-2xs leading-snug text-white/80">
+                {lowerThirdText(slide.secondary.text, undefined)}
+              </div>
+            {/if}
           {/if}
         </div>
       </div>
@@ -148,6 +154,18 @@
       <!-- Заставка перекрывает слайд — карточка эфира не должна врать -->
       <div class="relative text-sm text-white/80">
         {serviceScreen.mode === 'countdown' ? 'Отсчёт до начала' : serviceScreen.churchName || 'Экран ожидания'}
+      </div>
+    {:else if !blackout && slide?.secondary}
+      <div class="relative flex w-full justify-center">
+        <ParallelVerse
+          primary={slide}
+          secondary={slide.secondary}
+          layout={projSettings.parallelLayout}
+          fontFamily={projSettings.fontFamily}
+          fontScale={projSettings.fontScale}
+          showReference={projSettings.showReference}
+          size="card"
+        />
       </div>
     {:else if !blackout && slide}
       <div class="relative max-w-[94%]">

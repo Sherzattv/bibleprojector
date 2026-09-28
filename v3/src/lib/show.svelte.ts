@@ -9,6 +9,7 @@ import { data } from './db.svelte'
 import { edits } from './edits.svelte'
 import type { SongRow } from './db.svelte'
 import { singableLines } from './projection'
+import type { PaletteId } from './backgrounds/catalog'
 
 export type ShowSource =
   | { kind: 'song'; id: number }
@@ -21,6 +22,13 @@ export interface ShowSlide {
   reference: string
   /** Номер стиха (VerseId) — только для kind='bible' */
   verse?: number
+  /** Тот же стих во втором переводе — только для kind='bible' */
+  secondary?: { text: string; reference: string }
+}
+
+/** Язык названий книг для перевода */
+function langOf(translation: string): 'kz' | 'ky' | 'ru' {
+  return translation === 'KTB' ? 'kz' : translation === 'KYB' ? 'ky' : 'ru'
 }
 
 interface VerseContext {
@@ -44,6 +52,13 @@ class ShowState {
   blackout = $state(false)
   /** Контекст главы для смены перевода */
   verseCtx: VerseContext | null = null
+  /**
+   * Фон открытого пункта порядка служения — ждёт первого GO. Любая загрузка
+   * (песня, глава, заметка) сбрасывает его; порядок служения ставит заново.
+   */
+  itemBackground: { preset: string; palette: PaletteId } | null = null
+  /** Второй перевод на экране (параллельный показ); null — выключен */
+  secondaryCode = $state<string | null>(null)
 
   get previewSlide(): ShowSlide | null {
     return this.slides[this.previewIdx] ?? null
@@ -53,6 +68,7 @@ class ShowState {
   }
 
   loadSong(song: SongRow) {
+    this.itemBackground = null
     const sections = splitSongSections(song.text) as Array<{
       label: string
       rawText: string
@@ -83,9 +99,9 @@ class ShowState {
     const chap = book?.Chapters.find((c) => c.ChapterId === chapter)
     if (!chap) return false
 
-    const lang = translation === 'KTB' ? 'kz' : translation === 'KYB' ? 'ky' : 'ru'
-    const title = getBookTitle(canonicalCode, lang) as string
+    const title = getBookTitle(canonicalCode, langOf(translation)) as string
 
+    this.itemBackground = null
     this.kind = 'bible'
     this.verseCtx = { canonicalCode, chapter }
     this.source = { kind: 'bible', code: canonicalCode, chapter }
@@ -100,11 +116,49 @@ class ShowState {
         v.Text.replace(/<[^>]*>/g, ''),
       reference: `${title} ${chapter}:${v.VerseId}`,
       verse: v.VerseId,
+      secondary: this.secondaryFor(canonicalCode, chapter, v.VerseId),
     }))
     const idx = chap.Verses.findIndex((v) => v.VerseId === previewVerse)
     this.previewIdx = idx >= 0 ? idx : 0
     this.liveIdx = -1
     return true
+  }
+
+  /**
+   * Тот же стих во втором переводе — по canonical code, главе и VerseId.
+   * Нет второго перевода, он ещё не загружен или стиха в нём нет — undefined:
+   * слайд идёт одним переводом, а не с пустым местом.
+   */
+  private secondaryFor(
+    canonicalCode: string,
+    chapter: number,
+    verse: number,
+  ): ShowSlide['secondary'] {
+    const code = this.secondaryCode
+    if (!code || code === data.translation) return undefined
+    const db = data.bibles[code]
+    if (!db) return undefined
+    const bookId = getBookId(canonicalCode, code)
+    const found = db.Books.find((b) => b.BookId === bookId)
+      ?.Chapters.find((c) => c.ChapterId === chapter)
+      ?.Verses.find((v) => v.VerseId === verse)
+    if (!found) return undefined
+    const title = getBookTitle(canonicalCode, langOf(code)) as string
+    return {
+      text: edits.get(code, canonicalCode, chapter, verse) ?? found.Text.replace(/<[^>]*>/g, ''),
+      reference: `${title} ${chapter}:${verse}`,
+    }
+  }
+
+  /** Сменился второй перевод или он догрузился — пересобрать вторые тексты главы */
+  refreshSecondary() {
+    const ctx = this.verseCtx
+    if (this.kind !== 'bible' || !ctx) return
+    this.slides = this.slides.map((s) =>
+      s.verse === undefined
+        ? s
+        : { ...s, secondary: this.secondaryFor(ctx.canonicalCode, ctx.chapter, s.verse) },
+    )
   }
 
   /**
@@ -136,6 +190,7 @@ class ShowState {
 
   /** Заметка: один слайд, заголовок в reference */
   loadNote(title: string, text: string) {
+    this.itemBackground = null
     this.kind = 'note'
     this.verseCtx = null
     this.source = { kind: 'note', title, text }

@@ -17,6 +17,15 @@ export const TRANSITION_MS_MAX = 1600
 
 export type FontFamily = 'serif' | 'sans'
 
+/** Два перевода: один под другим или рядом в две колонки */
+export type ParallelLayout = 'stack' | 'side'
+
+/** Второй текст стиха на экране */
+export interface SecondaryText {
+  text: string
+  reference: string
+}
+
 /**
  * Гротеск при том же кегле заметно шире и выше антиквы: без поправки
  * длинный куплет, влезавший с засечками, вылезает за экран
@@ -42,6 +51,9 @@ export interface ProjectionSettings {
   transitionMs: number
   /** В песнях подсвечивать текущую строку, пропетые — приглушать */
   lineHighlight: boolean
+  /** Второй перевод для стихов; null — один перевод, как раньше */
+  secondaryTranslation: string | null
+  parallelLayout: ParallelLayout
   layout: OutputLayout
   chroma: ChromaKey
   background: BackgroundSettings
@@ -57,6 +69,8 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   transition: 'fade',
   transitionMs: 400,
   lineHighlight: false,
+  secondaryTranslation: null,
+  parallelLayout: 'stack',
   layout: 'full',
   chroma: 'green',
   background: DEFAULT_BACKGROUND,
@@ -89,6 +103,15 @@ export function normalizeProjectionSettings(raw: unknown): ProjectionSettings {
         ? Math.round(Math.min(TRANSITION_MS_MAX, Math.max(TRANSITION_MS_MIN, r.transitionMs)))
         : d.transitionMs,
     lineHighlight: typeof r.lineHighlight === 'boolean' ? r.lineHighlight : d.lineHighlight,
+    // Код перевода: коротко и заглавными (RST, KTB) — остальное мусор
+    secondaryTranslation:
+      typeof r.secondaryTranslation === 'string' && /^[A-Z]{2,6}$/.test(r.secondaryTranslation)
+        ? r.secondaryTranslation
+        : d.secondaryTranslation,
+    parallelLayout:
+      r.parallelLayout === 'side' || r.parallelLayout === 'stack'
+        ? r.parallelLayout
+        : d.parallelLayout,
     layout: r.layout === 'lower-third' || r.layout === 'full' ? r.layout : d.layout,
     chroma: r.chroma === 'transparent' || r.chroma === 'green' ? r.chroma : d.chroma,
     background: normalizeBackground(r.background),
@@ -107,13 +130,20 @@ export type ProjectionContent =
   | { kind: 'empty' }
   | { kind: 'blackout' }
   /** line — порядковый номер подсвеченной строки среди непустых (только песни) */
-  | { kind: 'slide'; text: string; reference: string; line?: number }
+  | {
+      kind: 'slide'
+      text: string
+      reference: string
+      line?: number
+      /** Тот же стих во втором переводе — только Библия */
+      secondary?: SecondaryText
+    }
   | { kind: 'note'; text: string; title: string }
 
 export function buildContent(input: {
   blackout: boolean
   kind: 'song' | 'bible' | 'note' | null
-  liveSlide: { text: string; reference: string } | null
+  liveSlide: { text: string; reference: string; secondary?: SecondaryText } | null
   /** Подсвеченная строка песни; undefined — подсветка выключена */
   line?: number
   /** Включённый служебный экран перекрывает слайды */
@@ -129,6 +159,9 @@ export function buildContent(input: {
     kind: 'slide' as const,
     text: input.liveSlide.text,
     reference: input.liveSlide.reference,
+  }
+  if (input.kind === 'bible' && input.liveSlide.secondary) {
+    return { ...slide, secondary: { ...input.liveSlide.secondary } }
   }
   return input.kind === 'song' && input.line !== undefined ? { ...slide, line: input.line } : slide
 }

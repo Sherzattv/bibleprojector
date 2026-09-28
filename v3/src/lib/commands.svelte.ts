@@ -40,6 +40,11 @@ export const commands = {
     if (serviceScreen.mode !== 'off') serviceScreen.hide()
     // Подсветка строк в песне: GO сначала идёт по строкам живого слайда
     else if (projSettings.lineHighlight && show.stepLine()) return
+    // Пункт порядка служения со своим фоном: включаем вместе с первым слайдом
+    if (show.itemBackground) {
+      projSettings.setBackground(show.itemBackground)
+      show.itemBackground = null
+    }
     show.go()
     const live = show.liveSlide
     const source = show.source
@@ -72,6 +77,13 @@ export const commands = {
   clearLive(): void {
     show.clear()
     serviceScreen.hide()
+  },
+
+  /** Второй перевод на экране; null — выключить */
+  setSecondaryTranslation(code: string | null): void {
+    projSettings.setParallel({ secondaryTranslation: code })
+    show.secondaryCode = projSettings.secondaryTranslation
+    show.refreshSecondary()
   },
 
   setTranslation(code: string): boolean {

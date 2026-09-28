@@ -9,14 +9,28 @@ import {
   type ChromaKey,
   type FontFamily,
   type OutputLayout,
+  type ParallelLayout,
   type ProjectionSettings,
   type TransitionKind,
 } from './projection'
-import { findPreset } from './backgrounds/catalog'
+import { BACKGROUNDS, findPreset } from './backgrounds/catalog'
 import { normalizeBackground, type BackgroundSettings } from './backgrounds/settings'
 import { NO_MEDIA } from './media'
 
 const KEY = 'bp3-proj-settings'
+/** Избранные фоны — только пульту, на экран не едут, поэтому отдельный ключ */
+const FAVORITES_KEY = 'bp3-bg-favorites'
+export const FAVORITES_MAX = 8
+
+/** Избранное: известные фоны (кроме своего файла), без повторов, не больше 8 */
+export function normalizeFavorites(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  const known = new Set(BACKGROUNDS.filter((b) => b.kind !== 'media').map((b) => b.id))
+  return [...new Set(raw.filter((id): id is string => typeof id === 'string' && known.has(id)))].slice(
+    0,
+    FAVORITES_MAX,
+  )
+}
 const DEFAULTS = DEFAULT_PROJECTION_SETTINGS
 
 export class ProjSettingsStore {
@@ -27,9 +41,12 @@ export class ProjSettingsStore {
   transition = $state<TransitionKind>(DEFAULTS.transition)
   transitionMs = $state(DEFAULTS.transitionMs)
   lineHighlight = $state(DEFAULTS.lineHighlight)
+  secondaryTranslation = $state<string | null>(DEFAULTS.secondaryTranslation)
+  parallelLayout = $state<ParallelLayout>(DEFAULTS.parallelLayout)
   layout = $state<OutputLayout>(DEFAULTS.layout)
   chroma = $state<ChromaKey>(DEFAULTS.chroma)
   background = $state<BackgroundSettings>({ ...DEFAULTS.background })
+  favorites = $state<string[]>([])
 
   private store: TextStore
 
@@ -54,9 +71,19 @@ export class ProjSettingsStore {
     this.transition = s.transition
     this.transitionMs = s.transitionMs
     this.lineHighlight = s.lineHighlight
+    this.secondaryTranslation = s.secondaryTranslation
+    this.parallelLayout = s.parallelLayout
     this.layout = s.layout
     this.chroma = s.chroma
     this.background = s.background
+    let favorites: unknown = null
+    try {
+      const raw = this.store.get(FAVORITES_KEY)
+      if (raw) favorites = JSON.parse(raw)
+    } catch {
+      // повреждённое избранное — начинаем с пустого
+    }
+    this.favorites = normalizeFavorites(favorites)
   }
 
   private persist() {
@@ -73,6 +100,8 @@ export class ProjSettingsStore {
       transition: this.transition,
       transitionMs: this.transitionMs,
       lineHighlight: this.lineHighlight,
+      secondaryTranslation: this.secondaryTranslation,
+      parallelLayout: this.parallelLayout,
       layout: this.layout,
       chroma: this.chroma,
       background: { ...this.background },
@@ -111,6 +140,14 @@ export class ProjSettingsStore {
     this.persist()
   }
 
+  /** Второй перевод и раскладка двух текстов */
+  setParallel(patch: { secondaryTranslation?: string | null; parallelLayout?: ParallelLayout }) {
+    const s = normalizeProjectionSettings({ ...this.snapshot(), ...patch })
+    this.secondaryTranslation = s.secondaryTranslation
+    this.parallelLayout = s.parallelLayout
+    this.persist()
+  }
+
   /** Вывод: весь экран или нижняя треть для трансляции */
   setOutput(patch: { layout?: OutputLayout; chroma?: ChromaKey }) {
     const s = normalizeProjectionSettings({ ...this.snapshot(), ...patch })
@@ -123,6 +160,15 @@ export class ProjSettingsStore {
   setBackground(patch: Partial<BackgroundSettings>) {
     this.background = normalizeBackground({ ...this.background, ...patch })
     this.persist()
+  }
+
+  /** Звёздочка: добавить фон в избранное или убрать; сверх лимита не добавляется */
+  toggleFavorite(id: string) {
+    const next = this.favorites.includes(id)
+      ? this.favorites.filter((f) => f !== id)
+      : [...this.favorites, id]
+    this.favorites = normalizeFavorites(next)
+    this.store.set(FAVORITES_KEY, JSON.stringify(this.favorites))
   }
 
   /** Выбрать фон: вместе с ним ставится его родная палитра */
