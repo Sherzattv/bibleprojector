@@ -154,6 +154,8 @@ describe('ProjSettingsStore', () => {
         'layout',
         'lineHighlight',
         'media',
+        'parallelLayout',
+        'secondaryTranslation',
         'showReference',
         'textShadow',
         'transition',

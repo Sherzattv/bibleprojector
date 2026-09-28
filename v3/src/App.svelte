@@ -22,7 +22,7 @@
   import { layout } from './lib/layout.svelte'
   import { fitPanels } from './lib/panel-size'
   import { show } from './lib/show.svelte'
-  import { data } from './lib/db.svelte'
+  import { data, TRANSLATIONS } from './lib/db.svelte'
   import { setlist } from './lib/setlist.svelte'
   import { ui } from './lib/ui.svelte'
   import { commands } from './lib/commands.svelte'
@@ -186,6 +186,16 @@
       retrying = false
     }
   }
+
+  // Второй перевод: берём из настроек при старте и пересобираем тексты главы,
+  // когда он (или основной) догрузился в фоне
+  $effect(() => {
+    void data.bibles
+    untrack(() => {
+      show.secondaryCode = projSettings.secondaryTranslation
+      show.refreshSecondary()
+    })
+  })
 
   // Отдаём воркеру перевод, как только он загружен/выбран
   $effect(() => {
@@ -387,6 +397,42 @@
               aria-label="Длительность перехода"
               class="w-full accent-[#4f83f1] disabled:opacity-40"
             />
+
+            <div class="mt-3 border-t border-stroke pt-3">
+              <div class="mb-1.5 flex items-center justify-between gap-2 text-sm">
+                <span class="text-muted">Второй перевод</span>
+                <select
+                  value={projSettings.secondaryTranslation ?? ''}
+                  onchange={(e) => commands.setSecondaryTranslation(e.currentTarget.value || null)}
+                  class="h-7 rounded border border-stroke-2 bg-panel px-1.5 text-sm text-ink"
+                  aria-label="Второй перевод"
+                >
+                  <option value="">Нет</option>
+                  {#each TRANSLATIONS as [code, name] (code)}
+                    <option value={code} disabled={code === data.translation}>{name}</option>
+                  {/each}
+                </select>
+              </div>
+              {#if projSettings.secondaryTranslation}
+                <div class="grid grid-cols-2 overflow-hidden rounded border border-stroke-2" role="group" aria-label="Раскладка двух переводов">
+                  {#each [['stack', 'Один под другим'], ['side', 'Рядом']] as const as [value, name] (value)}
+                    <button
+                      onclick={() => projSettings.setParallel({ parallelLayout: value })}
+                      aria-pressed={projSettings.parallelLayout === value}
+                      class="h-7 text-sm {value === 'side' ? 'border-l border-stroke-2' : ''}
+                             {projSettings.parallelLayout === value ? 'bg-active text-ink' : 'bg-panel text-muted hover:bg-hover'}"
+                    >
+                      {name}
+                    </button>
+                  {/each}
+                </div>
+                {#if projSettings.secondaryTranslation === data.translation}
+                  <p class="mt-1.5 text-xs text-faint">Совпадает с основным переводом — показывается один.</p>
+                {:else if data.translationStatus[projSettings.secondaryTranslation] !== 'ready'}
+                  <p class="mt-1.5 text-xs text-faint">Перевод ещё загружается…</p>
+                {/if}
+              {/if}
+            </div>
 
             <div class="mt-3 border-t border-stroke pt-3">
               <div class="mb-1.5 text-sm text-muted">Вывод</div>

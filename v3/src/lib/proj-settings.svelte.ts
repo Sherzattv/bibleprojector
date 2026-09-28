@@ -9,6 +9,7 @@ import {
   type ChromaKey,
   type FontFamily,
   type OutputLayout,
+  type ParallelLayout,
   type ProjectionSettings,
   type TransitionKind,
 } from './projection'
@@ -27,6 +28,8 @@ export class ProjSettingsStore {
   transition = $state<TransitionKind>(DEFAULTS.transition)
   transitionMs = $state(DEFAULTS.transitionMs)
   lineHighlight = $state(DEFAULTS.lineHighlight)
+  secondaryTranslation = $state<string | null>(DEFAULTS.secondaryTranslation)
+  parallelLayout = $state<ParallelLayout>(DEFAULTS.parallelLayout)
   layout = $state<OutputLayout>(DEFAULTS.layout)
   chroma = $state<ChromaKey>(DEFAULTS.chroma)
   background = $state<BackgroundSettings>({ ...DEFAULTS.background })
@@ -54,6 +57,8 @@ export class ProjSettingsStore {
     this.transition = s.transition
     this.transitionMs = s.transitionMs
     this.lineHighlight = s.lineHighlight
+    this.secondaryTranslation = s.secondaryTranslation
+    this.parallelLayout = s.parallelLayout
     this.layout = s.layout
     this.chroma = s.chroma
     this.background = s.background
@@ -73,6 +78,8 @@ export class ProjSettingsStore {
       transition: this.transition,
       transitionMs: this.transitionMs,
       lineHighlight: this.lineHighlight,
+      secondaryTranslation: this.secondaryTranslation,
+      parallelLayout: this.parallelLayout,
       layout: this.layout,
       chroma: this.chroma,
       background: { ...this.background },
@@ -108,6 +115,14 @@ export class ProjSettingsStore {
     this.transition = s.transition
     this.transitionMs = s.transitionMs
     this.lineHighlight = s.lineHighlight
+    this.persist()
+  }
+
+  /** Второй перевод и раскладка двух текстов */
+  setParallel(patch: { secondaryTranslation?: string | null; parallelLayout?: ParallelLayout }) {
+    const s = normalizeProjectionSettings({ ...this.snapshot(), ...patch })
+    this.secondaryTranslation = s.secondaryTranslation
+    this.parallelLayout = s.parallelLayout
     this.persist()
   }
 

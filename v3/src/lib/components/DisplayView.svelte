@@ -15,6 +15,7 @@
   import MotionBackground from './MotionBackground.svelte'
   import CountdownScreen from './CountdownScreen.svelte'
   import WelcomeScreen from './WelcomeScreen.svelte'
+  import ParallelVerse from './ParallelVerse.svelte'
   import { MEDIA_SLOTS, type MediaSlot } from '../media'
 
   // Экран, который вывел сам браузер (Presentation API), живёт в изолированном
@@ -245,6 +246,12 @@
                 <div class="leading-[1.35] font-medium text-white">
                   {lowerThirdText(content.text, content.kind === 'slide' ? content.line : undefined)}
                 </div>
+                {#if content.kind === 'slide' && content.secondary}
+                  <!-- Второй перевод — строкой ниже, чуть тише -->
+                  <div class="mt-[0.3em] text-[0.85em] leading-[1.35] text-white/80">
+                    {lowerThirdText(content.secondary.text, undefined)}
+                  </div>
+                {/if}
               {:else if content.kind === 'countdown'}
                 <div class="font-medium text-white">
                   <CountdownScreen {...content} fontScale={settings.fontScale} compact />
@@ -260,6 +267,17 @@
             </div>
           </div>
         {/if}
+      {:else if content.kind === 'slide' && content.secondary}
+        <ParallelVerse
+          primary={content}
+          secondary={content.secondary}
+          layout={settings.parallelLayout}
+          fontFamily={settings.fontFamily}
+          fontScale={settings.fontScale}
+          showReference={settings.showReference}
+          size="screen"
+          {motion}
+        />
       {:else if content.kind === 'slide'}
         <div class="max-w-[92%]">
           <div

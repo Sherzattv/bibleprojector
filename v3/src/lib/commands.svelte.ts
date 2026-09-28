@@ -74,6 +74,13 @@ export const commands = {
     serviceScreen.hide()
   },
 
+  /** Второй перевод на экране; null — выключить */
+  setSecondaryTranslation(code: string | null): void {
+    projSettings.setParallel({ secondaryTranslation: code })
+    show.secondaryCode = projSettings.secondaryTranslation
+    show.refreshSecondary()
+  },
+
   setTranslation(code: string): boolean {
     if (!data.bibles[code]) {
       ui.notify(`Перевод ${code} ещё не загружен`)
