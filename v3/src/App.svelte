@@ -39,6 +39,7 @@
   import { getProjectorLink } from './lib/projector-service.svelte'
   import { pushSongs, pushBible } from './lib/search-service.svelte'
   import { resolveHotkey } from './lib/hotkeys'
+  import { dismissable } from './lib/dismiss'
 
   const TRANSITIONS: Array<[TransitionKind, string]> = [
     ['cut', 'Резко'],
@@ -55,12 +56,30 @@
   let compactLayout = $state(false)
   let retrying = $state(false)
   let updateReady = $state(false)
+  let updateConfirm = $state(false)
+
+  /**
+   * Обновить сейчас. Экран проектора перезагружается сам, когда новый SW
+   * возьмёт управление, — иначе пульт и экран разошлись бы по версиям.
+   * Cmd+Shift+R здесь не помог бы: он обходит кэш только для одной страницы
+   * и не активирует ждущий Service Worker.
+   */
+  function applyUpdate() {
+    if (!updateConfirm) {
+      updateConfirm = true
+      setTimeout(() => (updateConfirm = false), 4000)
+      return
+    }
+    projector.command('reload')
+    window.dispatchEvent(new CustomEvent('bp3:apply-update'))
+  }
   let workspace = $state<HTMLDivElement>()
 
-  /** Ширина свёрнутого плана — колонка иконок */
-  const SETLIST_RAIL = 44
+  /** Ширина свёрнутой панели — колонка иконок */
+  const PANEL_RAIL = 44
 
-  const setlistColumn = $derived(layout.setlistOpen ? layout.setlistWidth : SETLIST_RAIL)
+  const setlistColumn = $derived(layout.setlistOpen ? layout.setlistWidth : PANEL_RAIL)
+  const libraryColumn = $derived(layout.libraryOpen ? layout.libraryWidth : PANEL_RAIL)
 
   const projector = getProjectorLink()
 
@@ -95,9 +114,9 @@
   })
 
   // Новый SW скачался и ждёт в waiting: применится сам, когда закроют все окна
-  // приложения (skipWaiting: false в vite.config.ts). Метка ничего не запускает —
-  // она объясняет оператору, что версия уже здесь и что закрыть надо в том числе
-  // окно проектора: пока оно живо, оно тоже клиент старого SW.
+  // приложения (skipWaiting: false в vite.config.ts), или сразу — кнопкой
+  // «Обновить». Посреди служения случайный клик не должен перезагрузить экран,
+  // поэтому кнопка просит подтверждения вторым нажатием.
   $effect(() => {
     const onUpdateReady = () => (updateReady = true)
     window.addEventListener('bp3:update-ready', onUpdateReady)
@@ -115,18 +134,18 @@
       const total = el.getBoundingClientRect().width
       if (!total) return
       untrack(() => {
-        if (layout.setlistOpen) {
-          const [lib, plan] = fitPanels([layout.libraryWidth, layout.setlistWidth], {
-            total,
-            reserved: 0,
-          })
-          if (lib !== layout.libraryWidth) layout.setWidth('library', lib)
-          if (plan !== layout.setlistWidth) layout.setWidth('setlist', plan)
-          return
-        }
-        // План свёрнут — ужимать нужно только библиотеку
-        const [lib] = fitPanels([layout.libraryWidth], { total, reserved: SETLIST_RAIL })
-        if (lib !== layout.libraryWidth) layout.setWidth('library', lib)
+        // Ужимаем только развёрнутые панели; свёрнутые занимают колонку иконок
+        const open = (['library', 'setlist'] as const).filter((p) =>
+          p === 'library' ? layout.libraryOpen : layout.setlistOpen,
+        )
+        const reserved = (2 - open.length) * PANEL_RAIL
+        const fitted = fitPanels(
+          open.map((p) => layout.widthOf(p)),
+          { total, reserved },
+        )
+        open.forEach((p, i) => {
+          if (fitted[i] !== layout.widthOf(p)) layout.setWidth(p, fitted[i])
+        })
       })
     }
     fit()
@@ -220,6 +239,14 @@
     return () => clearTimeout(id)
   })
 
+  function toggleLibrary() {
+    if (compactLayout) {
+      mobilePanel = mobilePanel === 'library' ? null : 'library'
+    } else {
+      layout.toggleLibrary()
+    }
+  }
+
   function toggleSetlist() {
     if (compactLayout) {
       mobilePanel = mobilePanel === 'setlist' ? null : 'setlist'
@@ -259,22 +286,25 @@
 
     <div class="app-actions ml-auto flex shrink-0 items-center gap-2.5">
       {#if updateReady}
-        <span
-          class="app-update flex shrink-0 items-center gap-1.5 text-sm text-faint"
-          role="status"
+        <button
+          onclick={applyUpdate}
+          class="app-update flex h-7 shrink-0 items-center gap-1.5 rounded border px-2.5 text-sm
+                 {updateConfirm
+            ? 'border-accent bg-accent-dim text-ink'
+            : 'border-stroke-2 bg-panel-2 text-muted hover:bg-hover hover:text-ink'}"
           aria-live="polite"
-          title="Новая версия загружена. Установится, когда все окна приложения будут закрыты — включая окно проектора."
+          title="Новая версия загружена. Нажмите, чтобы обновить пульт и экран проектора сейчас, — или она установится сама, когда закроете все окна приложения."
         >
           <ArrowDownToLine size={12} />
-          <span>Новая версия</span>
-        </span>
+          <span>{updateConfirm ? 'Точно? Экран перезагрузится' : 'Обновить'}</span>
+        </button>
       {/if}
 
       <ProjectorControls />
 
       <BackgroundPanel />
 
-      <div class="relative">
+      <div class="relative" use:dismissable={{ open: settingsOpen, close: () => (settingsOpen = false) }}>
         <button
           onclick={() => (settingsOpen = !settingsOpen)}
           class="grid size-7 place-items-center rounded border border-stroke-2 bg-panel-2 text-muted hover:bg-hover hover:text-ink
@@ -460,7 +490,7 @@
     <div
       bind:this={workspace}
       class="workspace-main grid min-h-0"
-      style="--library-column: {layout.libraryWidth}px; --setlist-column: {setlistColumn}px"
+      style="--library-column: {libraryColumn}px; --setlist-column: {setlistColumn}px"
     >
       <button
         class="workspace-scrim"
@@ -470,16 +500,19 @@
       ></button>
 
       <div class="workspace-library" class:is-mobile-open={mobilePanel === 'library'}>
-        <Library />
+        <Library open={compactLayout || layout.libraryOpen} onToggle={toggleLibrary} />
       </div>
 
-      <PanelResizer
-        panel="library"
-        edge="left"
-        label="Ширина библиотеки"
-        {workspace}
-        taken={setlistColumn}
-      />
+      <!-- Свёрнутую библиотеку тянуть не за что -->
+      {#if layout.libraryOpen}
+        <PanelResizer
+          panel="library"
+          edge="left"
+          label="Ширина библиотеки"
+          {workspace}
+          taken={setlistColumn}
+        />
+      {/if}
 
       <!-- Центр -->
       <section class="workspace-stage flex min-h-0 min-w-0 flex-col bg-bg">
@@ -511,7 +544,7 @@
           edge="right"
           label="Ширина порядка служения"
           {workspace}
-          taken={layout.libraryWidth}
+          taken={libraryColumn}
         />
       {/if}
 

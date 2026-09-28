@@ -10,7 +10,6 @@ import {
 import { SCENES } from '../src/lib/backgrounds/shaders'
 import {
   DEFAULT_BACKGROUND,
-  backgroundPreviewCss,
   isAnimated,
   normalizeBackground,
 } from '../src/lib/backgrounds/settings'
@@ -134,21 +133,6 @@ describe('normalizeBackground', () => {
   it('isAnimated: чёрный — нет, любой другой — да', () => {
     expect(isAnimated(DEFAULT_BACKGROUND)).toBe(false)
     expect(isAnimated({ ...DEFAULT_BACKGROUND, preset: 'flow' })).toBe(true)
-  })
-})
-
-describe('backgroundPreviewCss', () => {
-  it('чёрный фон — просто чёрный', () => {
-    expect(backgroundPreviewCss(DEFAULT_BACKGROUND)).toBe('#000')
-  })
-
-  it('живой фон — пятна трёх цветов палитры поверх её базы', () => {
-    const css = backgroundPreviewCss({ ...DEFAULT_BACKGROUND, preset: 'mesh', palette: 'amber' })
-    const [base, c1, c2, c3] = findPalette('amber').colors
-    expect(css).toContain(c1)
-    expect(css).toContain(c2)
-    expect(css).toContain(c3)
-    expect(css.endsWith(base)).toBe(true)
   })
 })
 

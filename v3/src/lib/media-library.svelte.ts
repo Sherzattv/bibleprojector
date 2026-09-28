@@ -62,7 +62,7 @@ class MediaLibrary {
   refs = $state<MediaRefs>({ ...NO_MEDIA })
   /** Имена файлов — подпись в пульте */
   names = $state<Record<MediaSlot, string>>({ background: '', logo: '' })
-  /** Object URL для превью в пульте (только картинки) */
+  /** Object URL для превью в пульте — и картинки, и видео */
   previews = $state<Record<MediaSlot, string | null>>({ background: null, logo: null })
 
   private available = typeof indexedDB !== 'undefined'
@@ -87,7 +87,7 @@ class MediaLibrary {
     if (old) URL.revokeObjectURL(old)
     this.previews = {
       ...this.previews,
-      [slot]: mediaKind(file.type) === 'image' ? URL.createObjectURL(file.blob) : null,
+      [slot]: URL.createObjectURL(file.blob),
     }
   }
 

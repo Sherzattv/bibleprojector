@@ -206,7 +206,24 @@
   // права оно не переносит — сработает лишь там, где жеста не требуют
   receiver.onCommand = (cmd) => {
     if (cmd === 'close') window.close()
+    else if (cmd === 'reload') reloadForUpdate()
     else if (cmd === 'fullscreen' && !document.fullscreenElement) enterFullscreen()
+  }
+
+  /**
+   * Пульт ставит новую версию. Попап живёт под тем же Service Worker'ом —
+   * ждём, пока новый возьмёт управление, иначе перезагрузка поднимет старую
+   * оболочку. Экран Presentation API грузится из сети — ему ждать нечего.
+   */
+  function reloadForUpdate() {
+    const sw = navigator.serviceWorker
+    if (!sw?.controller) {
+      location.reload()
+      return
+    }
+    sw.addEventListener('controllerchange', () => location.reload(), { once: true })
+    // Страховка: если смена не пришла, всё равно перезагрузиться
+    setTimeout(() => location.reload(), 5000)
   }
 
   function toggleFullscreen() {

@@ -1,5 +1,5 @@
 /**
- * Раскладка рабочей области: ширины боковых панелей и свёрнутый ли план.
+ * Раскладка рабочей области: ширины боковых панелей и какие из них свёрнуты.
  * Персистентна — оператор настраивает пульт один раз, а не каждое служение.
  */
 import { createBrowserStore, createMemoryStore, type TextStore } from './storage'
@@ -19,6 +19,7 @@ export class LayoutStore {
   libraryWidth = $state(DEFAULT_LIBRARY_WIDTH)
   setlistWidth = $state(DEFAULT_SETLIST_WIDTH)
   setlistOpen = $state(true)
+  libraryOpen = $state(true)
 
   private store: TextStore
 
@@ -31,6 +32,7 @@ export class LayoutStore {
     this.libraryWidth = DEFAULT_LIBRARY_WIDTH
     this.setlistWidth = DEFAULT_SETLIST_WIDTH
     this.setlistOpen = true
+    this.libraryOpen = true
     try {
       const raw = this.store.get(KEY)
       if (!raw) return
@@ -44,6 +46,7 @@ export class LayoutStore {
         this.setlistWidth = clampWithinLimits(parsed.setlistWidth)
       }
       if (typeof parsed.setlistOpen === 'boolean') this.setlistOpen = parsed.setlistOpen
+      if (typeof parsed.libraryOpen === 'boolean') this.libraryOpen = parsed.libraryOpen
     } catch {
       // повреждённое хранилище — остаёмся на дефолтах
     }
@@ -56,6 +59,7 @@ export class LayoutStore {
         libraryWidth: this.libraryWidth,
         setlistWidth: this.setlistWidth,
         setlistOpen: this.setlistOpen,
+        libraryOpen: this.libraryOpen,
       }),
     )
   }
@@ -77,6 +81,11 @@ export class LayoutStore {
 
   toggleSetlist() {
     this.setlistOpen = !this.setlistOpen
+    this.persist()
+  }
+
+  toggleLibrary() {
+    this.libraryOpen = !this.libraryOpen
     this.persist()
   }
 

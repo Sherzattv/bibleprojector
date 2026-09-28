@@ -3,7 +3,7 @@
   import { show, type ShowSlide } from '../show.svelte'
   import { projSettings } from '../proj-settings.svelte'
   import { autofitScale } from '../autofit'
-  import { backgroundPreviewCss, isAnimated } from '../backgrounds/settings'
+  import MotionBackground from './MotionBackground.svelte'
   import { FONT_SIZE_FACTOR, LINE_OPACITY, lineStates } from '../projection'
   import { serviceScreen } from '../service-screen.svelte'
   import { mediaLibrary } from '../media-library.svelte'
@@ -16,23 +16,23 @@
   let { mode, slide, blackout = false }: Props = $props()
   const isLive = $derived(mode === 'live')
 
-  // Превью фона — статичная CSS-копия палитры: настоящий шейдер крутится
-  // только на проекторе, видеокарта у пульта и экрана общая
-  const bg = $derived(projSettings.background)
-  // Своё фото показываем как есть; для видео — палитра (кадр в превью не нужен)
-  const ownImage = $derived(bg.preset === 'media' ? mediaLibrary.previews.background : null)
-  const backdrop = $derived(
-    blackout
-      ? 'background: #000'
-      : ownImage
-        ? `background: #000 url("${ownImage}") center / cover no-repeat`
-        : `background: ${backgroundPreviewCss(bg)}`,
-  )
+  // В карточке — тот же живой фон, что на проекторе, но облегчённый: карточка
+  // маленькая, поэтому половина разрешения и не больше 30 к/с. Прежняя
+  // CSS-копия из трёх пятен палитры не похожа ни на горы, ни на свечи.
+  const cardBackground = $derived({
+    ...projSettings.background,
+    quality: 0.5 as const,
+    fps: 30 as const,
+  })
+  const ownMedia = $derived.by(() => {
+    const ref = mediaLibrary.refs.background
+    const url = mediaLibrary.previews.background
+    return ref && url ? { url, kind: ref.kind } : null
+  })
   // Подсветка строки видна и в карточке эфира — оператор знает, где зал
   const line = $derived(
     isLive && projSettings.lineHighlight && show.kind === 'song' ? show.liveLine : undefined,
   )
-  const dim = $derived(!blackout && isAnimated(bg) ? bg.dim : 0)
 
   let editing = $state(false)
   let draft = $state('')
@@ -99,10 +99,10 @@
   <div
     class="projection relative grid aspect-video place-items-center overflow-hidden rounded-md border p-[5%] text-center
            {isLive && slide ? 'border-live/60' : 'border-stroke-2'}"
-    style={backdrop}
+    style="background: #000"
   >
-    {#if dim}
-      <div class="pointer-events-none absolute inset-0 bg-black" style="opacity: {dim}"></div>
+    {#if !blackout}
+      <MotionBackground settings={cardBackground} media={ownMedia} />
     {/if}
     {#if editing && !isLive}
       <textarea

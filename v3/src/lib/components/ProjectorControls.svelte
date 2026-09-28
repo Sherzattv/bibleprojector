@@ -9,6 +9,7 @@
     screens,
   } from '../projector-service.svelte'
   import { screenTitle, type ScreenInfo } from '../screens.svelte'
+  import { dismissable } from '../dismiss'
 
   const projector = getProjectorLink()
 
@@ -91,7 +92,10 @@
     <MonitorX size={13} /><span>Закрыть экран</span>
   </button>
 {:else}
-  <div class="relative flex items-center">
+  <div
+    class="relative flex items-center"
+    use:dismissable={{ open: menuOpen, close: () => (menuOpen = false) }}
+  >
     <button
       onclick={() => present()}
       class="projector-button flex h-7 items-center gap-1.5 rounded border border-stroke-2 bg-panel-2 px-2.5 text-sm

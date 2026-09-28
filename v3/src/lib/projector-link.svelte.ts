@@ -12,7 +12,7 @@ export interface Channel {
 import { MEDIA_SLOTS, isMediaPayload, type MediaPayload, type MediaSlot } from './media'
 
 /** Команды пульта окну проектора */
-export type DisplayCommand = 'fullscreen' | 'close'
+export type DisplayCommand = 'fullscreen' | 'close' | 'reload'
 
 interface LinkMsg {
   type:
