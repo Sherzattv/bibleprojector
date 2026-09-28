@@ -43,3 +43,28 @@ export function createBrowserStore(): TextStore {
     },
   }
 }
+
+/**
+ * JSON из хранилища. Нет ключа или там мусор (ручная правка, другая
+ * версия, обрыв записи) — null: хранилище пульта не должно ронять старт.
+ */
+export function readJson(store: TextStore, key: string): unknown {
+  const raw = store.get(key)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as unknown
+  } catch {
+    return null
+  }
+}
+
+export function writeJson(store: TextStore, key: string, value: unknown): void {
+  store.set(key, JSON.stringify(value))
+}
+
+/** Объект для разбора полей по одному; всё, что не объект, — пустой объект */
+export function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}

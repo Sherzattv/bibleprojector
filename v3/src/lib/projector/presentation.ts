@@ -12,6 +12,21 @@
 
 import type { Channel } from './link.svelte'
 
+/**
+ * Обработчик сообщений PresentationConnection: там ходят JSON-строки.
+ * Битое или чужое сообщение протокол не роняет — его просто нет.
+ */
+export function receiveJson(deliver: (msg: unknown) => void): (e: { data: unknown }) => void {
+  return (e) => {
+    if (typeof e.data !== 'string') return
+    try {
+      deliver(JSON.parse(e.data))
+    } catch {
+      // Битое сообщение протокол не роняет
+    }
+  }
+}
+
 export interface PresentationConnectionLike {
   state: 'connecting' | 'connected' | 'closed' | 'terminated'
   send(data: string): void
@@ -98,14 +113,7 @@ export function presentationReceiverChannel(): ReceiverChannel | null {
 
   const adopt = (conn: PresentationConnectionLike) => {
     conns.add(conn)
-    conn.onmessage = (e) => {
-      if (typeof e.data !== 'string') return
-      try {
-        channel.onmessage?.(JSON.parse(e.data))
-      } catch {
-        // Битое сообщение протокол не роняет
-      }
-    }
+    conn.onmessage = receiveJson((msg) => channel.onmessage?.(msg))
     const drop = () => conns.delete(conn)
     conn.onclose = drop
     conn.onterminate = drop

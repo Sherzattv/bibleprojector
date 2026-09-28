@@ -2,7 +2,13 @@
  * Настройки проекции: масштаб шрифта, показ ссылки, тень под текстом и
  * живой фон. Персистентны, устойчивы к мусору в хранилище.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import {
+  createBrowserStore,
+  createMemoryStore,
+  readJson,
+  writeJson,
+  type TextStore,
+} from '../utils/storage'
 import {
   DEFAULT_PROJECTION_SETTINGS,
   normalizeProjectionSettings,
@@ -56,14 +62,7 @@ export class ProjSettingsStore {
   }
 
   private load() {
-    let parsed: unknown = null
-    try {
-      const raw = this.store.get(KEY)
-      if (raw) parsed = JSON.parse(raw)
-    } catch {
-      // повреждённое хранилище — остаёмся на дефолтах
-    }
-    const s = normalizeProjectionSettings(parsed)
+    const s = normalizeProjectionSettings(readJson(this.store, KEY))
     this.fontScale = s.fontScale
     this.showReference = s.showReference
     this.textShadow = s.textShadow
@@ -76,18 +75,11 @@ export class ProjSettingsStore {
     this.layout = s.layout
     this.chroma = s.chroma
     this.background = s.background
-    let favorites: unknown = null
-    try {
-      const raw = this.store.get(FAVORITES_KEY)
-      if (raw) favorites = JSON.parse(raw)
-    } catch {
-      // повреждённое избранное — начинаем с пустого
-    }
-    this.favorites = normalizeFavorites(favorites)
+    this.favorites = normalizeFavorites(readJson(this.store, FAVORITES_KEY))
   }
 
   private persist() {
-    this.store.set(KEY, JSON.stringify(this.snapshot()))
+    writeJson(this.store, KEY, this.snapshot())
   }
 
   /** То, что уезжает на экран проектора */
@@ -168,7 +160,7 @@ export class ProjSettingsStore {
       ? this.favorites.filter((f) => f !== id)
       : [...this.favorites, id]
     this.favorites = normalizeFavorites(next)
-    this.store.set(FAVORITES_KEY, JSON.stringify(this.favorites))
+    writeJson(this.store, FAVORITES_KEY, this.favorites)
   }
 
   /** Выбрать фон: вместе с ним ставится его родная палитра */

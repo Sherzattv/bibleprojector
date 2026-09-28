@@ -1,5 +1,11 @@
 /** Персистентная история того, что реально уходило в эфир. */
-import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import {
+  createBrowserStore,
+  createMemoryStore,
+  readJson,
+  writeJson,
+  type TextStore,
+} from '../utils/storage'
 
 export type HistorySource =
   | { kind: 'song'; id: number }
@@ -58,19 +64,12 @@ export class HistoryStore {
   }
 
   private load() {
-    try {
-      const raw = this.store.get(STORAGE_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as unknown
-      if (!Array.isArray(parsed)) return
-      this.items = parsed.filter(isHistoryEntry).slice(0, CAPACITY)
-    } catch {
-      this.items = []
-    }
+    const saved = readJson(this.store, STORAGE_KEY)
+    if (Array.isArray(saved)) this.items = saved.filter(isHistoryEntry).slice(0, CAPACITY)
   }
 
   private persist() {
-    this.store.set(STORAGE_KEY, JSON.stringify(this.items))
+    writeJson(this.store, STORAGE_KEY, this.items)
   }
 
   push(entry: Omit<HistoryEntry, 'at'> & { at?: number }) {

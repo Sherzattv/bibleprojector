@@ -2,7 +2,14 @@
  * Раскладка рабочей области: ширины боковых панелей и какие из них свёрнуты.
  * Персистентна — оператор настраивает пульт один раз, а не каждое служение.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import {
+  asRecord,
+  createBrowserStore,
+  createMemoryStore,
+  readJson,
+  writeJson,
+  type TextStore,
+} from '../utils/storage'
 import {
   clampPanelWidth,
   DEFAULT_LIBRARY_WIDTH,
@@ -33,35 +40,26 @@ export class LayoutStore {
     this.setlistWidth = DEFAULT_SETLIST_WIDTH
     this.setlistOpen = true
     this.libraryOpen = true
-    try {
-      const raw = this.store.get(KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as Record<string, unknown>
-      // Ширины из хранилища проверяем только по константам: реальной ширины
-      // окна на этом этапе ещё нет, а окно к тому же могло стать другим
-      if (typeof parsed.libraryWidth === 'number') {
-        this.libraryWidth = clampWithinLimits(parsed.libraryWidth)
-      }
-      if (typeof parsed.setlistWidth === 'number') {
-        this.setlistWidth = clampWithinLimits(parsed.setlistWidth)
-      }
-      if (typeof parsed.setlistOpen === 'boolean') this.setlistOpen = parsed.setlistOpen
-      if (typeof parsed.libraryOpen === 'boolean') this.libraryOpen = parsed.libraryOpen
-    } catch {
-      // повреждённое хранилище — остаёмся на дефолтах
+    const saved = asRecord(readJson(this.store, KEY))
+    // Ширины из хранилища проверяем только по константам: реальной ширины
+    // окна на этом этапе ещё нет, а окно к тому же могло стать другим
+    if (typeof saved.libraryWidth === 'number') {
+      this.libraryWidth = clampWithinLimits(saved.libraryWidth)
     }
+    if (typeof saved.setlistWidth === 'number') {
+      this.setlistWidth = clampWithinLimits(saved.setlistWidth)
+    }
+    if (typeof saved.setlistOpen === 'boolean') this.setlistOpen = saved.setlistOpen
+    if (typeof saved.libraryOpen === 'boolean') this.libraryOpen = saved.libraryOpen
   }
 
   private persist() {
-    this.store.set(
-      KEY,
-      JSON.stringify({
-        libraryWidth: this.libraryWidth,
-        setlistWidth: this.setlistWidth,
-        setlistOpen: this.setlistOpen,
-        libraryOpen: this.libraryOpen,
-      }),
-    )
+    writeJson(this.store, KEY, {
+      libraryWidth: this.libraryWidth,
+      setlistWidth: this.setlistWidth,
+      setlistOpen: this.setlistOpen,
+      libraryOpen: this.libraryOpen,
+    })
   }
 
   widthOf(panel: PanelName): number {

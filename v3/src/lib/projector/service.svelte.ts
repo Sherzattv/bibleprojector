@@ -6,6 +6,7 @@
 import { ProjectorLink, type Channel } from './link.svelte'
 import {
   presentationSupported,
+  receiveJson,
   startPresentation,
   type PresentationConnectionLike,
 } from './presentation'
@@ -214,14 +215,7 @@ export async function openProjection(target?: ScreenInfo): Promise<void> {
 function adoptConnection(conn: PresentationConnectionLike): void {
   getProjectorLink() // канал должен существовать до первых сообщений экрана
   presentationConn = conn
-  conn.onmessage = (e) => {
-    if (typeof e.data !== 'string') return
-    try {
-      activeChannel?.onmessage?.(JSON.parse(e.data))
-    } catch {
-      // Битое сообщение протокол не роняет
-    }
-  }
+  conn.onmessage = receiveJson((msg) => activeChannel?.onmessage?.(msg))
   const drop = () => {
     if (presentationConn !== conn) return
     presentationConn = null

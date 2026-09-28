@@ -10,7 +10,14 @@
  * Тексты и длительность хранятся, сам режим — нет: после перезапуска
  * служебный экран выключен.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import {
+  asRecord,
+  createBrowserStore,
+  createMemoryStore,
+  readJson,
+  writeJson,
+  type TextStore,
+} from '../utils/storage'
 import type { ServiceContent } from './content'
 
 const KEY = 'bp3-service-screen'
@@ -84,14 +91,7 @@ export class ServiceScreenStore {
   private load() {
     this.mode = 'off'
     this.endsAt = null
-    let r: Record<string, unknown> = {}
-    try {
-      const raw = this.store.get(KEY)
-      const parsed: unknown = raw ? JSON.parse(raw) : null
-      if (parsed && typeof parsed === 'object') r = parsed as Record<string, unknown>
-    } catch {
-      // повреждённое хранилище — остаёмся на дефолтах
-    }
+    const r = asRecord(readJson(this.store, KEY))
     this.minutes = COUNTDOWN_MINUTES.includes(r.minutes as (typeof COUNTDOWN_MINUTES)[number])
       ? (r.minutes as number)
       : DEFAULTS.minutes
@@ -105,16 +105,13 @@ export class ServiceScreenStore {
   }
 
   private persist() {
-    this.store.set(
-      KEY,
-      JSON.stringify({
-        minutes: this.minutes,
-        title: this.title,
-        subtitle: this.subtitle,
-        churchName: this.churchName,
-        announcements: this.announcements,
-      }),
-    )
+    writeJson(this.store, KEY, {
+      minutes: this.minutes,
+      title: this.title,
+      subtitle: this.subtitle,
+      churchName: this.churchName,
+      announcements: this.announcements,
+    })
   }
 
   show(mode: Exclude<ServiceMode, 'off'>) {

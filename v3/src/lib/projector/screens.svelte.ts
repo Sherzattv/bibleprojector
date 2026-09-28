@@ -7,7 +7,13 @@
  * дублируется в localStorage: следующее открытие ставит окно на нужный
  * монитор сразу, не дожидаясь ни разрешения, ни асинхронного ответа API.
  */
-import { createBrowserStore, createMemoryStore, type TextStore } from '../utils/storage'
+import {
+  createBrowserStore,
+  createMemoryStore,
+  readJson,
+  writeJson,
+  type TextStore,
+} from '../utils/storage'
 
 const KEY = 'bp3-display-screen'
 
@@ -165,7 +171,7 @@ export class ScreensStore {
 
   select(info: ScreenInfo | null): void {
     this.saved = info
-    if (info) this.store.set(KEY, JSON.stringify(info))
+    if (info) writeJson(this.store, KEY, info)
     else this.store.remove(KEY)
   }
 
@@ -243,20 +249,14 @@ export class ScreensStore {
   }
 
   private read(): ScreenInfo | null {
-    try {
-      const raw = this.store.get(KEY)
-      if (!raw) return null
-      const parsed: unknown = JSON.parse(raw)
-      if (!isScreenInfo(parsed)) return null
-      return {
-        ...parsed,
-        isPrimary: parsed.isPrimary === true,
-        isInternal: parsed.isInternal === true,
-        isCurrent: false,
-      }
-    } catch {
-      // Повреждённое хранилище — просто нет запомненного монитора
-      return null
+    // Повреждённое хранилище — просто нет запомненного монитора
+    const saved = readJson(this.store, KEY)
+    if (!isScreenInfo(saved)) return null
+    return {
+      ...saved,
+      isPrimary: saved.isPrimary === true,
+      isInternal: saved.isInternal === true,
+      isCurrent: false,
     }
   }
 }
