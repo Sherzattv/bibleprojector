@@ -4,8 +4,8 @@
 Bible Projector — PWA-система для трансляции библейских стихов, песен и заметок на экран или проектор. Пульт управления и отдельный экран для зала работают оффлайн и без серверов.
 
 ## Current Version
-- Active development: 3.3.1 (`v3/`)
-- Production: 3.3.1
+- Active development: 3.3.2 (`v3/`)
+- Production: 3.3.2
 
 ## Primary URLs
 - https://bibleprojector.kz/ — landing page
