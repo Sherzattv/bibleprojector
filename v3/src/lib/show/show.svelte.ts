@@ -9,7 +9,8 @@ import { data } from '../data/db.svelte'
 import { edits } from './edits.svelte'
 import type { SongRow } from '../data/db.svelte'
 import { singableLines } from '../projection/content'
-import { songBaseReference, splitSongSections } from '../songs/sections'
+import { screenSectionLabel, songBaseReference, splitSongSections } from '../songs/sections'
+import { songLangOf } from '../songs/languages'
 import { stripMarkup } from '../utils/text'
 import type { PaletteId } from '../backgrounds/catalog'
 
@@ -73,11 +74,16 @@ class ShowState {
     this.baseReference = base
     this.title = song.title
     this.subtitle = song.songNumber ? `№ ${song.songNumber}` : ''
-    this.slides = splitSongSections(song.text).map((s, i) => ({
-      label: s.label || `Строфа ${i + 1}`,
-      text: s.text,
-      reference: s.label ? `${base} · ${s.label}` : base,
-    }))
+    const lang = songLangOf(song.id)
+    this.slides = splitSongSections(song.text).map((s, i) => {
+      // На экране — подпись на языке песни; в пульте — русская метка
+      const onScreen = screenSectionLabel(s.label, lang)
+      return {
+        label: s.label || `Строфа ${i + 1}`,
+        text: s.text,
+        reference: onScreen ? `${base} · ${onScreen}` : base,
+      }
+    })
     this.previewIdx = 0
     this.liveIdx = -1
   }

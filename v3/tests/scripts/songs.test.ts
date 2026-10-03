@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
+  isJunkSong,
   isJunkText,
+  sanitizeSongs,
   lyricsToText,
   namespaceSongs,
   songFromRow,
@@ -50,6 +52,33 @@ describe('isJunkText — пустышки без текста', () => {
 
   it('короткая детская песня — не пустышка', () => {
     expect(isJunkText('[Куплет 1]\nТырс-тырс, тырс-тырс, Жаңбыр жауып тұр.')).toBe(false)
+  })
+})
+
+describe('isJunkSong / sanitizeSongs — заглушки в готовой базе', () => {
+  it('«за текстом обращаться на почту» вместо текста — заглушка', () => {
+    expect(
+      isJunkSong({ title: 'Вечеря', text: '[Куплет 1]\nЗа текстом обращаться на почту a-lec@ukr.net' }),
+    ).toBe(true)
+  })
+
+  it('та же строка над настоящим текстом — песня остаётся', () => {
+    const text =
+      '[Куплет 1]\nЗа текстом обращаться на почту a-lec@ukr.net\nСтучит дождь в оконное стекло, на сердце уныние'
+    expect(isJunkSong({ title: 'Стучит Дождь', text })).toBe(false)
+  })
+
+  it('«(нет слов)» в названии — заглушка, «нет слов» в тексте — нет', () => {
+    expect(isJunkSong({ title: 'В бою ( нет слов)', text: 'Отец, мне так было трудно' })).toBe(true)
+    expect(
+      isJunkSong({ title: 'Тебя лишь славить хочу я', text: 'Больше нет слов у меня, кроме как славить Тебя' }),
+    ).toBe(false)
+  })
+
+  it('sanitizeSongs отдаёт оставшиеся и выброшенные', () => {
+    const real = { id: 1, title: 'Благодать', text: 'Благодать спасла меня, пой аллилуйя' }
+    const stub = { id: 2, title: 'Верю я', text: 'Верю я' }
+    expect(sanitizeSongs([real, stub])).toEqual({ songs: [real], dropped: [stub] })
   })
 })
 

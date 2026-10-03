@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function openReadyApp(page: Page) {
   await page.goto('/')
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
 }
 
 test.setTimeout(60_000)
@@ -34,7 +34,7 @@ test('точная ссылка проходит Preview → Live и переж�
   await expect(library.getByRole('button', { name: /От Иоанна 3:16/ })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('button', { name: /От Иоанна 3:16\s+Библия/ })).toBeVisible()
 
   await page.getByRole('button', { name: 'История' }).click()
@@ -72,7 +72,7 @@ test('песня с несколькими секциями переключае
   await expect(library.getByRole('button', { name: /1000 рук · № 579/ })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
   await expect(setlistSong).toBeVisible()
 
   await setlistSong.click()
@@ -110,7 +110,7 @@ test('порядок создаётся, переставляется, эксп�
   await expect(entries.nth(2)).toContainText('От Иоанна 3:16')
 
   await page.reload()
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
   await expect(entries).toHaveCount(3)
   await expect(entries.nth(0)).toContainText('Объявления')
   await expect(entries.nth(1)).toContainText('1000 рук · № 579')
@@ -155,7 +155,7 @@ test('порядок создаётся, переставляется, эксп�
   await expect(entries.nth(2)).toContainText('От Иоанна 3:16')
 
   await page.reload()
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
   await expect(entries).toHaveCount(3)
   await expect(page.getByRole('region', { name: 'Предпросмотр' })).toContainText(
     'После служения состоится общая встреча.',
@@ -190,7 +190,7 @@ test('порядок, история и настройки проекции во
 
   await settingsButton.click()
   await page.reload()
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
 
   await expect(
     setlist.getByRole('button', { name: /От Иоанна 3:16\s+Библия/ }),
@@ -322,7 +322,7 @@ test('перевод Библии переключается внизу вкла
 
   // После перезагрузки пульт стартует сразу на KTB
   await page.reload()
-  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?478 песен/)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('combobox', { name: /Перевод: KTB/ })).toBeVisible()
   await library.getByRole('button', { name: 'Библия' }).click()
   await expect(library.getByRole('button', { name: /Жаратылыс/ })).toBeVisible()

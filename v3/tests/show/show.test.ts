@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { show } from '../../src/lib/show/show.svelte'
 import { data } from '../../src/lib/data/db.svelte'
-import { rstDb, nrtDb, songs } from '../fixtures'
+import { rstDb, nrtDb, songs, songsKk } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb, NRT: nrtDb }
@@ -109,6 +109,13 @@ describe('loadSong', () => {
     // метка не дублируется в тексте слайда
     expect(show.slides[0].text).not.toContain('[')
     expect(show.slides[0].reference).toBe('Благодать · № 310 · Куплет 1')
+  })
+
+  it('казахская песня: на экране подпись по-казахски, в пульте — русская метка', () => {
+    show.loadSong(songsKk[0])
+    expect(show.slides[0].label).toBe('Куплет 1')
+    expect(show.slides[0].reference).toBe('Иса - Ұлы Патша · № 12 · 1-шумақ')
+    expect(show.slides[1].reference).toBe('Иса - Ұлы Патша · № 12 · Қайырма')
   })
 
   it('песня без меток — одна строфа, без номера — только название', () => {

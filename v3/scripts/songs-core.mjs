@@ -89,6 +89,35 @@ export function isJunkText(text) {
   return (words.match(/\p{L}/gu) ?? []).length < 20
 }
 
+/** Строка-заглушка вместо текста: «За текстом обращаться на почту …» */
+const CONTACT_LINE = /^.*за текстом обращаться.*$/gim
+
+/** Пометка в названии, что слов нет: «В бою (нет слов)», «(без текста)» */
+const NO_WORDS_TITLE = /\(\s*(нет слов|без текста)\s*\)/i
+
+/**
+ * Песня-заглушка: в названии сказано, что слов нет, или текста не остаётся
+ * без строки «за текстом обращаться на почту».
+ * @param {{title: string, text: string}} song
+ */
+export function isJunkSong({ title, text }) {
+  if (NO_WORDS_TITLE.test(title)) return true
+  return isJunkText(text.replace(CONTACT_LINE, ' '))
+}
+
+/**
+ * Чистка готовой базы песен: заглушки уходят, остальное как есть.
+ * @template {{title: string, text: string}} T
+ * @param {T[]} songs
+ * @returns {{songs: T[], dropped: T[]}}
+ */
+export function sanitizeSongs(songs) {
+  const kept = []
+  const dropped = []
+  for (const song of songs) (isJunkSong(song) ? dropped : kept).push(song)
+  return { songs: kept, dropped }
+}
+
 /**
  * Строка таблицы songs → песня приложения. Пустышки — null.
  * @param {{id: number, title: string, alternate_title?: string|null,
@@ -99,7 +128,7 @@ export function isJunkText(text) {
 export function songFromRow(row) {
   const title = (row.title ?? '').replace(/\s+/g, ' ').trim()
   const text = lyricsToText(row.lyrics ?? '')
-  if (!title || isJunkText(text)) return null
+  if (!title || isJunkSong({ title, text })) return null
   const song = { id: Number(row.id), title, text }
   const number = String(row.song_number ?? '').trim()
   if (number) song.songNumber = number

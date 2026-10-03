@@ -16,7 +16,7 @@ import {
   buildManifest,
   DEMO_BOOK_IDS,
 } from './convert-core.mjs'
-import { SONG_LANGS, namespaceSongs, validateSongs } from './songs-core.mjs'
+import { SONG_LANGS, namespaceSongs, sanitizeSongs, validateSongs } from './songs-core.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const dataDir = join(here, '..', 'data', 'source')
@@ -62,17 +62,19 @@ for (const [code, file] of Object.entries(translations)) {
   }
 }
 
-// Песни: русские — как есть (id сохранённых порядков служения не меняются),
-// остальные языки — со сдвигом id в своё пространство
+// Песни: русские id — как есть (сохранённые порядки служения не ломаются),
+// остальные языки — со сдвигом id в своё пространство. Заглушки без текста
+// («нет слов», «за текстом обращаться на почту») в каталог не идут
 const songsByLang = {}
 for (const [lang, { file, json }] of Object.entries(SONG_LANGS)) {
-  const songs = namespaceSongs(parseGlobalJs(readFileSync(join(dataDir, file), 'utf8')), lang)
+  const raw = namespaceSongs(parseGlobalJs(readFileSync(join(dataDir, file), 'utf8')), lang)
+  const { songs, dropped } = sanitizeSongs(raw)
   const problems = validateSongs(songs, lang)
   songsByLang[lang] = songs
   const content = JSON.stringify(songs)
   written[json] = content
   writeFileSync(join(outDir, json), content)
-  console.log(`Песни ${lang}: ${songs.length}`)
+  console.log(`Песни ${lang}: ${songs.length}${dropped.length ? ` · вычищено заглушек: ${dropped.length}` : ''}`)
   if (problems.length) {
     hasProblems = true
     for (const p of problems.slice(0, 10)) console.error(`  ПРОБЛЕМА: ${p}`)
