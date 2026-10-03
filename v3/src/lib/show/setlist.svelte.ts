@@ -47,6 +47,12 @@ export class SetlistState {
     this.store.set(STORAGE_KEY, this.exportJson(false))
   }
 
+  /** Заменить пункт i и сохранить порядок */
+  private replaceItem(i: number, next: SetlistEntry) {
+    this.items = this.items.map((it, index) => (index === i ? next : it))
+    this.persist()
+  }
+
   open(i: number) {
     const item = this.items[i]
     if (!item) return
@@ -56,8 +62,7 @@ export class SetlistState {
       // пункт запоминает новый id, чтобы не искать её каждый раз
       const opened = show.source
       if (opened?.kind === 'song' && opened.id !== item.id) {
-        this.items = this.items.map((it, index) => (index === i ? { ...item, id: opened.id } : it))
-        this.persist()
+        this.replaceItem(i, { ...item, id: opened.id })
       }
     } else if (item.kind === 'bible') {
       if (!commands.openRef(item.code, item.chapter, item.verse)) return
@@ -80,9 +85,8 @@ export class SetlistState {
     const next = { ...item }
     if (normalized) next.background = normalized
     else delete next.background
-    this.items = this.items.map((it, index) => (index === i ? next : it))
+    this.replaceItem(i, next)
     if (this.currentIdx === i) show.itemBackground = normalized ? { ...normalized } : null
-    this.persist()
     return true
   }
 

@@ -12,6 +12,17 @@ import { serviceScreen } from '../projection/service-screen.svelte'
 import { songLangInfo, songLangOf } from '../songs/languages'
 import { resolveSong } from '../songs/resolve'
 
+/** Почему песня не открылась: база её языка ещё едет, упала или песни в ней нет */
+function songMissingNotice(id: number, label?: string): string {
+  const lang = songLangOf(id)
+  const base = `Песни «${songLangInfo(lang).label}»`
+  const name = label ? `«${label}»` : `(id ${id})`
+  const status = data.songStatus[lang]
+  if (status === 'loading') return `${base} ещё загружаются — попробуйте через пару секунд`
+  if (status === 'error') return `${base} не загрузились — песня ${name} недоступна`
+  return `Песня ${name} не найдена в каталоге`
+}
+
 export const commands = {
   /**
    * Открыть песню. label — подпись из порядка служения или истории: по ней
@@ -20,16 +31,7 @@ export const commands = {
   openSong(id: number, label?: string): boolean {
     const song = resolveSong(data.songsById, data.songs, id, label)
     if (!song) {
-      const lang = songLangOf(id)
-      const status = data.songStatus[lang]
-      const name = label ? `«${label}»` : `(id ${id})`
-      ui.notify(
-        status === 'loading'
-          ? `Песни «${songLangInfo(lang).label}» ещё загружаются — попробуйте через пару секунд`
-          : status === 'error'
-            ? `Песни «${songLangInfo(lang).label}» не загрузились — песня ${name} недоступна`
-            : `Песня ${name} не найдена в каталоге`,
-      )
+      ui.notify(songMissingNotice(id, label))
       return false
     }
     show.loadSong(song)

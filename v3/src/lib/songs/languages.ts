@@ -41,9 +41,6 @@ export function songLangInfo(code: SongLang): SongLangInfo {
 
 /** База песни по её id: работает и до загрузки самой базы */
 export function songLangOf(id: number): SongLang {
-  for (let i = SONG_LANGS.length - 1; i >= 0; i--) {
-    const lang = SONG_LANGS[i]
-    if (id >= lang.offset && id < lang.offset + SONG_ID_SPAN) return lang.code
-  }
-  return DEFAULT_SONG_LANG
+  const lang = SONG_LANGS.find((l) => id >= l.offset && id < l.offset + SONG_ID_SPAN)
+  return lang?.code ?? DEFAULT_SONG_LANG
 }

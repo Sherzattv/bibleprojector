@@ -4,10 +4,11 @@
   import { findBook } from '../../bible/chapters'
   import { data, TRANSLATIONS } from '../../data/db.svelte'
   import { commands } from '../../show/commands.svelte'
-  import { buildTranslationOptions, statusNote } from '../../ui/translation-picker'
+  import { withStatusNote } from '../../ui/load-status'
+  import { buildTranslationOptions } from '../../ui/translation-picker'
   import { countLabel } from '../../utils/format'
   import FooterSwitch from './FooterSwitch.svelte'
-  import { libraryRow as row } from './library-row'
+  import { libraryFooter, libraryRow as row } from './library-row'
 
   /** Книги текущего перевода и сетка глав выбранной книги */
   interface Props {
@@ -33,15 +34,18 @@
 
   /** Тот же выбор перевода, что и в доке, — прямо под списком книг */
   const translationOptions = $derived(
-    buildTranslationOptions(TRANSLATIONS, data.bibles, data.translationStatus).map((o) => {
-      const note = statusNote(o.status)
-      return {
-        value: o.code,
-        label: o.code,
-        title: `${o.code} · ${o.label}${note ? ` — ${note}` : ''}`,
-        disabled: o.disabled,
-      }
-    }),
+    buildTranslationOptions(TRANSLATIONS, data.bibles, data.translationStatus).map((o) => ({
+      value: o.code,
+      label: o.code,
+      title: withStatusNote(`${o.code} · ${o.label}`, o.status),
+      disabled: o.disabled,
+    })),
+  )
+
+  const footerText = $derived(
+    selectedBookInfo
+      ? countLabel(selectedBookInfo.chapters, ['глава', 'главы', 'глав'])
+      : `${countLabel(books.length, ['книга', 'книги', 'книг'])}${data.demo ? ' · демо-данные' : ''}`,
   )
 
   function openChapter(code: string, chapter: number) {
@@ -69,17 +73,6 @@
       {/each}
     </div>
   </div>
-  <div class="flex h-8 shrink-0 items-center gap-2 border-t border-stroke pr-1.5 pl-3 text-xs text-faint">
-    <span class="min-w-0 flex-1 truncate">
-      {countLabel(selectedBookInfo.chapters, ['глава', 'главы', 'глав'])}
-    </span>
-    <FooterSwitch
-      label="Перевод"
-      options={translationOptions}
-      value={data.translation}
-      onchange={(code) => commands.setTranslation(code)}
-    />
-  </div>
 {:else}
   <div class="min-h-0 flex-1 overflow-y-auto py-1">
     {#each books as book (book.code)}
@@ -89,15 +82,13 @@
       </button>
     {/each}
   </div>
-  <div class="flex h-8 shrink-0 items-center gap-2 border-t border-stroke pr-1.5 pl-3 text-xs text-faint">
-    <span class="min-w-0 flex-1 truncate">
-      {countLabel(books.length, ['книга', 'книги', 'книг'])}{data.demo ? ' · демо-данные' : ''}
-    </span>
-    <FooterSwitch
-      label="Перевод"
-      options={translationOptions}
-      value={data.translation}
-      onchange={(code) => commands.setTranslation(code)}
-    />
-  </div>
 {/if}
+<div class={libraryFooter}>
+  <span class="min-w-0 flex-1 truncate">{footerText}</span>
+  <FooterSwitch
+    label="Перевод"
+    options={translationOptions}
+    value={data.translation}
+    onchange={(code) => commands.setTranslation(code)}
+  />
+</div>
