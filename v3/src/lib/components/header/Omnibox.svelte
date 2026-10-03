@@ -84,6 +84,13 @@
     if (commands.openRef(hit.canonicalCode, hit.chapter, hit.verse)) close()
   }
 
+  /** Номер песни; у песен других языков — ещё и язык */
+  function songMeta(song: SongRow, index: number): string {
+    const number = song.songNumber ? `№ ${song.songNumber}` : 'без номера'
+    if (index < otherLangStart) return number
+    return `${number} · ${songLangInfo(songLangOf(song.id)).label}`
+  }
+
   function openSong(song: SongRow) {
     if (commands.openSong(song.id)) close()
   }
@@ -218,11 +225,7 @@
             <Music size={14} class="shrink-0 text-faint" />
             <span class="min-w-0">
               <span class="text-base font-medium">{song.title}</span>
-              <span class="block text-xs text-faint">
-                {song.songNumber ? `№ ${song.songNumber}` : 'без номера'}{si >= otherLangStart
-                  ? ` · ${songLangInfo(songLangOf(song.id)).label}`
-                  : ''}
-              </span>
+              <span class="block text-xs text-faint">{songMeta(song, si)}</span>
             </span>
           </button>
         {/each}

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { data, type SongRow } from '../../data/db.svelte'
   import { commands } from '../../show/commands.svelte'
-  import { SONG_LANGS, songLangInfo, type SongLang } from '../../songs/languages'
-  import { statusNote } from '../../ui/translation-picker'
+  import { SONG_LANGS, songLangInfo } from '../../songs/languages'
+  import { withStatusNote } from '../../ui/load-status'
   import { countLabel } from '../../utils/format'
   import { foldText } from '../../utils/text'
   import FooterSwitch from './FooterSwitch.svelte'
-  import { libraryRow as row } from './library-row'
+  import { libraryFooter, libraryRow as row } from './library-row'
 
   /** Каталог песен выбранного языка с быстрым фильтром по названию и номеру */
   interface Props {
@@ -28,22 +28,21 @@
   })
 
   const langOptions = $derived(
-    SONG_LANGS.map((l) => {
-      const note = statusNote(data.songStatus[l.code])
-      return {
-        value: l.code,
-        label: l.short,
-        title: `Песни: ${l.label}${note ? ` — ${note}` : ''}`,
-      }
-    }),
+    SONG_LANGS.map((l) => ({
+      value: l.code,
+      label: l.short,
+      title: withStatusNote(`Песни: ${l.label}`, data.songStatus[l.code]),
+    })),
   )
+
+  const footerText = $derived.by(() => {
+    const total = countLabel(langSongs.length, ['песня', 'песни', 'песен'])
+    if (songFilter.trim()) return `${total} · показано ${visibleSongs.length}`
+    return langSongs.length > 100 ? `${total} · первые 100` : total
+  })
 
   function openSong(song: SongRow) {
     commands.openSong(song.id)
-  }
-
-  function pickLang(lang: SongLang) {
-    data.setSongLang(lang)
   }
 </script>
 
@@ -79,13 +78,12 @@
     {/if}
   {/each}
 </div>
-<div class="flex h-8 shrink-0 items-center gap-2 border-t border-stroke pr-1.5 pl-3 text-xs text-faint">
-  <span class="min-w-0 flex-1 truncate">
-    {countLabel(langSongs.length, ['песня', 'песни', 'песен'])}{songFilter.trim()
-      ? ` · показано ${visibleSongs.length}`
-      : langSongs.length > 100
-        ? ' · первые 100'
-        : ''}
-  </span>
-  <FooterSwitch label="Язык песен" options={langOptions} value={data.songLang} onchange={pickLang} />
+<div class={libraryFooter}>
+  <span class="min-w-0 flex-1 truncate">{footerText}</span>
+  <FooterSwitch
+    label="Язык песен"
+    options={langOptions}
+    value={data.songLang}
+    onchange={(lang) => data.setSongLang(lang)}
+  />
 </div>

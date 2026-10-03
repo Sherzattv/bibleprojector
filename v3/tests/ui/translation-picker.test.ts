@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  buildTranslationOptions,
-  initialActive,
-  statusNote,
-} from '../../src/lib/ui/translation-picker'
+import { buildTranslationOptions, initialActive } from '../../src/lib/ui/translation-picker'
 
 const TRANSLATIONS: Array<[string, string]> = [
   ['RST', 'Синодальный'],
@@ -33,18 +29,6 @@ describe('buildTranslationOptions — список переводов', () => {
       KTB: 'error',
     })
     expect(options.map((o) => o.status)).toEqual(['ready', 'loading', 'error'])
-  })
-})
-
-describe('statusNote — пояснение в строке списка', () => {
-  it('готовый перевод не поясняем', () => {
-    expect(statusNote('ready')).toBe('')
-    expect(statusNote(undefined)).toBe('')
-  })
-
-  it('загрузку и ошибку называем вслух', () => {
-    expect(statusNote('loading')).toBe('загрузка…')
-    expect(statusNote('error')).toBe('ошибка')
   })
 })
 

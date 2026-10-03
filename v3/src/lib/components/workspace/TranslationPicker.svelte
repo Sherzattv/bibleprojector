@@ -4,7 +4,8 @@
   import { commands } from '../../show/commands.svelte'
   import { nextIndex } from '../../search/omni-list'
   import { popoverSurface } from '../ui/styles'
-  import { buildTranslationOptions, initialActive, statusNote } from '../../ui/translation-picker'
+  import { buildTranslationOptions, initialActive } from '../../ui/translation-picker'
+  import { statusNote } from '../../ui/load-status'
 
   let open = $state(false)
   let active = $state(-1)

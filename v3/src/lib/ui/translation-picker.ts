@@ -32,13 +32,6 @@ export function buildTranslationOptions(
   }))
 }
 
-/** Пояснение справа в строке списка; пустое — значит перевод готов */
-export function statusNote(status?: LoadStatus): string {
-  if (status === 'loading') return 'загрузка…'
-  if (status === 'error') return 'ошибка'
-  return ''
-}
-
 /**
  * Позиция, с которой открывается список. Ведём от текущего перевода, а не
  * от нуля: стрелка вниз должна двигать от того, что оператор уже видит.
