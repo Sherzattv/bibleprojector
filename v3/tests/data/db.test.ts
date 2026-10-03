@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { data } from '../../src/lib/data/db.svelte'
+import { data, DataStore } from '../../src/lib/data/db.svelte'
+import { createMemoryStore } from '../../src/lib/utils/storage'
 import { rstDb, nrtDb, songs, songsKk, songsKy } from '../fixtures'
 
 // В тестах MODE='test', IS_DEMO=false — работает fetch-ветка init()
@@ -109,6 +110,57 @@ describe('data — песни по языкам', () => {
   it('setSongLang меняет язык каталога', () => {
     data.setSongLang('ky')
     expect(data.songLang).toBe('ky')
+  })
+})
+
+describe('data — выбор перевода и языка переживает перезагрузку', () => {
+  it('новый пульт берёт перевод и язык песен из хранилища', () => {
+    const store = new DataStore(createMemoryStore({ 'bp3-translation': 'KYB', 'bp3-song-lang': 'kk' }))
+    expect(store.translation).toBe('KYB')
+    expect(store.songLang).toBe('kk')
+  })
+
+  it('мусор в хранилище игнорируется — остаются RST и русские песни', () => {
+    const store = new DataStore(createMemoryStore({ 'bp3-translation': 'XXX', 'bp3-song-lang': 'en' }))
+    expect(store.translation).toBe('RST')
+    expect(store.songLang).toBe('ru')
+  })
+
+  it('selectTranslation и setSongLang запоминают выбор', () => {
+    const prefs = createMemoryStore()
+    const store = new DataStore(prefs)
+    store.selectTranslation('KTB')
+    store.setSongLang('ky')
+    const next = new DataStore(prefs)
+    expect(next.translation).toBe('KTB')
+    expect(next.songLang).toBe('ky')
+  })
+
+  it('старт сразу на сохранённом переводе — без промежуточного RST', async () => {
+    const fetchMock = stubFetch()
+    data.translation = 'KTB'
+    await data.init()
+    expect(data.status).toBe('ready')
+    expect(data.translation).toBe('KTB')
+    expect(data.translationStatus.KTB).toBe('ready')
+    // KTB грузился в стартовой паре, RST к готовности ещё не нужен — он в фоне
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('ktb.json'))).toBe(true)
+    expect(data.bibles.RST).toBeUndefined()
+    await vi.waitFor(() => {
+      expect(data.translationStatus.RST).toBe('ready')
+    })
+  })
+
+  it('сохранённый перевод не загрузился — старт на RST, пульт работает', async () => {
+    stubFetch({ 'ktb.json': notOk })
+    data.translation = 'KTB'
+    await data.init()
+    expect(data.status).toBe('ready')
+    expect(data.translation).toBe('RST')
+    expect(data.bibles.RST).toBeDefined()
+    await vi.waitFor(() => {
+      expect(data.translationStatus.KTB).toBe('error')
+    })
   })
 })
 

@@ -292,10 +292,13 @@ test('казахские песни: свой каталог, порядок с�
   // Русская песня находится и с казахским каталогом — в группе других языков
   const search = page.getByPlaceholder('Стих, песня или текст…')
   await search.fill('1000 рук')
+  // Поисковый воркер индексирует ~13 тысяч песен — ждём выдачу дольше обычного
+  const russianSong = page.getByRole('option', { name: /1000 рук\s+№ 579 · Русские/ })
+  await expect(russianSong).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('listbox', { name: 'Результаты поиска' })).toContainText(
     'Песни · другие языки',
   )
-  await page.getByRole('option', { name: /1000 рук\s+№ 579 · Русские/ }).click()
+  await russianSong.click()
   await expect(preview).toContainText('Слышу пенье цветов')
 
   // Язык каталога запоминается, первый пункт порядка открывается на старте
@@ -305,7 +308,7 @@ test('казахские песни: свой каталог, порядок с�
   await expect(preview).toContainText('Ортамызға келші')
 })
 
-test('перевод Библии переключается внизу вкладки «Библия»', async ({ page }) => {
+test('перевод Библии переключается внизу вкладки «Библия» и запоминается', async ({ page }) => {
   const library = page.getByRole('complementary', { name: 'Библиотека' })
   await library.getByRole('button', { name: 'Библия' }).click()
   const translations = library.getByRole('group', { name: 'Перевод' })
@@ -316,4 +319,11 @@ test('перевод Библии переключается внизу вкла
   await expect(ktb).toHaveAttribute('aria-pressed', 'true')
   await expect(library.getByRole('button', { name: /Жаратылыс/ })).toBeVisible()
   await expect(page.getByRole('combobox', { name: /Перевод: KTB/ })).toBeVisible()
+
+  // После перезагрузки пульт стартует сразу на KTB
+  await page.reload()
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('combobox', { name: /Перевод: KTB/ })).toBeVisible()
+  await library.getByRole('button', { name: 'Библия' }).click()
+  await expect(library.getByRole('button', { name: /Жаратылыс/ })).toBeVisible()
 })

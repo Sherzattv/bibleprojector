@@ -53,8 +53,17 @@ export const TRANSLATIONS: Array<[code: string, label: string]> = [
 
 const IS_DEMO = import.meta.env.MODE === 'demo'
 
-/** Выбранный язык песен переживает перезапуск: церковь поёт на своём языке */
+/**
+ * Выбор оператора переживает перезагрузку: церковь читает и поёт на своём
+ * языке, и пульт должен стартовать сразу на нём
+ */
 const SONG_LANG_KEY = 'bp3-song-lang'
+const TRANSLATION_KEY = 'bp3-translation'
+const DEFAULT_TRANSLATION = 'RST'
+
+function isTranslation(value: unknown): value is string {
+  return TRANSLATIONS.some(([code]) => code === value)
+}
 
 /** Песни по базам: каждая в порядке своего файла */
 export function groupSongsByLang(songs: readonly SongRow[]): Record<SongLang, SongRow[]> {
@@ -142,7 +151,7 @@ export function createFetchText(timeoutMs: number = FETCH_TIMEOUT_MS): FetchText
 
 const fetchText = createFetchText()
 
-class DataStore {
+export class DataStore {
   // $state.raw: данные иммутабельны, глубокие прокси на 43 МБ —
   // лишние CPU и память; реактивность только на замену ссылки
   bibles = $state.raw<Record<string, BibleDb>>({})
@@ -156,7 +165,7 @@ class DataStore {
   songLang = $state<SongLang>(DEFAULT_SONG_LANG)
   /** Статус загрузки базы песен каждого языка */
   songStatus = $state<Partial<Record<SongLang, LoadStatus>>>({})
-  translation = $state('RST')
+  translation = $state(DEFAULT_TRANSLATION)
   status = $state<LoadStatus>('loading')
   /** Статус фоновой загрузки по каждому переводу */
   translationStatus = $state<Record<string, LoadStatus>>({})
@@ -167,11 +176,21 @@ class DataStore {
   }
 
   private kv: KVStore = createKV()
-  private prefs: TextStore = createBrowserStore()
+  private prefs: TextStore
 
-  constructor() {
-    const saved = this.prefs.get(SONG_LANG_KEY)
-    if (isSongLang(saved)) this.songLang = saved
+  /** prefs — где лежит выбор оператора; тесты подставляют своё хранилище */
+  constructor(prefs: TextStore = createBrowserStore()) {
+    this.prefs = prefs
+    const lang = prefs.get(SONG_LANG_KEY)
+    if (isSongLang(lang)) this.songLang = lang
+    const translation = prefs.get(TRANSLATION_KEY)
+    if (isTranslation(translation)) this.translation = translation
+  }
+
+  /** Сменить перевод Библии (запоминается). Перевод должен быть загружен */
+  selectTranslation(code: string): void {
+    this.translation = code
+    this.prefs.set(TRANSLATION_KEY, code)
   }
 
   /** Сменить язык каталога песен (запоминается) */
@@ -229,6 +248,21 @@ class DataStore {
     }
   }
 
+  /**
+   * Стартовый перевод — тот, на котором оператор закончил. Не загрузился —
+   * старт идёт на RST (выбор при этом не стирается: в следующий раз пульт
+   * попробует снова), а сам перевод ещё раз пробует фоновая загрузка
+   */
+  private async loadStartTranslation(code: string): Promise<[string, BibleDb]> {
+    try {
+      return [code, (await this.loadFile(`${code.toLowerCase()}.json`)) as BibleDb]
+    } catch (e) {
+      if (code === DEFAULT_TRANSLATION) throw e
+      console.error(`Translation ${code} failed to load at start, falling back to RST`, e)
+      return [DEFAULT_TRANSLATION, (await this.loadFile('rst.json')) as BibleDb]
+    }
+  }
+
   /** Повторить загрузку перевода после ошибки */
   retryTranslation(code: string): Promise<void> {
     return this.loadTranslation(code)
@@ -275,20 +309,22 @@ class DataStore {
           this.loadSongs(l.code),
         )
         this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'loading' }
-        const [rst, songs] = await Promise.all([
-          this.loadFile('rst.json') as Promise<BibleDb>,
+        const start = isTranslation(this.translation) ? this.translation : DEFAULT_TRANSLATION
+        const [[code, bible], songs] = await Promise.all([
+          this.loadStartTranslation(start),
           this.fetchSongs(DEFAULT_SONG_LANG),
         ])
-        this.bibles = { RST: rst }
+        this.bibles = { [code]: bible }
+        this.translation = code
         this.setSongBase(DEFAULT_SONG_LANG, songs)
         this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'ready' }
-        this.translationStatus = { ...this.translationStatus, RST: 'ready' }
+        this.translationStatus = { ...this.translationStatus, [code]: 'ready' }
         await Promise.all(extraSongs)
         // Остальные переводы — в фоне, не блокируя старт;
         // ошибки фиксируются в translationStatus, не роняя процесс
-        for (const [code] of TRANSLATIONS) {
-          if (code === 'RST') continue
-          void this.loadTranslation(code)
+        for (const [other] of TRANSLATIONS) {
+          if (other === code) continue
+          void this.loadTranslation(other)
         }
       }
       this.status = 'ready'

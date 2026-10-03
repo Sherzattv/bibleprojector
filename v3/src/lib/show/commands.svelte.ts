@@ -114,7 +114,7 @@ export const commands = {
       ui.notify(`Перевод ${code} ещё не загружен`)
       return false
     }
-    data.translation = code
+    data.selectTranslation(code)
     show.reloadForTranslation()
     return true
   },
