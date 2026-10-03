@@ -80,6 +80,15 @@ describe('названия книг', () => {
     expect(bookTitleIn('GEN', 'KYB')).toBe('Башталыш')
   })
 
+  it('KYB — названия как в тексте киргизской Библии', () => {
+    expect(bookTitleIn('EXO', 'KYB')).toBe('Мисирден чыгуу')
+    expect(bookTitleIn('JOS', 'KYB')).toBe('Жашыя')
+    expect(bookTitleIn('1SA', 'KYB')).toBe('1 Шемуел')
+    expect(bookTitleIn('PHM', 'KYB')).toBe('Филемонго')
+    expect(bookTitleIn('HEB', 'KYB')).toBe('Эврейлерге')
+    expect(bookTitleIn('JUD', 'KYB')).toBe('Жүйүт')
+  })
+
   it('неизвестный код — «Библия»', () => {
     expect(getBookTitle('XXX')).toBe('Библия')
   })
@@ -103,6 +112,15 @@ describe('getCanonicalCode — книга по вводу оператора', (
       expect(getCanonicalCode(b.ru)).toBe(b.code)
     }
     expect(getCanonicalCode('1-е Коринфянам')).toBe('1CO')
+  })
+
+  it('киргизские названия вводятся обратно, прежние тоже узнаются', () => {
+    for (const b of BOOKS) {
+      expect(getCanonicalCode(b.ky)).toBe(b.code)
+    }
+    expect(getCanonicalCode('жошуа')).toBe('JOS')
+    expect(getCanonicalCode('1 самуел')).toBe('1SA')
+    expect(getCanonicalCode('жөөттөргө')).toBe('HEB')
   })
 
   it('регистр, пробелы и дефисы не важны', () => {
