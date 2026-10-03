@@ -6,7 +6,7 @@ import { data } from '../../src/lib/data/db.svelte'
 import { ui } from '../../src/lib/ui/notices.svelte'
 import { projSettings } from '../../src/lib/projection/settings.svelte'
 import { serviceScreen } from '../../src/lib/projection/service-screen.svelte'
-import { rstDb, nrtDb, rstShiftDb, nrtShiftDb, songs } from '../fixtures'
+import { rstDb, nrtDb, rstShiftDb, nrtShiftDb, songs, songsKk } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb, NRT: nrtDb }
@@ -289,6 +289,26 @@ describe('commands × служебный экран', () => {
     serviceScreen.show('countdown')
     commands.clearLive()
     expect(serviceScreen.mode).toBe('off')
+  })
+})
+
+describe('commands.openSong — песни других языков', () => {
+  it('база ещё грузится — понятное уведомление, а не «не найдена»', () => {
+    data.songStatus = { ru: 'ready', kk: 'loading' }
+    expect(commands.openSong(1_000_001, 'Иса - Ұлы Патша')).toBe(false)
+    expect(ui.lastNotice).toMatch(/Қазақша.*загружаются/)
+  })
+
+  it('база не загрузилась — уведомление говорит об этом', () => {
+    data.songStatus = { ru: 'ready', kk: 'error' }
+    expect(commands.openSong(1_000_001)).toBe(false)
+    expect(ui.lastNotice).toMatch(/Қазақша.*не загрузились/)
+  })
+
+  it('история открывает песню по подписи, если id съехал', () => {
+    data.songs = [...songs, ...songsKk]
+    expect(commands.openSource({ kind: 'song', id: 1_000_001 }, 'Көтерілді шаңырақ')).toBe(true)
+    expect(show.title).toBe('Көтерілді шаңырақ')
   })
 })
 

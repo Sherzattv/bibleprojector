@@ -6,6 +6,7 @@
 import MiniSearch from 'minisearch'
 import { bookTitleIn, codeForBookId } from '../bible/books'
 import { foldText, stripMarkup } from '../utils/text'
+import { songLangOf, type SongLang } from '../songs/languages'
 import type { BibleDb, SongRow } from '../data/db.svelte'
 
 export interface VerseHit {
@@ -31,8 +32,16 @@ const miniOptions = {
 // ── Песни ──────────────────────────────────────────────
 
 export interface SongSearch {
-  search(query: string, limit?: number): SongRow[]
+  /**
+   * Песни по запросу. С lang: сначала до limit песен этого языка, за ними —
+   * до OTHER_LANG_LIMIT песен других языков, но только тех, что и в общем
+   * зачёте вошли бы в первые limit (иначе это шум нечёткого поиска).
+   */
+  search(query: string, limit?: number, lang?: SongLang): SongRow[]
 }
+
+/** Сколько песен других языков показывать под песнями выбранного */
+export const OTHER_LANG_LIMIT = 3
 
 /** Изолированный поисковый инстанс по песням (fuzzy/префикс, номер — первым) */
 export function createSongSearch(songs: SongRow[]): SongSearch {
@@ -49,17 +58,25 @@ export function createSongSearch(songs: SongRow[]): SongSearch {
   const byId = new Map(songs.map((s) => [s.id, s]))
 
   return {
-    search(query, limit = 8) {
+    search(query, limit = 8, lang) {
       const q = query.trim()
       if (!q) return []
       // Точный номер песни — всегда первым
       const byNumber = /^\d+$/.test(q) ? songs.filter((s) => s.songNumber === q) : []
+      const numbered = new Set(byNumber)
       const hits = index
         .search(q)
-        .slice(0, limit)
         .map((h) => byId.get(h.id as number))
-        .filter((s): s is SongRow => !!s && !byNumber.includes(s))
-      return [...byNumber, ...hits].slice(0, limit)
+        .filter((s): s is SongRow => !!s && !numbered.has(s))
+      const ranked = [...byNumber, ...hits]
+      if (!lang) return ranked.slice(0, limit)
+      const isOwn = (s: SongRow) => songLangOf(s.id) === lang
+      const own = ranked.filter(isOwn).slice(0, limit)
+      const other = ranked
+        .slice(0, limit)
+        .filter((s) => !isOwn(s))
+        .slice(0, OTHER_LANG_LIMIT)
+      return [...own, ...other]
     },
   }
 }

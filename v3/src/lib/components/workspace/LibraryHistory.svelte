@@ -6,7 +6,7 @@
 
   /** Всё, что уходило в эфир, — для быстрого повтора */
   function reopenHistory(entry: HistoryEntry) {
-    commands.openSource(entry.source)
+    commands.openSource(entry.source, entry.reference)
   }
 </script>
 

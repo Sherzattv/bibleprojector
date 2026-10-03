@@ -22,6 +22,16 @@
   import { countLabel } from '../../utils/format'
   import { downloadText } from '../../utils/download'
   import NoteDialog from './NoteDialog.svelte'
+  import { DEFAULT_SONG_LANG, songLangInfo, songLangOf } from '../../songs/languages'
+  import type { SetlistEntry } from '../../show/setlist.svelte'
+
+  /** Подпись типа пункта; у песен не по-русски — ещё и язык базы */
+  function kindLabel(item: SetlistEntry): string {
+    if (item.kind === 'bible') return 'Библия'
+    if (item.kind === 'note') return 'Заметка'
+    const lang = songLangOf(item.id)
+    return lang === DEFAULT_SONG_LANG ? 'Песня' : `Песня · ${songLangInfo(lang).label}`
+  }
 
   /** Привязать к пункту текущий фон экрана или снять привязку */
   function toggleItemBackground(i: number) {
@@ -116,7 +126,7 @@
             <span class="min-w-0">
               <span class="block truncate text-base font-medium">{item.title}</span>
               <span class="flex items-center gap-1.5 text-xs text-faint">
-                {item.kind === 'song' ? 'Песня' : item.kind === 'bible' ? 'Библия' : 'Заметка'}
+                {kindLabel(item)}
                 {#if item.background}
                   <span class="flex items-center gap-1" title="Свой фон пункта: включится с первым GO">
                     ·

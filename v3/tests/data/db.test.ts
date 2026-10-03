@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { data } from '../../src/lib/data/db.svelte'
-import { rstDb, nrtDb, songs } from '../fixtures'
+import { data, DataStore } from '../../src/lib/data/db.svelte'
+import { createMemoryStore } from '../../src/lib/utils/storage'
+import { rstDb, nrtDb, songs, songsKk, songsKy } from '../fixtures'
 
 // В тестах MODE='test', IS_DEMO=false — работает fetch-ветка init()
 
@@ -15,6 +16,8 @@ function stubFetch(overrides: Record<string, () => Promise<unknown>> = {}) {
       if (url.endsWith(suffix)) return handler()
     }
     if (url.endsWith('songs.json')) return ok(songs)
+    if (url.endsWith('songs_kk.json')) return ok(songsKk)
+    if (url.endsWith('songs_ky.json')) return ok(songsKy)
     if (url.endsWith('rst.json')) return ok(rstDb)
     return ok(nrtDb) // остальные переводы
   })
@@ -29,6 +32,8 @@ beforeEach(() => {
   data.translation = 'RST'
   data.status = 'loading'
   data.translationStatus = {}
+  data.songStatus = {}
+  data.songLang = 'ru'
 })
 
 afterEach(() => {
@@ -41,7 +46,7 @@ describe('data.init — основная загрузка', () => {
     await data.init()
     expect(data.status).toBe('ready')
     expect(data.bibles.RST).toBeDefined()
-    expect(data.songs).toHaveLength(songs.length)
+    expect(data.songsByLang.ru).toHaveLength(songs.length)
   })
 
   it('упавший основной fetch — status error, без unhandled rejection', async () => {
@@ -51,6 +56,111 @@ describe('data.init — основная загрузка', () => {
     )
     await expect(data.init()).resolves.toBeUndefined()
     expect(data.status).toBe('error')
+  })
+})
+
+describe('data — песни по языкам', () => {
+  it('старт ждёт казахскую и киргизскую базы: порядок служения откроется сразу', async () => {
+    stubFetch()
+    await data.init()
+    expect(data.songStatus).toEqual({ ru: 'ready', kk: 'ready', ky: 'ready' })
+    expect(data.songs).toHaveLength(songs.length + songsKk.length + songsKy.length)
+    expect(data.songsById.get(1_000_001)?.title).toBe('Иса - Ұлы Патша')
+  })
+
+  it('songsByLang — отдельный каталог каждого языка в порядке файла', async () => {
+    stubFetch()
+    await data.init()
+    expect(data.songsByLang.ru.map((s) => s.id)).toEqual(songs.map((s) => s.id))
+    expect(data.songsByLang.kk.map((s) => s.id)).toEqual(songsKk.map((s) => s.id))
+    expect(data.songsByLang.ky).toHaveLength(songsKy.length)
+  })
+
+  it('упавшая казахская база не роняет старт и повторяется отдельно', async () => {
+    let broken = true
+    stubFetch({ 'songs_kk.json': () => (broken ? notOk() : ok(songsKk)) })
+    await data.init()
+    expect(data.status).toBe('ready')
+    expect(data.songStatus.kk).toBe('error')
+    expect(data.songsByLang.kk).toEqual([])
+    expect(data.songsByLang.ky).toHaveLength(songsKy.length)
+
+    broken = false
+    await data.retrySongs('kk')
+    expect(data.songStatus.kk).toBe('ready')
+    expect(data.songsByLang.kk).toHaveLength(songsKk.length)
+    // повтор не задвоил русские песни
+    expect(data.songsByLang.ru).toHaveLength(songs.length)
+  })
+
+  it('не массив вместо песен — ошибка этой базы, а не мусор в каталоге', async () => {
+    stubFetch({ 'songs_ky.json': () => ok({ Translation: 'NRT' }) })
+    await data.init()
+    expect(data.songStatus.ky).toBe('error')
+    expect(data.status).toBe('ready')
+  })
+
+  it('песни с чужими id в файле языка отбрасываются', async () => {
+    stubFetch({ 'songs_kk.json': () => ok([...songsKk, { id: 7, title: 'Чужая', text: 'т' }]) })
+    await data.init()
+    expect(data.songsByLang.kk.map((s) => s.title)).not.toContain('Чужая')
+    expect(data.songsById.get(7)).toBeUndefined()
+  })
+
+  it('setSongLang меняет язык каталога', () => {
+    data.setSongLang('ky')
+    expect(data.songLang).toBe('ky')
+  })
+})
+
+describe('data — выбор перевода и языка переживает перезагрузку', () => {
+  it('новый пульт берёт перевод и язык песен из хранилища', () => {
+    const store = new DataStore(createMemoryStore({ 'bp3-translation': 'KYB', 'bp3-song-lang': 'kk' }))
+    expect(store.translation).toBe('KYB')
+    expect(store.songLang).toBe('kk')
+  })
+
+  it('мусор в хранилище игнорируется — остаются RST и русские песни', () => {
+    const store = new DataStore(createMemoryStore({ 'bp3-translation': 'XXX', 'bp3-song-lang': 'en' }))
+    expect(store.translation).toBe('RST')
+    expect(store.songLang).toBe('ru')
+  })
+
+  it('selectTranslation и setSongLang запоминают выбор', () => {
+    const prefs = createMemoryStore()
+    const store = new DataStore(prefs)
+    store.selectTranslation('KTB')
+    store.setSongLang('ky')
+    const next = new DataStore(prefs)
+    expect(next.translation).toBe('KTB')
+    expect(next.songLang).toBe('ky')
+  })
+
+  it('старт сразу на сохранённом переводе — без промежуточного RST', async () => {
+    const fetchMock = stubFetch()
+    data.translation = 'KTB'
+    await data.init()
+    expect(data.status).toBe('ready')
+    expect(data.translation).toBe('KTB')
+    expect(data.translationStatus.KTB).toBe('ready')
+    // KTB грузился в стартовой паре, RST к готовности ещё не нужен — он в фоне
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('ktb.json'))).toBe(true)
+    expect(data.bibles.RST).toBeUndefined()
+    await vi.waitFor(() => {
+      expect(data.translationStatus.RST).toBe('ready')
+    })
+  })
+
+  it('сохранённый перевод не загрузился — старт на RST, пульт работает', async () => {
+    stubFetch({ 'ktb.json': notOk })
+    data.translation = 'KTB'
+    await data.init()
+    expect(data.status).toBe('ready')
+    expect(data.translation).toBe('RST')
+    expect(data.bibles.RST).toBeDefined()
+    await vi.waitFor(() => {
+      expect(data.translationStatus.KTB).toBe('error')
+    })
   })
 })
 

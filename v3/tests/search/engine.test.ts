@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createSongSearch, createVerseSearch } from '../../src/lib/search/engine'
 import { getBookId } from '../../src/lib/bible/books'
-import { rstDb, songs } from '../fixtures'
+import { rstDb, songs, songsKk, songsKy } from '../fixtures'
 
 describe('createSongSearch — поиск песен', () => {
   const search = createSongSearch(songs)
@@ -36,6 +36,39 @@ describe('createSongSearch — поиск песен', () => {
 
   it('пустой запрос — пустой результат', () => {
     expect(search.search('   ')).toEqual([])
+  })
+})
+
+describe('createSongSearch — несколько языков', () => {
+  const search = createSongSearch([...songs, ...songsKk, ...songsKy])
+
+  it('песни выбранного языка идут первыми', () => {
+    const hits = search.search('шаттык', 8, 'ky')
+    expect(hits[0].id).toBe(2_000_001)
+  })
+
+  it('песня другого языка, сильная в общем зачёте, идёт после своих', () => {
+    // «Иса» — казахская песня; с русским каталогом она всё равно находится
+    const hits = search.search('Иса Ұлы Патша', 8, 'ru')
+    expect(hits.map((s) => s.id)).toContain(1_000_001)
+    expect(hits.findIndex((s) => s.id >= 1_000_000)).toBe(
+      hits.filter((s) => s.id < 1_000_000).length,
+    )
+  })
+
+  it('песен других языков не больше трёх', () => {
+    const many = createSongSearch(
+      Array.from({ length: 10 }, (_, i) => ({ id: 1_000_100 + i, title: `Мадақ ${i}`, text: 'мадақ' })),
+    )
+    expect(many.search('мадақ', 8, 'ru')).toHaveLength(3)
+  })
+
+  it('номер песни — сначала из выбранного языка', () => {
+    const numbered = createSongSearch([
+      { id: 7, title: 'Русская', songNumber: '12', text: 'а' },
+      ...songsKk,
+    ])
+    expect(numbered.search('12', 8, 'kk').map((s) => s.id)).toEqual([1_000_001, 7])
   })
 })
 

@@ -2,8 +2,11 @@
   import { ChevronLeft } from '@lucide/svelte'
   import { BOOKS, bookTitleIn } from '../../bible/books'
   import { findBook } from '../../bible/chapters'
-  import { data } from '../../data/db.svelte'
+  import { data, TRANSLATIONS } from '../../data/db.svelte'
   import { commands } from '../../show/commands.svelte'
+  import { buildTranslationOptions, statusNote } from '../../ui/translation-picker'
+  import { countLabel } from '../../utils/format'
+  import FooterSwitch from './FooterSwitch.svelte'
   import { libraryRow as row } from './library-row'
 
   /** Книги текущего перевода и сетка глав выбранной книги */
@@ -27,6 +30,19 @@
   })
 
   const selectedBookInfo = $derived(books.find((b) => b.code === selectedBook) ?? null)
+
+  /** Тот же выбор перевода, что и в доке, — прямо под списком книг */
+  const translationOptions = $derived(
+    buildTranslationOptions(TRANSLATIONS, data.bibles, data.translationStatus).map((o) => {
+      const note = statusNote(o.status)
+      return {
+        value: o.code,
+        label: o.code,
+        title: `${o.code} · ${o.label}${note ? ` — ${note}` : ''}`,
+        disabled: o.disabled,
+      }
+    }),
+  )
 
   function openChapter(code: string, chapter: number) {
     commands.openRef(code, chapter)
@@ -53,6 +69,17 @@
       {/each}
     </div>
   </div>
+  <div class="flex h-8 shrink-0 items-center gap-2 border-t border-stroke pr-1.5 pl-3 text-xs text-faint">
+    <span class="min-w-0 flex-1 truncate">
+      {countLabel(selectedBookInfo.chapters, ['глава', 'главы', 'глав'])}
+    </span>
+    <FooterSwitch
+      label="Перевод"
+      options={translationOptions}
+      value={data.translation}
+      onchange={(code) => commands.setTranslation(code)}
+    />
+  </div>
 {:else}
   <div class="min-h-0 flex-1 overflow-y-auto py-1">
     {#each books as book (book.code)}
@@ -62,7 +89,15 @@
       </button>
     {/each}
   </div>
-  <div class="flex h-8 shrink-0 items-center border-t border-stroke px-3 text-xs text-faint">
-    {books.length} книг · {data.translation}{data.demo ? ' · демо-данные' : ''}
+  <div class="flex h-8 shrink-0 items-center gap-2 border-t border-stroke pr-1.5 pl-3 text-xs text-faint">
+    <span class="min-w-0 flex-1 truncate">
+      {countLabel(books.length, ['книга', 'книги', 'книг'])}{data.demo ? ' · демо-данные' : ''}
+    </span>
+    <FooterSwitch
+      label="Перевод"
+      options={translationOptions}
+      value={data.translation}
+      onchange={(code) => commands.setTranslation(code)}
+    />
   </div>
 {/if}

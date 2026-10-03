@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { songBaseReference, splitSongSections } from '../../src/lib/songs/sections'
+import {
+  screenSectionLabel,
+  songBaseReference,
+  splitSongSections,
+} from '../../src/lib/songs/sections'
 
 describe('splitSongSections — слайды песни', () => {
   it('метки [..] начинают секции, сама метка в текст не попадает', () => {
@@ -38,6 +42,31 @@ describe('splitSongSections — слайды песни', () => {
     expect(splitSongSections('')).toEqual([])
     expect(splitSongSections('  \n ')).toEqual([])
     expect(splitSongSections(undefined)).toEqual([])
+  })
+})
+
+describe('screenSectionLabel — подпись части песни на экране', () => {
+  it('русские песни — как в тексте', () => {
+    expect(screenSectionLabel('Куплет 1', 'ru')).toBe('Куплет 1')
+    expect(screenSectionLabel('Бридж 1', 'ru')).toBe('Бридж 1')
+  })
+
+  it('казахские: шумақ и қайырма', () => {
+    expect(screenSectionLabel('Куплет 2', 'kk')).toBe('2-шумақ')
+    expect(screenSectionLabel('Припев 1', 'kk')).toBe('Қайырма')
+    expect(screenSectionLabel('Припев', 'kk')).toBe('Қайырма')
+    expect(screenSectionLabel('Припев 2', 'kk')).toBe('2-қайырма')
+  })
+
+  it('киргизские: куплет и кайрык', () => {
+    expect(screenSectionLabel('Куплет 3', 'ky')).toBe('3-куплет')
+    expect(screenSectionLabel('Припев 1', 'ky')).toBe('Кайрык')
+  })
+
+  it('бридж и незнакомые метки не по-русски — без подписи', () => {
+    expect(screenSectionLabel('Бридж 1', 'kk')).toBe('')
+    expect(screenSectionLabel('Предприпев 1', 'ky')).toBe('')
+    expect(screenSectionLabel('', 'kk')).toBe('')
   })
 })
 

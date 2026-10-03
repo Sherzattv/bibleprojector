@@ -3,6 +3,7 @@
  * tests/songs/sections.test.ts.
  */
 import type { SongRow } from '../data/db.svelte'
+import type { SongLang } from './languages'
 
 export interface SongSection {
   /** Метка без скобок: «Куплет 1», «Припев»; пусто — у куска нет метки */
@@ -53,6 +54,38 @@ export function splitSongSections(text: string | null | undefined): SongSection[
   flush()
 
   return sections
+}
+
+/**
+ * Как секция называется на экране у песен не на русском: зал видит
+ * подпись на языке песни. Метки в тексте и в пульте остаются русскими
+ * («[Куплет 1]») — по ним оператор ориентируется в сетке слайдов.
+ * Бриджа и предприпева в таблице нет: для них на экран идёт только
+ * название песни, без подписи части.
+ */
+const SCREEN_SECTION_NAMES: Partial<
+  Record<SongLang, Record<string, (n: number) => string>>
+> = {
+  kk: {
+    Куплет: (n) => `${n}-шумақ`,
+    Припев: (n) => (n > 1 ? `${n}-қайырма` : 'Қайырма'),
+  },
+  ky: {
+    Куплет: (n) => `${n}-куплет`,
+    Припев: (n) => (n > 1 ? `${n}-кайрык` : 'Кайрык'),
+  },
+}
+
+/**
+ * Подпись секции для экрана; пусто — песня идёт на экран без подписи
+ * части. Русские песни — как в тексте: «Куплет 1».
+ */
+export function screenSectionLabel(label: string, lang: SongLang): string {
+  const names = SCREEN_SECTION_NAMES[lang]
+  if (!names || !label) return label
+  const match = /^(\S+)(?:\s+(\d+))?$/.exec(label.trim())
+  const name = match ? names[match[1]] : undefined
+  return name ? name(Number(match![2] ?? 1)) : ''
 }
 
 /** Подпись песни без секции: «Благодать · № 310» */

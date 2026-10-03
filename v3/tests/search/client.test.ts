@@ -70,6 +70,12 @@ describe('начальное состояние', () => {
 })
 
 describe('debounce поиска', () => {
+  it('язык песен уходит вместе с запросом', () => {
+    client.search('мадақ', 'KTB', 'kk')
+    vi.advanceTimersByTime(120)
+    expect(transport.sent[0]).toMatchObject({ type: 'search', query: 'мадақ', songLang: 'kk' })
+  })
+
   it('search не постит сразу, а только после 120мс — ровно одно сообщение', () => {
     client.search('благодать', 'RST')
     expect(transport.sent).toHaveLength(0)

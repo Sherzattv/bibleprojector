@@ -14,8 +14,6 @@ import { data } from './db.svelte'
 /** Всё, что делается после успешной загрузки: общее для старта и повтора */
 function afterDataReady(): void {
   if (data.status !== 'ready') return
-  // Индексация — в Web Worker, главный поток не блокируется
-  pushSongs(data.songs)
   // Стартовое наполнение: первый элемент плейлиста, который удаётся открыть
   for (let i = 0; i < setlist.items.length && setlist.currentIdx < 0; i++) {
     setlist.open(i)
@@ -41,6 +39,12 @@ export function startData(): void {
   // Отдаём воркеру перевод, как только он загружен/выбран
   $effect(() => {
     pushBible(data.translation, data.bibles[data.translation] ?? null)
+  })
+
+  // Песни — в Web Worker (индексация не блокирует главный поток): после
+  // старта и заново, если база ещё одного языка догрузилась повтором
+  $effect(() => {
+    if (data.status === 'ready') pushSongs(data.songs)
   })
 }
 

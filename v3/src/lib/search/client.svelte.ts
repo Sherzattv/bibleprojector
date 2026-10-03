@@ -4,6 +4,7 @@
  * в приложении это Web Worker, в тестах — фейк.
  */
 import type { SongRow } from '../data/db.svelte'
+import type { SongLang } from '../songs/languages'
 import type { VerseHit } from './engine'
 
 export interface SearchTransport {
@@ -36,7 +37,7 @@ export class SearchClient {
   private seq = 0
   private lastSearchSeq = -1
   private lastSearchQuery = ''
-  private pending: { query: string; translation: string } | null = null
+  private pending: { query: string; translation: string; songLang?: SongLang } | null = null
   private timer: ReturnType<typeof setTimeout> | null = null
 
   constructor(transport: SearchTransport, opts: { debounceMs?: number } = {}) {
@@ -53,7 +54,8 @@ export class SearchClient {
     this.transport.post({ seq: this.seq++, type: 'set-bible', translation, db })
   }
 
-  search(query: string, translation: string) {
+  /** songLang — язык песен, которые идут в выдаче первыми */
+  search(query: string, translation: string, songLang?: SongLang) {
     if (!query.trim()) {
       this.cancelPending()
       // Запрос уже в пути — его ответ больше не наш: без сброса seq он
@@ -64,7 +66,7 @@ export class SearchClient {
       this.indexing = false
       return
     }
-    this.pending = { query, translation }
+    this.pending = { query, translation, songLang }
     if (this.timer) clearTimeout(this.timer)
     this.timer = setTimeout(() => this.sendPending(), this.debounceMs)
   }
@@ -82,11 +84,11 @@ export class SearchClient {
 
   private sendPending() {
     if (!this.pending) return
-    const { query, translation } = this.pending
+    const { query, translation, songLang } = this.pending
     this.cancelPending()
     this.lastSearchSeq = this.seq++
     this.lastSearchQuery = query
-    this.transport.post({ seq: this.lastSearchSeq, type: 'search', query, translation })
+    this.transport.post({ seq: this.lastSearchSeq, type: 'search', query, translation, songLang })
   }
 
   private onMessage(msg: unknown) {

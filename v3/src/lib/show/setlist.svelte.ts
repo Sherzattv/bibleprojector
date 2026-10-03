@@ -51,7 +51,14 @@ export class SetlistState {
     const item = this.items[i]
     if (!item) return
     if (item.kind === 'song') {
-      if (!commands.openSong(item.id)) return
+      if (!commands.openSong(item.id, item.title)) return
+      // Песня нашлась по подписи под другим id (база обновилась) —
+      // пункт запоминает новый id, чтобы не искать её каждый раз
+      const opened = show.source
+      if (opened?.kind === 'song' && opened.id !== item.id) {
+        this.items = this.items.map((it, index) => (index === i ? { ...item, id: opened.id } : it))
+        this.persist()
+      }
     } else if (item.kind === 'bible') {
       if (!commands.openRef(item.code, item.chapter, item.verse)) return
     } else {
