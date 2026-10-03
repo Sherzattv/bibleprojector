@@ -176,6 +176,7 @@ export class DataStore {
   }
 
   private kv: KVStore = createKV()
+  private manifest: DataManifest = { version: '', files: {} }
   private prefs: TextStore
 
   /** prefs — где лежит выбор оператора; тесты подставляют своё хранилище */
@@ -199,6 +200,18 @@ export class DataStore {
     this.prefs.set(SONG_LANG_KEY, lang)
   }
 
+  private setSongStatus(lang: SongLang, status: LoadStatus): void {
+    this.songStatus = { ...this.songStatus, [lang]: status }
+  }
+
+  private setTranslationStatus(code: string, status: LoadStatus): void {
+    this.translationStatus = { ...this.translationStatus, [code]: status }
+  }
+
+  private loadFile(name: string): Promise<unknown> {
+    return loadDataFile(name, `data/${name}`, this.manifest, this.kv, fetchText)
+  }
+
   /** Положить базу языка в общий каталог, заменив прежнюю версию этой базы */
   private setSongBase(lang: SongLang, rows: SongRow[]): void {
     const others = this.songs.filter((s) => songLangOf(s.id) !== lang)
@@ -216,13 +229,13 @@ export class DataStore {
 
   /** Фоновая база песен: ошибка остаётся в songStatus и не роняет пульт */
   private async loadSongs(lang: SongLang): Promise<void> {
-    this.songStatus = { ...this.songStatus, [lang]: 'loading' }
+    this.setSongStatus(lang, 'loading')
     try {
       this.setSongBase(lang, await this.fetchSongs(lang))
-      this.songStatus = { ...this.songStatus, [lang]: 'ready' }
+      this.setSongStatus(lang, 'ready')
     } catch (e) {
       console.error(`Songs ${lang} failed to load`, e)
-      this.songStatus = { ...this.songStatus, [lang]: 'error' }
+      this.setSongStatus(lang, 'error')
     }
   }
 
@@ -230,21 +243,21 @@ export class DataStore {
   retrySongs(lang: SongLang): Promise<void> {
     return this.loadSongs(lang)
   }
-  private manifest: DataManifest = { version: '', files: {} }
 
-  private loadFile(name: string): Promise<unknown> {
-    return loadDataFile(name, `data/${name}`, this.manifest, this.kv, fetchText)
+  private async fetchBible(code: string): Promise<BibleDb> {
+    return (await this.loadFile(`${code.toLowerCase()}.json`)) as BibleDb
   }
 
+  /** Фоновый перевод: ошибка остаётся в translationStatus и не роняет пульт */
   private async loadTranslation(code: string): Promise<void> {
-    this.translationStatus = { ...this.translationStatus, [code]: 'loading' }
+    this.setTranslationStatus(code, 'loading')
     try {
-      const db = (await this.loadFile(`${code.toLowerCase()}.json`)) as BibleDb
+      const db = await this.fetchBible(code)
       this.bibles = { ...this.bibles, [code]: db }
-      this.translationStatus = { ...this.translationStatus, [code]: 'ready' }
+      this.setTranslationStatus(code, 'ready')
     } catch (e) {
       console.error(`Translation ${code} failed to load`, e)
-      this.translationStatus = { ...this.translationStatus, [code]: 'error' }
+      this.setTranslationStatus(code, 'error')
     }
   }
 
@@ -255,11 +268,11 @@ export class DataStore {
    */
   private async loadStartTranslation(code: string): Promise<[string, BibleDb]> {
     try {
-      return [code, (await this.loadFile(`${code.toLowerCase()}.json`)) as BibleDb]
+      return [code, await this.fetchBible(code)]
     } catch (e) {
       if (code === DEFAULT_TRANSLATION) throw e
       console.error(`Translation ${code} failed to load at start, falling back to RST`, e)
-      return [DEFAULT_TRANSLATION, (await this.loadFile('rst.json')) as BibleDb]
+      return [DEFAULT_TRANSLATION, await this.fetchBible(DEFAULT_TRANSLATION)]
     }
   }
 
@@ -308,7 +321,7 @@ export class DataStore {
         const extraSongs = SONG_LANGS.filter((l) => l.code !== DEFAULT_SONG_LANG).map((l) =>
           this.loadSongs(l.code),
         )
-        this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'loading' }
+        this.setSongStatus(DEFAULT_SONG_LANG, 'loading')
         const start = isTranslation(this.translation) ? this.translation : DEFAULT_TRANSLATION
         const [[code, bible], songs] = await Promise.all([
           this.loadStartTranslation(start),
@@ -317,8 +330,8 @@ export class DataStore {
         this.bibles = { [code]: bible }
         this.translation = code
         this.setSongBase(DEFAULT_SONG_LANG, songs)
-        this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'ready' }
-        this.translationStatus = { ...this.translationStatus, [code]: 'ready' }
+        this.setSongStatus(DEFAULT_SONG_LANG, 'ready')
+        this.setTranslationStatus(code, 'ready')
         await Promise.all(extraSongs)
         // Остальные переводы — в фоне, не блокируя старт;
         // ошибки фиксируются в translationStatus, не роняя процесс
@@ -332,7 +345,7 @@ export class DataStore {
       console.error('Data load failed', e)
       this.status = 'error'
       if (this.songStatus[DEFAULT_SONG_LANG] === 'loading') {
-        this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'error' }
+        this.setSongStatus(DEFAULT_SONG_LANG, 'error')
       }
     }
   }
