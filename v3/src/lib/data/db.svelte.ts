@@ -1,5 +1,5 @@
 /**
- * Слой данных: переводы Библии и каталог песен.
+ * Слой данных: переводы Библии и каталоги песен по языкам.
  * Полная версия грузит JSON из /data/ (ленивая загрузка переводов),
  * демо-сборка (--mode demo) несёт срез данных внутри бандла.
  */
@@ -32,6 +32,15 @@ export interface SongRow {
 }
 
 import { loadManifest, loadDataFile, type KVStore, type FetchText, type DataManifest } from './cache'
+import {
+  DEFAULT_SONG_LANG,
+  SONG_LANGS,
+  isSongLang,
+  songLangInfo,
+  songLangOf,
+  type SongLang,
+} from '../songs/languages'
+import { createBrowserStore, type TextStore } from '../utils/storage'
 
 export type LoadStatus = 'loading' | 'ready' | 'error'
 
@@ -43,6 +52,19 @@ export const TRANSLATIONS: Array<[code: string, label: string]> = [
 ]
 
 const IS_DEMO = import.meta.env.MODE === 'demo'
+
+/** Выбранный язык песен переживает перезапуск: церковь поёт на своём языке */
+const SONG_LANG_KEY = 'bp3-song-lang'
+
+/** Песни по базам: каждая в порядке своего файла */
+export function groupSongsByLang(songs: readonly SongRow[]): Record<SongLang, SongRow[]> {
+  const groups = Object.fromEntries(SONG_LANGS.map((l) => [l.code, [] as SongRow[]])) as Record<
+    SongLang,
+    SongRow[]
+  >
+  for (const song of songs) groups[songLangOf(song.id)].push(song)
+  return groups
+}
 
 /**
  * KV поверх Cache Storage (переживает перезапуски — офлайн-старт);
@@ -124,9 +146,16 @@ class DataStore {
   // $state.raw: данные иммутабельны, глубокие прокси на 43 МБ —
   // лишние CPU и память; реактивность только на замену ссылки
   bibles = $state.raw<Record<string, BibleDb>>({})
+  /** Песни всех загруженных языков: порядок служения и история ссылаются на любую */
   songs = $state.raw<SongRow[]>([])
   /** O(1)-доступ к песне: номера не уникальны, id — единственный ключ */
   songsById = $derived(new Map(this.songs.map((s) => [s.id, s])))
+  /** Каталог каждого языка отдельно — для списка песен в библиотеке */
+  songsByLang = $derived(groupSongsByLang(this.songs))
+  /** Язык каталога песен в библиотеке и первый в выдаче поиска */
+  songLang = $state<SongLang>(DEFAULT_SONG_LANG)
+  /** Статус загрузки базы песен каждого языка */
+  songStatus = $state<Partial<Record<SongLang, LoadStatus>>>({})
   translation = $state('RST')
   status = $state<LoadStatus>('loading')
   /** Статус фоновой загрузки по каждому переводу */
@@ -138,6 +167,50 @@ class DataStore {
   }
 
   private kv: KVStore = createKV()
+  private prefs: TextStore = createBrowserStore()
+
+  constructor() {
+    const saved = this.prefs.get(SONG_LANG_KEY)
+    if (isSongLang(saved)) this.songLang = saved
+  }
+
+  /** Сменить язык каталога песен (запоминается) */
+  setSongLang(lang: SongLang): void {
+    this.songLang = lang
+    this.prefs.set(SONG_LANG_KEY, lang)
+  }
+
+  /** Положить базу языка в общий каталог, заменив прежнюю версию этой базы */
+  private setSongBase(lang: SongLang, rows: SongRow[]): void {
+    const others = this.songs.filter((s) => songLangOf(s.id) !== lang)
+    // Чужие id в файле языка — испорченный или подменённый файл: такие
+    // песни перепутались бы с песнями другой базы в порядке служения
+    const own = rows.filter((s) => songLangOf(s.id) === lang)
+    this.songs = lang === DEFAULT_SONG_LANG ? [...own, ...others] : [...others, ...own]
+  }
+
+  private async fetchSongs(lang: SongLang): Promise<SongRow[]> {
+    const rows = await this.loadFile(songLangInfo(lang).file)
+    if (!Array.isArray(rows)) throw new Error(`Песни ${lang}: ожидался массив`)
+    return rows as SongRow[]
+  }
+
+  /** Фоновая база песен: ошибка остаётся в songStatus и не роняет пульт */
+  private async loadSongs(lang: SongLang): Promise<void> {
+    this.songStatus = { ...this.songStatus, [lang]: 'loading' }
+    try {
+      this.setSongBase(lang, await this.fetchSongs(lang))
+      this.songStatus = { ...this.songStatus, [lang]: 'ready' }
+    } catch (e) {
+      console.error(`Songs ${lang} failed to load`, e)
+      this.songStatus = { ...this.songStatus, [lang]: 'error' }
+    }
+  }
+
+  /** Повторить загрузку базы песен после ошибки */
+  retrySongs(lang: SongLang): Promise<void> {
+    return this.loadSongs(lang)
+  }
   private manifest: DataManifest = { version: '', files: {} }
 
   private loadFile(name: string): Promise<unknown> {
@@ -173,13 +246,17 @@ class DataStore {
     try {
       if (IS_DEMO) {
         const demo = (await import('../demo-data.json')) as unknown as {
-          default: { translations: Record<string, BibleDb>; songs: SongRow[] }
+          default: {
+            translations: Record<string, BibleDb>
+            songs: Partial<Record<SongLang, SongRow[]>>
+          }
         }
         this.bibles = demo.default.translations
-        this.songs = demo.default.songs
+        this.songs = SONG_LANGS.flatMap((l) => demo.default.songs[l.code] ?? [])
         this.translationStatus = Object.fromEntries(
           Object.keys(this.bibles).map((code) => [code, 'ready']),
         )
+        this.songStatus = Object.fromEntries(SONG_LANGS.map((l) => [l.code, 'ready']))
       } else {
         // Свежий KV на каждый init: Cache Storage персистентен сам по себе,
         // а in-memory-фоллбек не должен протекать между вызовами
@@ -190,13 +267,23 @@ class DataStore {
           // Нет ни сети, ни кэшированного манифеста — грузим файлы напрямую
           this.manifest = { version: '', files: {} }
         }
+        // Базы песен других языков едут параллельно со стартовой парой. Их
+        // ждём до готовности (небольшие, ~1 МБ): иначе порядок служения с
+        // казахской песней первым пунктом не открылся бы на старте. Ошибка
+        // такой базы старт не роняет — она видна в songStatus
+        const extraSongs = SONG_LANGS.filter((l) => l.code !== DEFAULT_SONG_LANG).map((l) =>
+          this.loadSongs(l.code),
+        )
+        this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'loading' }
         const [rst, songs] = await Promise.all([
           this.loadFile('rst.json') as Promise<BibleDb>,
-          this.loadFile('songs.json') as Promise<SongRow[]>,
+          this.fetchSongs(DEFAULT_SONG_LANG),
         ])
         this.bibles = { RST: rst }
-        this.songs = songs
+        this.setSongBase(DEFAULT_SONG_LANG, songs)
+        this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'ready' }
         this.translationStatus = { ...this.translationStatus, RST: 'ready' }
+        await Promise.all(extraSongs)
         // Остальные переводы — в фоне, не блокируя старт;
         // ошибки фиксируются в translationStatus, не роняя процесс
         for (const [code] of TRANSLATIONS) {
@@ -208,6 +295,9 @@ class DataStore {
     } catch (e) {
       console.error('Data load failed', e)
       this.status = 'error'
+      if (this.songStatus[DEFAULT_SONG_LANG] === 'loading') {
+        this.songStatus = { ...this.songStatus, [DEFAULT_SONG_LANG]: 'error' }
+      }
     }
   }
 }

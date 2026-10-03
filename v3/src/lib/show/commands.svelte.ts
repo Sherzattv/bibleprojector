@@ -9,12 +9,27 @@ import { ui } from '../ui/notices.svelte'
 import { history, type HistorySource } from './history.svelte'
 import { projSettings } from '../projection/settings.svelte'
 import { serviceScreen } from '../projection/service-screen.svelte'
+import { songLangInfo, songLangOf } from '../songs/languages'
+import { resolveSong } from '../songs/resolve'
 
 export const commands = {
-  openSong(id: number): boolean {
-    const song = data.songsById.get(id)
+  /**
+   * Открыть песню. label — подпись из порядка служения или истории: по ней
+   * песня находится, даже если после обновления базы её id съехал.
+   */
+  openSong(id: number, label?: string): boolean {
+    const song = resolveSong(data.songsById, data.songs, id, label)
     if (!song) {
-      ui.notify(`Песня (id ${id}) не найдена в каталоге`)
+      const lang = songLangOf(id)
+      const status = data.songStatus[lang]
+      const name = label ? `«${label}»` : `(id ${id})`
+      ui.notify(
+        status === 'loading'
+          ? `Песни «${songLangInfo(lang).label}» ещё загружаются — попробуйте через пару секунд`
+          : status === 'error'
+            ? `Песни «${songLangInfo(lang).label}» не загрузились — песня ${name} недоступна`
+            : `Песня ${name} не найдена в каталоге`,
+      )
       return false
     }
     show.loadSong(song)
@@ -33,9 +48,9 @@ export const commands = {
     show.loadNote(title, text)
   },
 
-  /** Повторно открыть то, что уже было в эфире (история) */
-  openSource(source: HistorySource): boolean {
-    if (source.kind === 'song') return commands.openSong(source.id)
+  /** Повторно открыть то, что уже было в эфире (история); label — подпись записи */
+  openSource(source: HistorySource, label?: string): boolean {
+    if (source.kind === 'song') return commands.openSong(source.id, label)
     if (source.kind === 'bible') return commands.openRef(source.code, source.chapter, source.verse)
     commands.openNote(source.title, source.text)
     return true

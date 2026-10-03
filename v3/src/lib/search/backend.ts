@@ -5,11 +5,12 @@
  */
 import { createSongSearch, createVerseSearch, type SongSearch, type VerseHit } from './engine'
 import type { BibleDb, SongRow } from '../data/db.svelte'
+import type { SongLang } from '../songs/languages'
 
 export type BackendRequest =
   | { seq: number; type: 'set-songs'; songs: SongRow[] }
   | { seq: number; type: 'set-bible'; translation: string; db: BibleDb }
-  | { seq: number; type: 'search'; query: string; translation: string }
+  | { seq: number; type: 'search'; query: string; translation: string; songLang?: SongLang }
 
 export type BackendResponse =
   | { seq: number; type: 'ready'; what: 'songs' | 'bible'; translation?: string }
@@ -46,7 +47,7 @@ export function createSearchBackend(): SearchBackend {
             seq: req.seq,
             type: 'results',
             query: req.query,
-            songs: songSearch ? songSearch.search(req.query) : [],
+            songs: songSearch ? songSearch.search(req.query, undefined, req.songLang) : [],
             verses: verseSearch.search(req.query, req.translation),
             verseIndexReady: verseSearch.has(req.translation),
           }

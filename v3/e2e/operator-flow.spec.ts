@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 async function openReadyApp(page: Page) {
   await page.goto('/')
-  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
 }
 
 test.setTimeout(60_000)
@@ -34,7 +34,7 @@ test('точная ссылка проходит Preview → Live и переж�
   await expect(library.getByRole('button', { name: /От Иоанна 3:16/ })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('button', { name: /От Иоанна 3:16\s+Библия/ })).toBeVisible()
 
   await page.getByRole('button', { name: 'История' }).click()
@@ -72,7 +72,7 @@ test('песня с несколькими секциями переключае
   await expect(library.getByRole('button', { name: /1000 рук · № 579/ })).toBeVisible()
 
   await page.reload()
-  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
   await expect(setlistSong).toBeVisible()
 
   await setlistSong.click()
@@ -110,7 +110,7 @@ test('порядок создаётся, переставляется, эксп�
   await expect(entries.nth(2)).toContainText('От Иоанна 3:16')
 
   await page.reload()
-  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
   await expect(entries).toHaveCount(3)
   await expect(entries.nth(0)).toContainText('Объявления')
   await expect(entries.nth(1)).toContainText('1000 рук · № 579')
@@ -155,7 +155,7 @@ test('порядок создаётся, переставляется, эксп�
   await expect(entries.nth(2)).toContainText('От Иоанна 3:16')
 
   await page.reload()
-  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
   await expect(entries).toHaveCount(3)
   await expect(page.getByRole('region', { name: 'Предпросмотр' })).toContainText(
     'После служения состоится общая встреча.',
@@ -190,7 +190,7 @@ test('порядок, история и настройки проекции во
 
   await settingsButton.click()
   await page.reload()
-  await expect(page.getByText(/11 524 песен|11524 песен/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText(/11 ?524 песни/)).toBeVisible({ timeout: 30_000 })
 
   await expect(
     setlist.getByRole('button', { name: /От Иоанна 3:16\s+Библия/ }),
@@ -269,4 +269,51 @@ test('окно проектора закрывается кнопкой пуль
   await expect(page.getByRole('button', { name: 'Открыть экран' })).toBeVisible({
     timeout: 12_000,
   })
+})
+
+test('казахские песни: свой каталог, порядок служения и поиск переживают перезагрузку', async ({
+  page,
+}) => {
+  const library = page.getByRole('complementary', { name: 'Библиотека' })
+  const languages = library.getByRole('group', { name: 'Язык песен' })
+  await languages.getByRole('button', { name: /^қаз$/i }).click()
+  await expect(library.getByText(/1 ?023 песни/)).toBeVisible()
+
+  await library.getByPlaceholder('Название, номер или строчка…').fill('ұлы патша')
+  await library.getByRole('button', { name: /Иса - Ұлы Патша$/ }).first().click()
+  const preview = page.getByRole('region', { name: 'Предпросмотр' })
+  await expect(preview).toContainText('Ортамызға келші')
+
+  const setlist = page.getByRole('complementary', { name: 'Порядок служения' })
+  await setlist.getByRole('button', { name: 'Добавить' }).click()
+  const setlistSong = setlist.getByRole('button', { name: /Иса - Ұлы Патша\s+Песня · Қазақша/ })
+  await expect(setlistSong).toBeVisible()
+
+  // Русская песня находится и с казахским каталогом — в группе других языков
+  const search = page.getByPlaceholder('Стих, песня или текст…')
+  await search.fill('1000 рук')
+  await expect(page.getByRole('listbox', { name: 'Результаты поиска' })).toContainText(
+    'Песни · другие языки',
+  )
+  await page.getByRole('option', { name: /1000 рук\s+№ 579 · Русские/ }).click()
+  await expect(preview).toContainText('Слышу пенье цветов')
+
+  // Язык каталога запоминается, первый пункт порядка открывается на старте
+  await page.reload()
+  await expect(library.getByText(/1 ?023 песни/)).toBeVisible({ timeout: 30_000 })
+  await expect(setlistSong).toBeVisible()
+  await expect(preview).toContainText('Ортамызға келші')
+})
+
+test('перевод Библии переключается внизу вкладки «Библия»', async ({ page }) => {
+  const library = page.getByRole('complementary', { name: 'Библиотека' })
+  await library.getByRole('button', { name: 'Библия' }).click()
+  const translations = library.getByRole('group', { name: 'Перевод' })
+  const ktb = translations.getByRole('button', { name: 'KTB', exact: true })
+  await expect(ktb).toBeEnabled({ timeout: 30_000 })
+  await ktb.click()
+
+  await expect(ktb).toHaveAttribute('aria-pressed', 'true')
+  await expect(library.getByRole('button', { name: /Жаратылыс/ })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: /Перевод: KTB/ })).toBeVisible()
 })

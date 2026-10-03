@@ -4,7 +4,7 @@ import { show } from '../../src/lib/show/show.svelte'
 import { data } from '../../src/lib/data/db.svelte'
 import { ui } from '../../src/lib/ui/notices.svelte'
 import { createMemoryStore } from '../../src/lib/utils/storage'
-import { rstDb, songs, songsDuo214 } from '../fixtures'
+import { rstDb, songs, songsDuo214, songsKk } from '../fixtures'
 
 beforeEach(() => {
   data.bibles = { RST: rstDb }
@@ -57,6 +57,27 @@ describe('setlist.open — песни по id', () => {
   it('удачное открытие не оставляет уведомления', () => {
     setlist.open(0)
     expect(ui.lastNotice).toBeNull()
+  })
+})
+
+describe('setlist.open — песни разных языков', () => {
+  it('казахская песня открывается из порядка служения', () => {
+    data.songs = [...songs, ...songsKk]
+    setlist.items = [{ kind: 'song', id: 1_000_001, title: 'Иса - Ұлы Патша · № 12' }]
+    setlist.open(0)
+    expect(setlist.currentIdx).toBe(0)
+    expect(show.title).toBe('Иса - Ұлы Патша')
+  })
+
+  it('id съехал после обновления базы — песня находится по подписи, пункт запоминает новый id', () => {
+    const store = createMemoryStore()
+    const state = new SetlistState(store)
+    data.songs = [...songs, ...songsKk]
+    state.items = [{ kind: 'song', id: 1_000_001, title: 'Көтерілді шаңырақ' }]
+    state.open(0)
+    expect(show.title).toBe('Көтерілді шаңырақ')
+    expect(state.items[0]).toMatchObject({ kind: 'song', id: 1_000_002 })
+    expect(store.get('bp3-setlist-v1')).toContain('1000002')
   })
 })
 

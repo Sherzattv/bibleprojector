@@ -8,7 +8,7 @@ import type { BibleDb, SongRow } from '../data/db.svelte'
 
 let client: SearchClient | null = null
 const pushedBibles = new Set<string>()
-let pushedSongs = false
+let pushedSongs: readonly SongRow[] | null = null
 
 function workerTransport(): SearchTransport {
   const worker = new SearchWorker()
@@ -25,11 +25,14 @@ export function getSearchClient(): SearchClient {
   return client
 }
 
-/** Отдать песни воркеру (один раз) */
+/**
+ * Отдать песни воркеру. Каталог заменяется целиком, только когда он
+ * изменился: догрузилась база ещё одного языка после повтора
+ */
 export function pushSongs(songs: SongRow[]) {
-  if (pushedSongs || !songs.length) return
+  if (songs === pushedSongs || !songs.length) return
   getSearchClient().setSongs(songs)
-  pushedSongs = true
+  pushedSongs = songs
 }
 
 /** Отдать перевод воркеру для индексации (один раз на перевод) */

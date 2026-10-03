@@ -1,7 +1,8 @@
 /**
  * Конвертирует исходные базы (v3/data/source/*.js, глобальные window.*)
  * в чистый JSON для v3:
- *   public/data/{rst,nrt,ktb,kyb,songs}.json — полные данные (gitignored)
+ *   public/data/{rst,nrt,ktb,kyb}.json — переводы (gitignored)
+ *   public/data/songs{,_kk,_ky}.json — песни по языкам (gitignored)
  *   src/lib/demo-data.json — срез для демо-сборки одним файлом (gitignored)
  * Данные проходят чистку (дубли VerseId, пустые стихи) и валидацию.
  */
@@ -15,6 +16,7 @@ import {
   buildManifest,
   DEMO_BOOK_IDS,
 } from './convert-core.mjs'
+import { SONG_LANGS, namespaceSongs, validateSongs } from './songs-core.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const dataDir = join(here, '..', 'data', 'source')
@@ -60,19 +62,36 @@ for (const [code, file] of Object.entries(translations)) {
   }
 }
 
-const songs = parseGlobalJs(readFileSync(join(dataDir, 'songs_ru.js'), 'utf8'))
-const songsJson = JSON.stringify(songs)
-written['songs.json'] = songsJson
-writeFileSync(join(outDir, 'songs.json'), songsJson)
-console.log(`Песни: ${songs.length}`)
+// Песни: русские — как есть (id сохранённых порядков служения не меняются),
+// остальные языки — со сдвигом id в своё пространство
+const songsByLang = {}
+for (const [lang, { file, json }] of Object.entries(SONG_LANGS)) {
+  const songs = namespaceSongs(parseGlobalJs(readFileSync(join(dataDir, file), 'utf8')), lang)
+  const problems = validateSongs(songs, lang)
+  songsByLang[lang] = songs
+  const content = JSON.stringify(songs)
+  written[json] = content
+  writeFileSync(join(outDir, json), content)
+  console.log(`Песни ${lang}: ${songs.length}`)
+  if (problems.length) {
+    hasProblems = true
+    for (const p of problems.slice(0, 10)) console.error(`  ПРОБЛЕМА: ${p}`)
+  }
+}
 
 // Манифест версий: офлайн-клиент перекачивает только изменившиеся файлы
 const manifest = buildManifest(written)
 writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest))
 console.log(`Манифест: версия ${manifest.version}`)
 
-// Демо-срез: Иоанна + Псалтирь в каждом переводе, первые 300 песен
-const demo = { translations: {}, songs: songs.slice(0, 300) }
+// Демо-срез: Иоанна + Псалтирь в каждом переводе, первые 300 русских песен
+// и по 50 казахских и киргизских
+const demo = {
+  translations: {},
+  songs: Object.fromEntries(
+    Object.entries(songsByLang).map(([lang, songs]) => [lang, songs.slice(0, lang === 'ru' ? 300 : 50)]),
+  ),
+}
 const ids = Object.values(DEMO_BOOK_IDS)
 for (const code of Object.keys(translations)) {
   demo.translations[code] = {

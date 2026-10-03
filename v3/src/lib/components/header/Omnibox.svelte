@@ -15,6 +15,7 @@
   import { ui } from '../../ui/notices.svelte'
   import type { SongRow } from '../../data/db.svelte'
   import { popoverSurface, sectionLabel } from '../ui/styles'
+  import { songLangInfo, songLangOf } from '../../songs/languages'
 
   let query = $state('')
   let open = $state(false)
@@ -29,10 +30,15 @@
   // Поиск уходит в Web Worker (debounce внутри клиента);
   // распознанная ссылка — не повод искать полнотекстом
   $effect(() => {
-    client.search(parsedRef ? '' : query, data.translation)
+    client.search(parsedRef ? '' : query, data.translation, data.songLang)
   })
 
   const songHits = $derived(client.results.songs)
+  /** Песни выбранного языка идут первыми; с этого индекса — другие языки */
+  const otherLangStart = $derived.by(() => {
+    const idx = songHits.findIndex((s) => songLangOf(s.id) !== data.songLang)
+    return idx < 0 ? songHits.length : idx
+  })
   const verseHits = $derived(client.results.verses)
   const empty = $derived(!parsedRef && !verseHits.length && !songHits.length && !client.indexing)
 
@@ -191,8 +197,13 @@
       {/if}
 
       {#if songHits.length}
-        <div class={group}>Песни</div>
+        {#if otherLangStart > 0}
+          <div class={group}>Песни · {songLangInfo(data.songLang).label}</div>
+        {/if}
         {#each songHits as song, si (song.id)}
+          {#if si === otherLangStart}
+            <div class={group}>Песни · другие языки</div>
+          {/if}
           <button
             id="omni-opt-{optionIdx('song', si)}"
             role="option"
@@ -208,7 +219,9 @@
             <span class="min-w-0">
               <span class="text-base font-medium">{song.title}</span>
               <span class="block text-xs text-faint">
-                {song.songNumber ? `№ ${song.songNumber}` : 'без номера'}
+                {song.songNumber ? `№ ${song.songNumber}` : 'без номера'}{si >= otherLangStart
+                  ? ` · ${songLangInfo(songLangOf(song.id)).label}`
+                  : ''}
               </span>
             </span>
           </button>
