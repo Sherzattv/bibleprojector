@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Названия книг в кыргызском переводе (KYB)** приведены к тексту самой
+  Библии: «Мисирден чыгуу», «Жашыя», «1 Шемуел», «1 Жылнаама», «Ышайа»,
+  «Римдиктерге», «Эврейлерге», «Жүйүт» и т. д. — 38 книг. Прежние названия
+  («Жошуа», «1 Самуел», «Жөөттөргө»…) по-прежнему узнаются в поиске.
+
 ## [3.3.1] - 2026-09-28
 
 Рефакторинг без изменений для оператора: пульт и экран проектора выглядят и
