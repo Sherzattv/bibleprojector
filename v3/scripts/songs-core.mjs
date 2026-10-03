@@ -147,15 +147,9 @@ export function songFromRow(row) {
  */
 export function songsFromRows(rows, lang) {
   const collator = new Intl.Collator(lang, { sensitivity: 'base', numeric: true, ignorePunctuation: true })
-  const songs = []
-  let dropped = 0
-  for (const row of rows) {
-    const song = songFromRow(row)
-    if (song) songs.push(song)
-    else dropped++
-  }
+  const songs = rows.map(songFromRow).filter(Boolean)
   songs.sort((a, b) => collator.compare(a.title, b.title) || a.id - b.id)
-  return { songs, dropped }
+  return { songs, dropped: rows.length - songs.length }
 }
 
 /**

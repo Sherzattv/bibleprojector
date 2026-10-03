@@ -84,8 +84,9 @@ export function screenSectionLabel(label: string, lang: SongLang): string {
   const names = SCREEN_SECTION_NAMES[lang]
   if (!names || !label) return label
   const match = /^(\S+)(?:\s+(\d+))?$/.exec(label.trim())
-  const name = match ? names[match[1]] : undefined
-  return name ? name(Number(match![2] ?? 1)) : ''
+  if (!match) return ''
+  const name = names[match[1]]
+  return name ? name(Number(match[2] ?? 1)) : ''
 }
 
 /** Подпись песни без секции: «Благодать · № 310» */
